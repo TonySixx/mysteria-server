@@ -1,0 +1,19 @@
+{
+  "name": "mysteria-backend",
+  "version": "1.0.0",
+  "description": "Backend pro online 1v1 karetní hru Mysteria",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "build": "echo 'No build step required for backend'"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "socket.io": "^4.4.1",
+    "@supabase/supabase-js": "^2.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
+  }
+}
