@@ -135,7 +135,7 @@
 - Opraveny styly karet a herní plochy pro lepší vizuální prezentaci
 - Upraveno pozicování karet v ruce hráče
 - Vylepšena čitelnost karet přidáním tmavého pozadí
-- Optimalizováno rozvržení herní plochy
+- Optimalizovno rozvržení herní plochy
 - Opraveno použití styled komponent v GameScene
 - Obnovena správná hierarchie komponent pro lepší vizuální prezentaci
 - Opraveno zobrazení karet v ruce a na herním poli
@@ -204,7 +204,7 @@
 
 ### Changed
 - Přepracována komponenta GameScene pro podporu online multiplayeru
-- Odstraněna lokální herní logika
+- Odstraněna lokáln herní logika
 - Přidána podpora pro zobrazení stavu hry ze serveru
 - Implementováno omezení akcí podle aktuálního stavu hry
 - Vylepšeno zobrazení stavu tahu a disabled stavů
@@ -252,7 +252,7 @@
 - Opraveno zobrazování obrázků hrdinů - nyní se správně rozlišuje hrdina hráče a protivníka
 
 ### Fixed
-- Opraven problém s detekc�� konce hry při zabití hrdiny
+- Opraven problém s detekc konce hry při zabití hrdiny
 - Přidána správná kontrola konce hry po každém útoku na hrdinu
 - Zajištěno správné ukončení hry při dosažení nulových nebo záporných životů hrdiny
 
@@ -478,3 +478,16 @@
   - "Nedostatek many!" -> "Not enough mana!"
   - "Tato jednotka nemůže útočit!" -> "This unit cannot attack!"
   - "Ukončit tah" -> "End turn"
+
+### Changed
+- Upraven počet karet v balíčku na standardních 30 karet
+  - Přidány další kopie základních jednotek (3 kopie každé)
+  - Přidány další kopie běžných kouzel (3 kopie)
+  - Ponechány limitované kopie vzácnějších kouzel (1-2 kopie)
+  - Zachována vyváženost balíčku pomocí různého počtu kopií podle vzácnosti
+
+### Changed
+- Upravena inicializace balíčku v GameManager.js
+  - Implementován systém kopií karet podle vzácnosti
+  - Přidáno logování pro kontrolu složení balíčku
+  - Zachována funkcionalita unikátních ID pro karty
