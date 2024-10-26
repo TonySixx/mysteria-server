@@ -106,7 +106,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             // Přidáme notifikaci o posílení
             if (!newState.notification) {
                 newState.notification = {
-                    message: 'Arcane Familiar získal +1 útok!',
+                    message: 'Arcane Familiar gained +1 attack!',
                     forPlayer: playerIndex
                 };
             }
@@ -122,7 +122,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 newHealth: opponent.hero.health
             });
             newState.notification = {
-                message: `Fireball způsobil 6 poškození nepřátelskému hrdinovi!`,
+                message: `Fireball dealt 6 damage to the enemy hero!`,
                 forPlayer: playerIndex
             };
             break;
@@ -135,7 +135,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 newHealth: opponent.hero.health
             });
             newState.notification = {
-                message: 'Lightning Bolt způsobil 3 poškození nepřátelskému hrdinovi!',
+                message: 'Lightning Bolt dealt 3 damage to the enemy hero!',
                 forPlayer: playerIndex
             };
             break;
@@ -151,7 +151,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 newHealth: player.hero.health
             });
             newState.notification = {
-                message: `Healing Touch vyléčil vašeho hrdinu o ${healAmount} životů!`,
+                message: `Healing Touch restored ${healAmount} health to your hero!`,
                 forPlayer: playerIndex
             };
             break;
@@ -167,7 +167,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 frozenUnits: opponent.field.filter(unit => unit?.frozen).length
             });
             newState.notification = {
-                message: 'Všechny nepřátelské jednotky byly zmraženy!',
+                message: 'All enemy units were frozen!',
                 forPlayer: playerIndex
             };
             break;
@@ -183,7 +183,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 }))
             });
             newState.notification = {
-                message: 'Inferno Wave způsobila 4 poškození všem nepřátelským jednotkám!',
+                message: 'Inferno Wave dealt 4 damage to all enemy units!',
                 forPlayer: playerIndex
             };
             break;
@@ -195,7 +195,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 newMana: player.mana
             });
             newState.notification = {
-                message: 'Získali jste 1 mana crystal!',
+                message: 'Gained 1 mana crystal!',
                 forPlayer: playerIndex
             };
             break;
@@ -216,7 +216,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 newHandSize: player.hand.length
             });
             newState.notification = {
-                message: `Líznuli jste ${cardsDrawn.length} karty!`,
+                message: `Drew ${cardsDrawn.length} cards!`,
                 forPlayer: playerIndex
             };
             break;
@@ -238,7 +238,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
         case 'Fire Elemental':
             opponent.hero.health -= 2;
             newState.notification = {
-                message: 'Fire Elemental způsobil 2 poškození nepřátelskému hrdinovi!',
+                message: 'Fire Elemental dealt 2 damage to the enemy hero!',
                 forPlayer: playerIndex
             };
             break;
@@ -249,7 +249,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                 opponent.field[randomIndex].frozen = true;
                 opponent.field[randomIndex].frozenLastTurn = false;
                 newState.notification = {
-                    message: `Water Elemental zmrazil nepřátelskou jednotku ${opponent.field[randomIndex].name}!`,
+                    message: `Water Elemental froze enemy ${opponent.field[randomIndex].name}!`,
                     forPlayer: playerIndex
                 };
             }
@@ -261,7 +261,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                 if (player.hand.length < 10) {
                     player.hand.push(drawnCard);
                     newState.notification = {
-                        message: 'Nimble Sprite vám umožnil líznout kartu!',
+                        message: 'Nimble Sprite allowed you to draw a card!',
                         forPlayer: playerIndex
                     };
                 }
@@ -282,7 +282,7 @@ function playCardCommon(state, playerIndex, cardIndex, target = null) {
         return { 
             ...newState, 
             notification: {
-                message: 'Nemáte dostatek many!',
+                message: 'Not enough mana!',
                 forPlayer: playerIndex
             }
         };
@@ -304,7 +304,7 @@ function playCardCommon(state, playerIndex, cardIndex, target = null) {
         return { 
             ...newState, 
             notification: {
-                message: 'Nemáte místo na poli!',
+                message: 'No space on the field!',
                 forPlayer: playerIndex
             }
         };

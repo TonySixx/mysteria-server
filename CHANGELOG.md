@@ -49,6 +49,9 @@
   - Sledování zpracování notifikací v komponentě
   - Logování drag & drop operací a útoků
   - Přidáno logování kontroly cílového hráče pro notifikace
+- Přidány tooltips v angličtině pro balíček karet a mana krystaly
+  - Tooltip pro balíček: "Remaining cards in deck"
+  - Tooltip pro manu: "Current/Maximum mana crystals - Used to play cards"
 
 ### Changed
 - Vylepšena vizuální stránka hry přidáním dynamických efektů pro lepší uživatelský zážitek.
@@ -209,7 +212,7 @@
 ### Added
 - Implementována drag & drop logika pro hraní karet a útoky v online režimu
 - Přidáno zobrazení stavu many a balíčku pro oba hráče
-- Přidána vizuální indikace aktivního hráče
+- Přidána vizuáln indikace aktivního hráe
 
 ### Fixed
 - Opraveno zobrazování karet protivníka na herním poli - nyní jsou viditelné
@@ -249,7 +252,7 @@
 - Opraveno zobrazování obrázků hrdinů - nyní se správně rozlišuje hrdina hráče a protivníka
 
 ### Fixed
-- Opraven problém s detekcí konce hry při zabití hrdiny
+- Opraven problém s detekc�� konce hry při zabití hrdiny
 - Přidána správná kontrola konce hry po každém útoku na hrdinu
 - Zajištěno správné ukončení hry při dosažení nulových nebo záporných životů hrdiny
 
@@ -442,3 +445,36 @@
 
 ### Added
 - Implementován efekt jednotky Arcane Familiar - při zahrání kouzla získává +1 útok
+
+### Fixed
+- Opraveno pozicování tooltipů
+  - Přidána responzivní úprava pro menší obrazovky
+  - Zkráceny texty tooltipů pro lepší čitelnost
+  - Zajištěno, že tooltip nepřeteče mimo obrazovku
+
+### Changed
+- Přeloženy všechny herní notifikace do angličtiny pro konzistentní jazykové prostředí
+  - Upraveny notifikace pro efekty kouzel
+  - Upraveny notifikace pro efekty jednotek
+  - Upraveny systémové notifikace (nedostatek many, plné pole, atd.)
+
+### Changed
+- Přeloženy všechny texty v MatchmakingScreen do angličtiny
+  - "Hledání protihráče..." -> "Searching for opponent..."
+  - "Zrušit hledání" -> "Cancel search"
+  - "Najít hru" -> "Find game"
+- Přeloženy všechny notifikace v combat logice do angličtiny
+  - Upraveny chybové zprávy při útoku
+  - Upraveny notifikace pro Taunt efekt
+  - Sjednocen jazyk všech herních zpráv
+
+### Changed
+- Přeloženy všechny texty v GameScene do angličtiny
+  - "Čekám na připojení protihráče..." -> "Waiting for opponent..."
+  - "Hra skončila!" -> "Game Over!"
+  - "Vyhrál jsi!" -> "You won!"
+  - "Prohrál jsi!" -> "You lost!"
+  - "Nejsi na tahu!" -> "Not your turn!"
+  - "Nedostatek many!" -> "Not enough mana!"
+  - "Tato jednotka nemůže útočit!" -> "This unit cannot attack!"
+  - "Ukončit tah" -> "End turn"

@@ -44,7 +44,7 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
             return { 
                 ...newState, 
                 notification: { 
-                    message: 'Jednotka neexistuje!',
+                    message: 'Unit does not exist!',
                     forPlayer: attackerPlayerIndex 
                 }
             };
@@ -55,7 +55,7 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
             return { 
                 ...newState, 
                 notification: { 
-                    message: 'Zmražená jednotka nemůže útočit!',
+                    message: 'Frozen unit cannot attack!',
                     forPlayer: attackerPlayerIndex 
                 }
             };
@@ -66,7 +66,7 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
             return { 
                 ...newState, 
                 notification: { 
-                    message: 'Tato jednotka již v tomto kole útočila!',
+                    message: 'This unit has already attacked this turn!',
                     forPlayer: attackerPlayerIndex 
                 }
             };
@@ -91,7 +91,7 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                 return { 
                     ...newState, 
                     notification: { 
-                        message: 'Nemůžete útočit na hrdinu, dokud je na stole jednotka s Taunt efektem!',
+                        message: 'Cannot attack hero while there is a Taunt unit on the field!',
                         forPlayer: attackerPlayerIndex 
                     }
                 };
@@ -103,7 +103,7 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                 return { 
                     ...newState, 
                     notification: { 
-                        message: 'Musíte nejprve zaútočit na jednotku s Taunt efektem!',
+                        message: 'You must attack the Taunt unit first!',
                         forPlayer: attackerPlayerIndex 
                     }
                 };
