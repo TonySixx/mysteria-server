@@ -1,6 +1,6 @@
-const { Card, UnitCard, SpellCard, Hero } = require('./mysteria-shared/game/CardClasses');
-const { startNextTurn, checkGameOver, playCardCommon } = require('./mysteria-shared/game/gameLogic');
-const { attack } = require('./mysteria-shared/game/combatLogic');
+const { Card, UnitCard, SpellCard, Hero } = require('./game/CardClasses');
+const { startNextTurn, checkGameOver, playCardCommon } = require('./game/gameLogic');
+const { attack } = require('.game/combatLogic');
 
 class GameManager {
     constructor() {
