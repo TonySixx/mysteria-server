@@ -152,6 +152,10 @@
 
 ### Fixed
 - Opraveny problémy s připojením k serveru
+  - Přidána podpora pro CORS credentials
+  - Přidán polling jako fallback pro websocket
+  - Aktualizovány allowed origins pro CORS
+  - Opravena URL serveru v konfiguraci
 - Sjednoceny porty pro socketovou komunikaci
 - Vylepšena inicializace socketového připojení
 - Přidána lepší správa životnho cyklu socket instance
@@ -300,3 +304,21 @@
 - Implementovány Git submoduly pro správu shared kódu
 - Aktualizovány deployment skripty pro podporu submodulů
 
+### Fixed
+- Opraven build na Vercelu
+  - Přidáno CI=false pro ignorování varování při buildu
+  - Upraveny verze React závislostí
+  - Aktualizována konfigurace Vercelu
+
+### Fixed
+- Opraveno načítání obrázku pozadí na Vercelu
+  - Přidána správná konfigurace pro servírování statických souborů
+  - Upraven path k obrázku pozadí pro použití PUBLIC_URL
+  - Přidána explicitní route pro background.png v Vercel konfiguraci
+
+### Fixed
+- Opraveno lokální připojení k serveru
+  - Přidána podpora pro oba transportní protokoly (websocket a polling)
+  - Rozšířena CORS konfigurace pro lokální vývoj
+  - Přidáno debug logování pro Socket.IO chyby
+  - Upraveny environment proměnné pro různá prostředí
