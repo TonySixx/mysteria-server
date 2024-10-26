@@ -81,7 +81,7 @@ class GameManager {
             return response;
         }
 
-        // Pokud není dostatek hráčů, vrátíme status čekán��
+        // Pokud není dostatek hráčů, vrátíme status čekán
         console.log(`Hráč ${socket.id} čeká na protihráče`);
         return { status: 'waiting' };
     }
@@ -205,11 +205,9 @@ class GameManager {
     setupGameListeners(gameId, socket, playerIndex) {
         console.log(`Nastavuji listenery pro hráče ${socket.id} v game ${gameId}`);
         
-        // Přidáme hráče do herní místnosti
         socket.join(gameId);
         console.log(`Hráč ${socket.id} připojen do místnosti ${gameId}`);
 
-        // Nastavíme event listenery
         socket.on('playCard', (data) => {
             console.log(`Hráč ${socket.id} hraje kartu:`, data);
             this.handlePlayCard(gameId, playerIndex, data);
@@ -217,6 +215,32 @@ class GameManager {
 
         socket.on('attack', (data) => {
             console.log(`Hráč ${socket.id} útočí:`, data);
+            const game = this.games.get(gameId);
+            
+            if (!game) {
+                console.log('Hra neexistuje');
+                return;
+            }
+
+            if (game.currentPlayer !== playerIndex) {
+                console.log('Hráč není na tahu');
+                socket.emit('error', 'Nejste na tahu!');
+                return;
+            }
+
+            const attacker = game.players[playerIndex].field[data.attackerIndex];
+            if (attacker && attacker.hasAttacked) {
+                console.log('Jednotka již útočila v tomto kole');
+                socket.emit('gameState', {
+                    ...this.createPlayerView(game, playerIndex),
+                    notification: {
+                        message: 'Tato jednotka již v tomto kole útočila!',
+                        forPlayer: playerIndex
+                    }
+                });
+                return;
+            }
+
             this.handleAttack(gameId, playerIndex, data);
         });
 

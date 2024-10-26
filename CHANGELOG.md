@@ -44,6 +44,11 @@
 - Přidána konfigurace pro deployment na Render.com
 - Přidána podpora pro CORS v produkčním prostředí
 - Implementováno prostředí pro produkční nasazení
+- Přidáno podrobné logování pro debugování notifikací
+  - Logování příchozích notifikací ze serveru
+  - Sledování zpracování notifikací v komponentě
+  - Logování drag & drop operací a útoků
+  - Přidáno logování kontroly cílového hráče pro notifikace
 
 ### Changed
 - Vylepšena vizuální stránka hry přidáním dynamických efektů pro lepší uživatelský zážitek.
@@ -350,7 +355,7 @@
 
 ### Fixed
 - Opraveno zobrazování obrázků karet
-  - Přidána mapa pro mapování názvů obrázků na importované soubory
+  - Přidána mapa pro mapování názvů obrázk na importované soubory
   - Implementována fallback hodnota pro případ chybějícího obrázku
   - Vylepšeno zpracování obrázků karet ze serveru
 
@@ -390,3 +395,41 @@
   - Maximální zdraví hrdiny omezeno na 30
   - Maximální mana omezena na 10
 - Vylepšeny notifikace pro kouzla
+
+### Fixed
+- Opraveno zobrazování notifikací pro Taunt efekt
+  - Přidáno zpracování serverových notifikací na klientovi
+  - Odstraněny duplicitní notifikace na klientovi
+  - Vylepšeno zobrazování varování při neplatných útocích
+
+### Fixed
+- Opraveno zobrazování notifikací
+  - Přidána podpora pro různé formáty notifikací
+  - Vylepšena kontrola cílového hráče pro notifikace
+  - Přidáno logování pro debugování notifikací
+
+### Fixed
+- Opraveno zobrazování notifikací
+  - Upravena Notification komponenta pro podporu více notifikací
+  - Přidána podpora pro zobrazení více notifikací současně
+  - Vylepšena animace a styling notifikací
+  - Opraveno mapování notifikací v UI
+
+### Fixed
+- Opraveno opakované zobrazování notifikací
+  - Přidáno sledování ID poslední notifikace
+  - Implementována kontrola pro nové notifikace
+  - Vylepšena detekce změn v notifikacích
+  - Přidáno logování pro sledování zpracování notifikací
+
+### Fixed
+- Opraven problém s duplicitním zpracováním útoku
+  - Přidány kontroly pro prevenci vícenásobného útoku
+  - Vylepšeno logování pro sledování požadavků na útok
+  - Přidány dodatečné validace herního stavu
+
+### Fixed
+- Odstraněna duplicitní registrace socket event listenerů
+  - Přesunuty všechny herní event listenery do GameManager.js
+  - Ponechány pouze základní listenery v server.js
+  - Opraveno dvojité zpracování herních akcí

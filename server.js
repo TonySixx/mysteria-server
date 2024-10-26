@@ -58,7 +58,6 @@ io.on('connection', (socket) => {
 
     socket.on('joinGame', () => {
         try {
-            // Nebudeme odesílat odpověď zde, GameManager to udělá sám
             gameManager.handlePlayerJoin(socket);
         } catch (error) {
             console.error('Chyba při připojování do hry:', error);
@@ -75,55 +74,13 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Herní akce
-    socket.on('playCard', (data) => {
-        try {
-            const gameId = Array.from(socket.rooms).find(room => room !== socket.id);
-            if (gameId) {
-                const playerIndex = gameManager.getPlayerIndex(gameId, socket.id);
-                gameManager.handlePlayCard(gameId, playerIndex, data);
-            }
-        } catch (error) {
-            console.error('Chyba při hraní karty:', error);
-            socket.emit('error', 'Nepodařilo se zahrát kartu');
-        }
-    });
-
-    socket.on('attack', (data) => {
-        try {
-            const gameId = Array.from(socket.rooms).find(room => room !== socket.id);
-            if (gameId) {
-                const playerIndex = gameManager.getPlayerIndex(gameId, socket.id);
-                gameManager.handleAttack(gameId, playerIndex, data);
-            }
-        } catch (error) {
-            console.error('Chyba při útoku:', error);
-            socket.emit('error', 'Nepodařilo se provést útok');
-        }
-    });
-
-    socket.on('endTurn', () => {
-        try {
-            const gameId = Array.from(socket.rooms).find(room => room !== socket.id);
-            if (gameId) {
-                const playerIndex = gameManager.getPlayerIndex(gameId, socket.id);
-                gameManager.handleEndTurn(gameId, playerIndex);
-            }
-        } catch (error) {
-            console.error('Chyba při končení tahu:', error);
-            socket.emit('error', 'Nepodařilo se ukončit tah');
-        }
-    });
-
     socket.on('disconnect', () => {
         try {
-            // Najdeme hru, ve které je hráč
             const gameId = gameManager.playerGameMap.get(socket.id);
             if (gameId) {
                 const playerIndex = gameManager.getPlayerIndex(gameId, socket.id);
                 gameManager.handleDisconnect(gameId, playerIndex);
             } else {
-                // Pokud hráč není v žádné hře, možná hledá hru
                 gameManager.cancelSearch(socket);
             }
             console.log(`Hráč se odpojil (ID: ${socket.id})`);
