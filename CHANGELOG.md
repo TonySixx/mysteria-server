@@ -21,7 +21,7 @@
 - Přidána podpora pro více současně běžících her
 - Implementována základní ochrana proti podvádění
 - Implementována podpora pro online multiplayer
-- Přidána socketová komunikace mezi klientem a serverem
+- Přidána socketov komunikace mezi klientem a serverem
 - Přidána synchronizace herního stavu mezi hráči
 - Přidány kontroly pro validní tahy v online hře
 - Přidány konstanty pro herní události a stavy
@@ -89,7 +89,7 @@
 - Opravena chyba, která bránila vyložení karty na stůl pomocí přetažení.
 - Opravena chyba, která neumožňovala vybrat konkrétní cíl útoku mezi nepřátelskými jednotkami.
 - Opravena chyba, která bránila provedení útoku při přetažení karty na cíl.
-- Odstraněna nadbytečná Droppable oblast pro celé nepřítelovo pole.
+- Odstranna nadbytečná Droppable oblast pro celé nepřítelovo pole.
 - Opravena chyba, která umožňovala ignorovat efekt Taunt při útoku pomocí drag&drop.
 - Opravena chyba s nekonzistentními indexy Draggable komponent v ruce hráče.
 - Vylepšena logika pro hraní karet pomocí drag and drop, nyní zahrnuje i kouzla.
@@ -199,8 +199,7 @@
 - Odstraněna lokální herní logika
 - Přidána podpora pro zobrazení stavu hry ze serveru
 - Implementováno omezení akcí podle aktuálního stavu hry
-- Vylepšeno zobrazení karet protihráče
-- Přidána vizuální zpětná vazba pro povolené akce
+- Vylepšeno zobrazení stavu tahu a disabled stavů
 
 ### Added
 - Implementována drag & drop logika pro hraní karet a útoky v online režimu
@@ -239,6 +238,9 @@
 
 ### Fixed
 - Opraven útok na nepřátelského hrdinu
+  - Upravena struktura dat odesílaných na server při útoku
+  - Sjednoceno rozhraní pro útok na jednotky a hrdiny
+  - Přidány chybějící parametry pro správné zpracování útoku
 - Opraveno zobrazování obrázků hrdinů - nyní se správně rozlišuje hrdina hráče a protivníka
 
 ### Fixed
@@ -319,6 +321,54 @@
 ### Fixed
 - Opraveno lokální připojení k serveru
   - Přidána podpora pro oba transportní protokoly (websocket a polling)
-  - Rozšířena CORS konfigurace pro lokální vývoj
+  - Rozš��řena CORS konfigurace pro lokální vývoj
   - Přidáno debug logování pro Socket.IO chyby
   - Upraveny environment proměnné pro různá prostředí
+
+### Fixed
+- Opravena viditelnost karet během přetahování
+  - Implementován React Portal pro přetahované karty
+  - Upraveno pozicování a z-index pro zajištění viditelnosti
+  - Vylepšena vizuální zpětná vazba bhem přetahování
+
+### Fixed
+- Opravena chyba při načítání GameScene komponenty když není dostupný herní stav
+- Přidány bezpečnostní kontroly pro práci s gameState
+- Vylepšena validace tahů v online režimu
+- Opraveny texty pro zobrazení vítěze v online režimu
+- Přidána robustnější implementace Taunt mechaniky
+
+### Changed
+- Upravena GameScene komponenta pro práci s novou strukturou herního stavu
+- Implementováno správné zobrazování skrytých karet protihráče
+- Vylepšena logika pro určení aktivního hráče a vítěze
+
+### Fixed
+- Opraveno zobrazování počtu karet v balíčku
+- Upraveny kontroly pro validní tahy v online režimu
+- Opraveno zobrazování stavu hry pro oba hráče
+
+### Fixed
+- Opraveno zobrazování obrázků karet
+  - Přidána mapa pro mapování názvů obrázků na importované soubory
+  - Implementována fallback hodnota pro případ chybějícího obrázku
+  - Vylepšeno zpracování obrázků karet ze serveru
+
+### Fixed
+- Opraven útok na nepřátelského hrdinu a jednotky
+  - Přidána hluboká kopie herního stavu pro prevenci mutací
+  - Implementováno podrobné logování průběhu útoku
+  - Opraveno odečítání životů při útoku
+  - Přidány dodatečné kontroly existence jednotek
+
+### Added
+- Přidáno podrobné logování na serveru
+  - Logování průběhu útoku a soubojů
+  - Sledování změn zdraví jednotek a hrdinů
+  - Logování kontrol Taunt efektu
+
+### Fixed
+- Opravena chyba s cyklickými referencemi při kopírování herního stavu
+  - Implementována bezpečná metoda pro kopírování stavu
+  - Odstraněno použití JSON.stringify/parse
+  - Zachována funkčnost kopírování herního stavu bez socket objektů

@@ -1,14 +1,46 @@
 const { checkGameOver } = require("./gameLogic");
 
-function attack(attackerIndex, targetIndex, isHeroTarget, isAIAttack) {
+// Helper funkce pro bezpečnou kopii herního stavu
+function cloneGameState(state) {
+    const newState = {
+        ...state,
+        players: state.players.map(player => ({
+            ...player,
+            field: [...player.field],
+            hand: [...player.hand],
+            hero: { ...player.hero },
+            deck: [...player.deck]
+        }))
+    };
+    return newState;
+}
+
+function attack(attackerIndex, targetIndex, isHeroAttack) {
     return (state) => {
-        const newState = { ...state };
+        console.log('Začátek útoku:', {
+            attackerIndex,
+            targetIndex,
+            isHeroAttack,
+            currentPlayer: state.currentPlayer
+        });
+
+        const newState = cloneGameState(state); // Použijeme vlastní funkci pro kopírování
         const attackerPlayerIndex = state.currentPlayer;
         const defenderPlayerIndex = 1 - attackerPlayerIndex;
+        
+        // Najdeme útočníka
         const attacker = newState.players[attackerPlayerIndex].field[attackerIndex];
+        
+        console.log('Útočník:', {
+            name: attacker?.name,
+            attack: attacker?.attack,
+            hasAttacked: attacker?.hasAttacked,
+            frozen: attacker?.frozen
+        });
 
-        // Kontrolujeme pouze skutečně neplatné útoky
+        // Kontroly
         if (!attacker) {
+            console.log('Chyba: Útočník neexistuje');
             return { 
                 ...newState, 
                 notification: { 
@@ -19,6 +51,7 @@ function attack(attackerIndex, targetIndex, isHeroTarget, isAIAttack) {
         }
 
         if (attacker.frozen) {
+            console.log('Chyba: Útočník je zmražený');
             return { 
                 ...newState, 
                 notification: { 
@@ -29,6 +62,7 @@ function attack(attackerIndex, targetIndex, isHeroTarget, isAIAttack) {
         }
 
         if (attacker.hasAttacked) {
+            console.log('Chyba: Útočník již útočil');
             return { 
                 ...newState, 
                 notification: { 
@@ -40,11 +74,20 @@ function attack(attackerIndex, targetIndex, isHeroTarget, isAIAttack) {
 
         // Kontrola Taunt efektu
         const hasTauntMinion = newState.players[defenderPlayerIndex].field.some(unit => 
-            unit && unit.effect && unit.effect.includes('Taunt')
+            unit && unit.hasTaunt
         );
         
+        console.log('Kontrola Taunt:', {
+            hasTauntMinion,
+            defenderField: newState.players[defenderPlayerIndex].field.map(unit => ({
+                name: unit?.name,
+                hasTaunt: unit?.hasTaunt
+            }))
+        });
+
         if (hasTauntMinion) {
-            if (isHeroTarget) {
+            if (isHeroAttack) {
+                console.log('Chyba: Pokus o útok na hrdinu přes Taunt');
                 return { 
                     ...newState, 
                     notification: { 
@@ -55,7 +98,8 @@ function attack(attackerIndex, targetIndex, isHeroTarget, isAIAttack) {
             }
             
             const target = newState.players[defenderPlayerIndex].field[targetIndex];
-            if (!target?.effect?.includes('Taunt')) {
+            if (!target?.hasTaunt) {
+                console.log('Chyba: Pokus o útok na jednotku bez Taunt, když je na poli Taunt');
                 return { 
                     ...newState, 
                     notification: { 
@@ -70,23 +114,79 @@ function attack(attackerIndex, targetIndex, isHeroTarget, isAIAttack) {
         attacker.hasAttacked = true;
         attacker.canAttack = false;
 
-        if (isHeroTarget) {
+        if (isHeroAttack) {
             const targetHero = newState.players[defenderPlayerIndex].hero;
-            targetHero.health -= attacker.attack;
+            const oldHealth = targetHero.health;
+            targetHero.health = Math.max(0, targetHero.health - attacker.attack);
+            
+            console.log('Útok na hrdinu:', {
+                oldHealth,
+                damage: attacker.attack,
+                newHealth: targetHero.health
+            });
+
             return checkGameOver(newState);
         } else {
             const target = newState.players[defenderPlayerIndex].field[targetIndex];
-            if (!target) return newState;
+            if (!target) {
+                console.log('Chyba: Cíl útoku neexistuje');
+                return newState;
+            }
+
+            console.log('Útok na jednotku:', {
+                targetBefore: {
+                    name: target.name,
+                    health: target.health,
+                    hasDivineShield: target.hasDivineShield
+                },
+                attackerBefore: {
+                    name: attacker.name,
+                    health: attacker.health,
+                    hasDivineShield: attacker.hasDivineShield
+                }
+            });
+
             handleCombat(attacker, target);
+
+            console.log('Po útoku:', {
+                targetAfter: {
+                    name: target.name,
+                    health: target.health,
+                    hasDivineShield: target.hasDivineShield
+                },
+                attackerAfter: {
+                    name: attacker.name,
+                    health: attacker.health,
+                    hasDivineShield: attacker.hasDivineShield
+                }
+            });
+
+            // Odstraníme mrtvé jednotky
             newState.players.forEach(player => {
                 player.field = player.field.filter(card => card.health > 0);
             });
+
             return checkGameOver(newState);
         }
     };
 }
 
 function handleCombat(attacker, defender) {
+    console.log('Začátek souboje:', {
+        attacker: {
+            name: attacker.name,
+            attack: attacker.attack,
+            health: attacker.health,
+            hasDivineShield: attacker.hasDivineShield
+        },
+        defender: {
+            name: defender.name,
+            attack: defender.attack,
+            health: defender.health,
+            hasDivineShield: defender.hasDivineShield
+        }
+    });
+
     if (defender.hasDivineShield) {
         defender.hasDivineShield = false;
     } else {
@@ -98,6 +198,19 @@ function handleCombat(attacker, defender) {
     } else {
         attacker.health -= defender.attack;
     }
+
+    console.log('Konec souboje:', {
+        attacker: {
+            name: attacker.name,
+            health: attacker.health,
+            hasDivineShield: attacker.hasDivineShield
+        },
+        defender: {
+            name: defender.name,
+            health: defender.health,
+            hasDivineShield: defender.hasDivineShield
+        }
+    });
 }
 
 module.exports = {
