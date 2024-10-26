@@ -321,7 +321,7 @@
 ### Fixed
 - Opraveno lokální připojení k serveru
   - Přidána podpora pro oba transportní protokoly (websocket a polling)
-  - Rozš��řena CORS konfigurace pro lokální vývoj
+  - Rozšřena CORS konfigurace pro lokální vývoj
   - Přidáno debug logování pro Socket.IO chyby
   - Upraveny environment proměnné pro různá prostředí
 
@@ -372,3 +372,21 @@
   - Implementována bezpečná metoda pro kopírování stavu
   - Odstraněno použití JSON.stringify/parse
   - Zachována funkčnost kopírování herního stavu bez socket objektů
+
+### Changed
+- Upravena funkčnost kouzel
+  - Fireball nyní cílí pouze na nepřátelského hrdinu (6 poškození)
+  - Lightning Bolt nyní cílí pouze na nepřátelského hrdinu (3 poškození)
+  - Healing Touch nyní léčí pouze vlastního hrdinu (8 životů)
+
+### Added
+- Přidáno podrobné logování efektů kouzel
+  - Sledování změn zdraví a many
+  - Logování počtu ovlivněných jednotek
+  - Detailní informace o líznutých kartách
+
+### Fixed
+- Opraveny limity pro léčení a manu
+  - Maximální zdraví hrdiny omezeno na 30
+  - Maximální mana omezena na 10
+- Vylepšeny notifikace pro kouzla

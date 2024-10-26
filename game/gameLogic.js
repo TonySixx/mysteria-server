@@ -86,100 +86,130 @@ function checkGameOver(state) {
 }
 
 function handleSpellEffects(card, player, opponent, state, playerIndex) {
+    console.log('Začátek aplikace kouzla:', {
+        cardName: card.name,
+        playerMana: player.mana,
+        playerHealth: player.hero.health,
+        opponentHealth: opponent.hero.health
+    });
+
     const newState = { ...state };
     
     switch (card.name) {
         case 'Fireball':
-            if (!card.target) {
-                return { ...newState, notification: 'Musíte vybrat cíl pro Fireball!' };
-            }
-            if (card.target.type === 'hero') {
-                opponent.hero.health -= 6;
-                newState.notification = `Fireball způsobil 6 poškození nepřátelskému hrdinovi!`;
-            } else if (card.target.type === 'unit') {
-                const targetUnit = opponent.field[card.target.index];
-                if (targetUnit) {
-                    targetUnit.health -= 6;
-                    newState.notification = `Fireball způsobil 6 poškození jednotce ${targetUnit.name}!`;
-                }
-            }
+            // Fireball nyní působí pouze 6 poškození nepřátelskému hrdinovi
+            opponent.hero.health = Math.max(0, opponent.hero.health - 6);
+            console.log('Fireball zasáhl hrdinu:', {
+                damage: 6,
+                newHealth: opponent.hero.health
+            });
+            newState.notification = {
+                message: `Fireball způsobil 6 poškození nepřátelskému hrdinovi!`,
+                forPlayer: playerIndex
+            };
             break;
 
         case 'Lightning Bolt':
-            if (!card.target) {
-                return { ...newState, notification: 'Musíte vybrat cíl pro Lightning Bolt!' };
-            }
-            if (card.target.type === 'hero') {
-                opponent.hero.health -= 3;
-                newState.notification = 'Lightning Bolt způsobil 3 poškození nepřátelskému hrdinovi!';
-            } else if (card.target.type === 'unit') {
-                const targetUnit = opponent.field[card.target.index];
-                if (targetUnit) {
-                    targetUnit.health -= 3;
-                    newState.notification = `Lightning Bolt způsobil 3 poškození jednotce ${targetUnit.name}!`;
-                }
-            }
+            // Lightning Bolt nyní působí pouze 3 poškození nepřátelskému hrdinovi
+            opponent.hero.health = Math.max(0, opponent.hero.health - 3);
+            console.log('Lightning Bolt zasáhl hrdinu:', {
+                damage: 3,
+                newHealth: opponent.hero.health
+            });
+            newState.notification = {
+                message: 'Lightning Bolt způsobil 3 poškození nepřátelskému hrdinovi!',
+                forPlayer: playerIndex
+            };
+            break;
+
+        case 'Healing Touch':
+            // Healing Touch nyní léčí pouze vlastního hrdinu
+            const oldHealth = player.hero.health;
+            player.hero.health = Math.min(player.hero.health + 8, 30);
+            const healAmount = player.hero.health - oldHealth;
+            
+            console.log('Healing Touch vyléčil:', {
+                healAmount,
+                newHealth: player.hero.health
+            });
+            newState.notification = {
+                message: `Healing Touch vyléčil vašeho hrdinu o ${healAmount} životů!`,
+                forPlayer: playerIndex
+            };
             break;
 
         case 'Glacial Burst':
             opponent.field.forEach(unit => {
                 if (unit) {
                     unit.frozen = true;
-                    unit.frozenLastTurn = false; // Přidáme nový flag
+                    unit.frozenLastTurn = false;
                 }
             });
-            newState.notification = 'Všechny nepřátelské jednotky byly zmraženy!';
+            console.log('Glacial Burst zmrazil jednotky:', {
+                frozenUnits: opponent.field.filter(unit => unit?.frozen).length
+            });
+            newState.notification = {
+                message: 'Všechny nepřátelské jednotky byly zmraženy!',
+                forPlayer: playerIndex
+            };
             break;
 
         case 'Inferno Wave':
             opponent.field.forEach(unit => {
                 if (unit) unit.health -= 4;
             });
-            newState.notification = 'Inferno Wave způsobila 4 poškození všem nepřátelským jednotkám!';
+            console.log('Inferno Wave zasáhla jednotky:', {
+                affectedUnits: opponent.field.map(unit => ({
+                    name: unit?.name,
+                    newHealth: unit?.health
+                }))
+            });
+            newState.notification = {
+                message: 'Inferno Wave způsobila 4 poškození všem nepřátelským jednotkám!',
+                forPlayer: playerIndex
+            };
             break;
 
         case 'The Coin':
             player.mana = Math.min(player.mana + 1, 10);
-            newState.notification = 'Získali jste 1 mana crystal!';
-            break;
-
-        case 'Healing Touch':
-            if (!card.target) {
-                return { ...newState, notification: 'Musíte vybrat cíl pro Healing Touch!' };
-            }
-            if (card.target.type === 'hero') {
-                player.hero.health = Math.min(player.hero.health + 8, 30);
-                newState.notification = 'Vyléčili jste svého hrdinu o 8 životů!';
-            } else if (card.target.type === 'unit') {
-                const targetUnit = player.field[card.target.index];
-                if (targetUnit) {
-                    targetUnit.health += 8;
-                    newState.notification = `Vyléčili jste jednotku ${targetUnit.name} o 8 životů!`;
-                }
-            }
+            console.log('The Coin použit:', {
+                oldMana: player.mana - 1,
+                newMana: player.mana
+            });
+            newState.notification = {
+                message: 'Získali jste 1 mana crystal!',
+                forPlayer: playerIndex
+            };
             break;
 
         case 'Arcane Intellect':
+            const cardsDrawn = [];
             for (let i = 0; i < 2; i++) {
                 if (player.deck.length > 0) {
                     const drawnCard = player.deck.pop();
                     if (player.hand.length < 10) {
                         player.hand.push(drawnCard);
+                        cardsDrawn.push(drawnCard.name);
                     }
                 }
             }
-            return {
-                ...newState,
-                notification: 'Líznuli jste 2 karty!',
-                notificationForPlayer: playerIndex
+            console.log('Arcane Intellect líznul karty:', {
+                cardsDrawn,
+                newHandSize: player.hand.length
+            });
+            newState.notification = {
+                message: `Líznuli jste ${cardsDrawn.length} karty!`,
+                forPlayer: playerIndex
             };
+            break;
     }
 
     // Odstranění mrtvých jednotek
     newState.players.forEach(player => {
-        player.field = player.field.filter(unit => unit.health > 0);
+        player.field = player.field.filter(unit => unit && unit.health > 0);
     });
 
+    console.log('Konec aplikace kouzla');
     return checkGameOver(newState);
 }
 
