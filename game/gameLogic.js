@@ -95,6 +95,24 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
 
     const newState = { ...state };
     
+    // Přidáme efekt Arcane Familiar před zpracováním kouzla
+    player.field.forEach(unit => {
+        if (unit.name === 'Arcane Familiar') {
+            unit.attack += 1;
+            console.log('Arcane Familiar posílen:', {
+                unitName: unit.name,
+                newAttack: unit.attack
+            });
+            // Přidáme notifikaci o posílení
+            if (!newState.notification) {
+                newState.notification = {
+                    message: 'Arcane Familiar získal +1 útok!',
+                    forPlayer: playerIndex
+                };
+            }
+        }
+    });
+
     switch (card.name) {
         case 'Fireball':
             // Fireball nyní působí pouze 6 poškození nepřátelskému hrdinovi

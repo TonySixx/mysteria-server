@@ -439,3 +439,6 @@
   - Přidáno správné určení cílového hráče pro všechny herní efekty
   - Upraveny notifikace pro efekty jednotek
   - Sjednocen formát notifikací napříč celou aplikací
+
+### Added
+- Implementován efekt jednotky Arcane Familiar - při zahrání kouzla získává +1 útok
