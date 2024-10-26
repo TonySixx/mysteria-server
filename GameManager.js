@@ -81,7 +81,7 @@ class GameManager {
             return response;
         }
 
-        // Pokud není dostatek hráčů, vrátíme status čekání
+        // Pokud není dostatek hráčů, vrátíme status čekán��
         console.log(`Hráč ${socket.id} čeká na protihráče`);
         return { status: 'waiting' };
     }
@@ -252,6 +252,20 @@ class GameManager {
         const player = game.players[playerIndex];
         const opponent = game.players[1 - playerIndex];
 
+        // Filtrujeme notifikace podle toho, komu jsou určeny
+        let notification = null;
+        if (game.notification) {
+            // Pokud je notifikace objekt s určením pro konkrétního hráče
+            if (typeof game.notification === 'object') {
+                if (game.notification.forPlayer === playerIndex) {
+                    notification = game.notification.message;
+                }
+            } else {
+                // Pokud je notifikace string, zobrazí se oběma hráčům
+                notification = game.notification;
+            }
+        }
+
         return {
             gameId: game.gameId,
             currentPlayer: game.currentPlayer,
@@ -281,25 +295,46 @@ class GameManager {
                 deckSize: opponent.deck.length,
                 mana: opponent.mana,
                 maxMana: opponent.maxMana
-            }
+            },
+            notification: notification
         };
     }
 
     // Zpracování herních akcí
     handlePlayCard(gameId, playerIndex, data) {
         const game = this.games.get(gameId);
-        if (!game || game.currentPlayer !== playerIndex) return;
+        if (!game || game.currentPlayer !== playerIndex) {
+            // Pokud hráč není na tahu, pošleme mu notifikaci
+            game.notification = {
+                message: 'Nejste na tahu!',
+                forPlayer: playerIndex
+            };
+            this.broadcastGameState(gameId);
+            return;
+        }
 
-        const updatedState = playCardCommon(game, playerIndex, data.cardIndex);
-        const finalState = checkGameOver(updatedState);
+        const updatedState = playCardCommon(game, playerIndex, data.cardIndex, data.target);
         
-        this.games.set(gameId, finalState);
+        // Aktualizujeme notifikaci
+        if (updatedState.notification) {
+            game.notification = updatedState.notification;
+        }
+        
+        this.games.set(gameId, updatedState);
         this.broadcastGameState(gameId);
     }
 
     handleAttack(gameId, playerIndex, data) {
         const game = this.games.get(gameId);
-        if (!game || game.currentPlayer !== playerIndex) return;
+        if (!game || game.currentPlayer !== playerIndex) {
+            // Pokud hráč není na tahu, pošleme mu notifikaci
+            game.notification = {
+                message: 'Nejste na tahu!',
+                forPlayer: playerIndex
+            };
+            this.broadcastGameState(gameId);
+            return;
+        }
 
         const updatedState = attack(
             data.attackerIndex,
@@ -308,7 +343,11 @@ class GameManager {
             false
         )(game);
 
-        // Kontrola konce hry
+        // Aktualizujeme notifikaci
+        if (updatedState.notification) {
+            game.notification = updatedState.notification;
+        }
+
         if (updatedState.gameOver) {
             console.log('Hra skončila, vítěz:', updatedState.winner);
             // Informujeme oba hráče o konci hry
@@ -325,7 +364,6 @@ class GameManager {
                 });
             }, 5000); // Počkáme 5 sekund před vyčištěním
         } else {
-            // Normální aktualizace stavu
             this.games.set(gameId, updatedState);
             this.broadcastGameState(gameId);
         }

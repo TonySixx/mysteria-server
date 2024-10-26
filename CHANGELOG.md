@@ -38,6 +38,9 @@
   - Deaktivace všech karet při konci hry
 - Přidán modal pro zobrazení konce hry
 - Implementováno zobrazení výsledku hry (výhra/prohra/remíza)
+- Přidány notifikace pro Taunt efekt
+  - Upozornění při pokusu o útok na jednotku bez Taunt
+  - Upozornění při pokusu o útok na hrdinu přes Taunt
 
 ### Changed
 - Vylepšena vizuální stránka hry přidáním dynamických efektů pro lepší uživatelský zážitek.
@@ -106,7 +109,7 @@
 - Sledování stavu many AI hráče během jeho tahu
 
 ### Změněno
-- Vylepšena čitelnost a srozumitelnost kódu AI hráče
+- Vylepšena čitelnost a srozumitelnost kódu AI hráe
 
 ### Změněno
 - Vylepšena strategie AI pro hraní karet:
@@ -135,7 +138,7 @@
 
 ### Fixed
 - Opraveno pozadí karet - přidáno původní texturované pozadí
-- Opravena funkčnost vykládání karet na herní pole
+- Opravena funkčnost vykládání karet na hern�� pole
 - Obnoveny Droppable zóny pro správnou funkčnost drag & drop
 
 ### Fixed
@@ -238,3 +241,51 @@
 - Vylepšena detekce konce hry
 - Přidáno logování pro snazší debugování konce hry
 - Opraveno zpracování herního stavu při konci hry
+
+### Fixed
+- Implementována kontrola Taunt efektu
+  - Jednotky musí nejprve zničit nepřátelské jednotky s Taunt
+  - Nelze útočit na hrdinu, pokud má protihráč jednotku s Taunt
+- Opravena funkčnost kouzel
+  - Implementován efekt Fireball (6 poškození)
+  - Implementován efekt The Coin (+1 mana)
+  - Implementován efekt Nimble Sprite (líznutí karty)
+  - Implementován efekt Healing Touch (léčení 6 životů)
+  - Implementován efekt Arcane Intellect (líznutí 2 karet)
+- Přidána kontrola mrtvých jednotek po efektech kouzel
+
+### Fixed
+- Opravena funkčnost kouzel
+  - Přidáno správné cílení pro Fireball a Healing Touch
+  - Implementovány vizuální notifikace pro všechny efekty kouzel
+  - Opraveno lízání karet pro Arcane Intellect
+- Implementovány efekty jednotek při vyložení
+  - Water Elemental nyní správně zmrazí náhodnou nepřátelskou jednotku
+  - Fire Elemental způsobuje poškození při vyložení
+  - Nimble Sprite správně umožňuje líznout kartu
+
+### Fixed
+- Opraveno zobrazování notifikací na klientovi
+  - Přidáno zpracování notifikací v GameScene komponentě
+  - Implementováno správné zobrazování a odstraňování notifikací
+- Opravena mechanika zmrazení jednotek
+  - Jednotky nyní zůstávají zmražené celé kolo
+  - Přidán systém dvou-kolového zmrazení
+  - Opraveno rozmrazování jednotek na začátku druhého kola
+
+### Fixed
+- Opravena chyba při zobrazování notifikací
+  - Opraveno zpracování jednotlivých notifikací
+  - Přidána správná animace pro objevení a zmizení notifikací
+  - Vylepšen vizuální styl notifikací
+
+### Fixed
+- Opraven import Notification komponenty
+  - Sjednocen způsob exportu a importu komponenty
+  - Přidána podpora pro named i default export
+
+### Fixed
+- Opraveno zobrazování notifikací
+  - Zjednodušena struktura notifikací pro lepší zpracování
+  - Opraveno předávání notifikací mezi serverem a klientem
+  - Vylepšeno filtrování notifikací pro jednotlivé hráče
