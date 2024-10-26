@@ -1,0 +1,3 @@
+[submodule "mysteria-shared"]
+	path = mysteria-shared
+	url = https://github.com/TonySixx/mysteria-shared.git
