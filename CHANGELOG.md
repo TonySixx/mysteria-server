@@ -433,3 +433,9 @@
   - Přesunuty všechny herní event listenery do GameManager.js
   - Ponechány pouze základní listenery v server.js
   - Opraveno dvojité zpracování herních akcí
+
+### Fixed
+- Opraveno cílení notifikací
+  - Přidáno správné určení cílového hráče pro všechny herní efekty
+  - Upraveny notifikace pro efekty jednotek
+  - Sjednocen formát notifikací napříč celou aplikací

@@ -218,17 +218,22 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
 
     switch (card.name) {
         case 'Fire Elemental':
-            // Způsobí 2 poškození nepřátelskému hrdinovi
             opponent.hero.health -= 2;
-            newState.notification = `Fire Elemental způsobil 2 poškození nepřátelskému hrdinovi!`;
+            newState.notification = {
+                message: 'Fire Elemental způsobil 2 poškození nepřátelskému hrdinovi!',
+                forPlayer: playerIndex
+            };
             break;
 
         case 'Water Elemental':
             if (opponent.field.length > 0) {
                 const randomIndex = Math.floor(Math.random() * opponent.field.length);
                 opponent.field[randomIndex].frozen = true;
-                opponent.field[randomIndex].frozenLastTurn = false; // Přidáme nový flag
-                newState.notification = `Water Elemental zmrazil nepřátelskou jednotku ${opponent.field[randomIndex].name}!`;
+                opponent.field[randomIndex].frozenLastTurn = false;
+                newState.notification = {
+                    message: `Water Elemental zmrazil nepřátelskou jednotku ${opponent.field[randomIndex].name}!`,
+                    forPlayer: playerIndex
+                };
             }
             break;
 
@@ -237,7 +242,10 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                 const drawnCard = player.deck.pop();
                 if (player.hand.length < 10) {
                     player.hand.push(drawnCard);
-                    newState.notification = 'Nimble Sprite vám umožnil líznout kartu!';
+                    newState.notification = {
+                        message: 'Nimble Sprite vám umožnil líznout kartu!',
+                        forPlayer: playerIndex
+                    };
                 }
             }
             break;
@@ -255,8 +263,10 @@ function playCardCommon(state, playerIndex, cardIndex, target = null) {
     if (!card || player.mana < card.manaCost) {
         return { 
             ...newState, 
-            notification: 'Nemáte dostatek many!',
-            notificationForPlayer: playerIndex // Pouze pro hráče, který se pokusil zahrát kartu
+            notification: {
+                message: 'Nemáte dostatek many!',
+                forPlayer: playerIndex
+            }
         };
     }
 
@@ -275,8 +285,10 @@ function playCardCommon(state, playerIndex, cardIndex, target = null) {
         }
         return { 
             ...newState, 
-            notification: 'Nemáte místo na poli!',
-            notificationForPlayer: playerIndex
+            notification: {
+                message: 'Nemáte místo na poli!',
+                forPlayer: playerIndex
+            }
         };
     } else if (card instanceof SpellCard) {
         card.target = target;
