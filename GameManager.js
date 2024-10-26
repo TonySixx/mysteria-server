@@ -269,7 +269,14 @@ class GameManager {
             },
             opponent: {
                 hero: opponent.hero,
-                handSize: opponent.hand.length,
+                // Přidáme informace o kartách v ruce protihráče
+                hand: Array(opponent.hand.length).fill().map(() => ({
+                    id: Math.random().toString(36).substr(2, 9),
+                    type: 'unknown',
+                    isHidden: true,
+                    name: 'Hidden Card',
+                    manaCost: 0
+                })),
                 field: opponent.field,
                 deckSize: opponent.deck.length,
                 mana: opponent.mana,
@@ -301,10 +308,27 @@ class GameManager {
             false
         )(game);
 
-        const finalState = checkGameOver(updatedState);
-        
-        this.games.set(gameId, finalState);
-        this.broadcastGameState(gameId);
+        // Kontrola konce hry
+        if (updatedState.gameOver) {
+            console.log('Hra skončila, vítěz:', updatedState.winner);
+            // Informujeme oba hráče o konci hry
+            game.players.forEach((player, index) => {
+                const playerView = this.createPlayerView(updatedState, index);
+                player.socket.emit('gameState', playerView);
+            });
+            
+            // Ukončíme hru a vyčistíme
+            setTimeout(() => {
+                this.games.delete(gameId);
+                game.players.forEach(player => {
+                    this.playerGameMap.delete(player.socket.id);
+                });
+            }, 5000); // Počkáme 5 sekund před vyčištěním
+        } else {
+            // Normální aktualizace stavu
+            this.games.set(gameId, updatedState);
+            this.broadcastGameState(gameId);
+        }
     }
 
     handleEndTurn(gameId, playerIndex) {

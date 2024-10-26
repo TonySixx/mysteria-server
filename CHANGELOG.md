@@ -15,11 +15,29 @@
 - Implementována správa připojení a odpojení hráčů
 - Přidáno čekání na protihráče
 - Implementováno herní lobby pro matchmaking
-- Přidána vizuální indikace při hledání protihráče
+- Přidána vizuální indikace při hledán protihráče
 - Implementována synchronizace herního stavu mezi hráči
 - Přidáno skrývání karet protihráče
 - Přidána podpora pro více současně běžících her
 - Implementována základní ochrana proti podvádění
+- Implementována podpora pro online multiplayer
+- Přidána socketová komunikace mezi klientem a serverem
+- Přidána synchronizace herního stavu mezi hráči
+- Přidány kontroly pro validní tahy v online hře
+- Přidány konstanty pro herní události a stavy
+- Implementován SocketProvider pro správu socketové komunikace
+- Přidána podpora pro reconnect při výpadku spojení
+- Vylepšena struktura aplikace pro lepší správu socketové komunikace
+- Přidána podpora pro socket.io-style event handling v SocketService
+- Implementována správa event listenerů pro lepší cleanup
+- Přidána nová oblast pro zobrazení karet v ruce protivníka nad jeho hrdinou
+- Implementováno správné zobrazení rubových stran karet protivníka
+- Implementována funkce checkGameOver pro detekci konce hry
+  - Kontrola životů hrdinů
+  - Určení vítěze nebo remízy
+  - Deaktivace všech karet při konci hry
+- Přidán modal pro zobrazení konce hry
+- Implementováno zobrazení výsledku hry (výhra/prohra/remíza)
 
 ### Changed
 - Vylepšena vizuální stránka hry přidáním dynamických efektů pro lepší uživatelský zážitek.
@@ -45,6 +63,13 @@
 - Upravena struktura aplikace pro podporu online hraní
 - Vylepšeno UI pro lepší uživatelský zážitek při čekání na protihráče
 - Optimalizována síťová komunikace mezi klientem a serverem
+- Upravena logika tahů pro podporu online hry
+- Vylepšena vizuální zpětná vazba pro online interakce
+- Upraveno zobrazování UI elementů podle stavu hry
+- Upravena architektura aplikace pro lepší oddělení socketové logiky
+- Přesunuty hern konstanty do sdíleného modulu
+- Upraveno pozicování herních elementů pro lepší přehlednost
+- Vylepšeno zobrazení karet v ruce protivníka - nyní jsou viditelné nad jeho hrdinou
 
 ### Removed
 - Odstraněno tlačítko "útok" z karet jednotek.
@@ -90,3 +115,126 @@
   - Kouzla jsou používána strategičtěji, většinou až po vyložení jednotek
   - Léčivá kouzla jsou používána, když má AI méně než 15 zdraví
 
+### Fixed
+- Opraveny styly karet a herní plochy pro lepší vizuální prezentaci
+- Upraveno pozicování karet v ruce hráče
+- Vylepšena čitelnost karet přidáním tmavého pozadí
+- Optimalizováno rozvržení herní plochy
+- Opraveno použití styled komponent v GameScene
+- Obnovena správná hierarchie komponent pro lepší vizuální prezentaci
+- Opraveno zobrazení karet v ruce a na herním poli
+- Opravena struktura GameScene komponenty pro lepší state management
+- Obnoveno správné použití styled komponent
+- Opraveno zobrazení karet v ruce a na herním poli
+- Vylepšena stabilita drag & drop funkcionality
+
+### Fixed
+- Opravena funkčnost drag & drop operací
+- Přidána chybějící implementace onDragEnd funkce
+- Vylepšena kontrola legálních tahů při přetahování karet
+
+### Fixed
+- Opraveno pozadí karet - přidáno původní texturované pozadí
+- Opravena funkčnost vykládání karet na herní pole
+- Obnoveny Droppable zóny pro správnou funkčnost drag & drop
+
+### Fixed
+- Opraveno překrývání tlačítka "Ukončit tah" kartami v ruce
+- Upraveno pozicování herních elementů pro lepší přístupnost ovládacích prvků
+
+### Fixed
+- Opraveny problémy s připojením k serveru
+- Sjednoceny porty pro socketovou komunikaci
+- Vylepšena inicializace socketového připojení
+- Přidána lepší správa životnho cyklu socket instance
+
+### Changed
+- Přepracována architektura socketové komunikace pro použití jednotného socketService
+- Odstraněn SocketContext ve prospěch přímého použití socketService
+- Zjednodušena struktura aplikace odstraněním redundantní socketové vrstvy
+
+### Fixed
+- Opravena chyba "socket.on is not a function"
+- Vylepšena stabilita socketové komunikace
+
+### Fixed
+- Opraveny case-sensitive importy pro SocketService
+- Sjednoceno pojmenování souborů a importů
+
+### Fixed
+- Opravena chyba "socketService.on is not a function"
+- Vylepšena správa socketových event listenerů
+- Přidán správný cleanup při odpojení socketu
+
+### Changed
+- Odstraněna AI logika z GameScene komponenty
+- Přepracována GameScene pro plnou podporu multiplayeru
+- Přesunuta veškerá herní logika na server
+- Upraveno zobrazení pro multiplayer režim
+
+### Removed
+- Odstraněna lokální AI logika
+- Odstraněna lokální manipulace s herním stavem
+
+### Fixed
+- Opravena chyba při inicializaci herního stavu v GameScene
+- Přidány defaultní hodnoty pro případ chybějícího serverového stavu
+- Vylepšeno logování pro snazší debugování
+- Opravena logika pro určení aktivního hráče
+
+### Changed
+- Přepracována komponenta GameScene pro podporu online multiplayeru
+- Odstraněna lokální herní logika
+- Přidána podpora pro zobrazení stavu hry ze serveru
+- Implementováno omezení akcí podle aktuálního stavu hry
+- Vylepšeno zobrazení karet protihráče
+- Přidána vizuální zpětná vazba pro povolené akce
+
+### Added
+- Implementována drag & drop logika pro hraní karet a útoky v online režimu
+- Přidáno zobrazení stavu many a balíčku pro oba hráče
+- Přidána vizuální indikace aktivního hráče
+
+### Fixed
+- Opraveno zobrazování karet protivníka na herním poli - nyní jsou viditelné
+- Přidáno správné načítání a zobrazování obrázků karet
+- Opraveno zobrazení rubu karet pouze pro karty v ruce protivníka
+
+### Added
+- Přidána mapa obrázků karet pro správné přiřazení obrázků ke kartám
+
+### Changed
+- Upravena funkce getPlayerView pro posílání informací o kartách v ruce protihráče
+- Implementováno bezpečné sdílení informací - protihráčovy karty v ruce jsou skryté
+
+### Security
+- Přidáno bezpečnostní opatření proti podvádění - klient nevidí detaily karet v ruce protihráče
+
+### Fixed
+- Opraveno odesílání stavu karet v ruce protihráče ze serveru
+- Přidány chybějící vlastnosti pro skryté karty protihráče
+- Vylepšena struktura GameManager třídy pro správnou práci s herním stavem
+- Opraveno zobrazování počtu karet v ruce protihráče
+
+### Security
+- Vylepšeno skrývání informací o kartách protihráče - přidány pouze nezbytné vlastnosti
+
+### Changed
+- Vylepšen design matchmaking obrazovky
+  - Přidáno elegantní gradientové pozadí
+  - Přidány animované efekty pro lepší vizuální dojem
+  - Implementován světelný efekt ve středu obrazovky
+
+### Fixed
+- Opraven útok na nepřátelského hrdinu
+- Opraveno zobrazování obrázků hrdinů - nyní se správně rozlišuje hrdina hráče a protivníka
+
+### Fixed
+- Opraven problém s detekcí konce hry při zabití hrdiny
+- Přidána správná kontrola konce hry po každém útoku na hrdinu
+- Zajištěno správné ukončení hry při dosažení nulových nebo záporných životů hrdiny
+
+### Fixed
+- Vylepšena detekce konce hry
+- Přidáno logování pro snazší debugování konce hry
+- Opraveno zpracování herního stavu při konci hry
