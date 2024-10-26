@@ -1,6 +1,6 @@
 const { Card, UnitCard, SpellCard, Hero } = require('./game/CardClasses');
 const { startNextTurn, checkGameOver, playCardCommon } = require('./game/gameLogic');
-const { attack } = require('.game/combatLogic');
+const { attack } = require('./game/combatLogic');
 
 class GameManager {
     constructor() {
