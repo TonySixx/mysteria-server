@@ -138,7 +138,7 @@
 
 ### Fixed
 - Opraveno pozadí karet - přidáno původní texturované pozadí
-- Opravena funkčnost vykládání karet na hern�� pole
+- Opravena funkčnost vykládání karet na hern pole
 - Obnoveny Droppable zóny pro správnou funkčnost drag & drop
 
 ### Fixed
@@ -289,3 +289,8 @@
   - Zjednodušena struktura notifikací pro lepší zpracování
   - Opraveno předávání notifikací mezi serverem a klientem
   - Vylepšeno filtrování notifikací pro jednotlivé hráče
+
+### Changed
+- Přesunut shared modul do samostatného repozitáře
+- Implementovány Git submoduly pro správu shared kódu
+- Aktualizovány deployment skripty pro podporu submodulů
