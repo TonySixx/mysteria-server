@@ -6,16 +6,11 @@ const socketIo = require('socket.io');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 const GameManager = require('./GameManager');
+const cors = require('cors');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, {
-    cors: {
-        origin: process.env.CORS_ORIGIN || "http://localhost:3000",
-        methods: ["GET", "POST"],
-        credentials: true
-    }
-});
+const io = socketIo(server);
 
 // Inicializace Supabase klienta
 const supabase = createClient(
@@ -147,7 +142,13 @@ process.on('SIGTERM', () => {
     });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3001;
+app.use(cors({
+    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+    methods: ["GET", "POST"],
+    credentials: true
+}));
+
 server.listen(PORT, () => {
-    console.log(`Server běží na portu ${PORT} v ${process.env.NODE_ENV || 'development'} módu`);
+    console.log(`Server běží na portu ${PORT}`);
 });

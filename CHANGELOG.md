@@ -41,6 +41,9 @@
 - Přidány notifikace pro Taunt efekt
   - Upozornění při pokusu o útok na jednotku bez Taunt
   - Upozornění při pokusu o útok na hrdinu přes Taunt
+- Přidána konfigurace pro deployment na Render.com
+- Přidána podpora pro CORS v produkčním prostředí
+- Implementováno prostředí pro produkční nasazení
 
 ### Changed
 - Vylepšena vizuální stránka hry přidáním dynamických efektů pro lepší uživatelský zážitek.
@@ -73,6 +76,8 @@
 - Přesunuty hern konstanty do sdíleného modulu
 - Upraveno pozicování herních elementů pro lepší přehlednost
 - Vylepšeno zobrazení karet v ruce protivníka - nyní jsou viditelné nad jeho hrdinou
+- Upravena konfigurace socketů pro produkční prostředí
+- Přidány environment variables pro různá prostředí
 
 ### Removed
 - Odstraněno tlačítko "útok" z karet jednotek.
@@ -294,3 +299,4 @@
 - Přesunut shared modul do samostatného repozitáře
 - Implementovány Git submoduly pro správu shared kódu
 - Aktualizovány deployment skripty pro podporu submodulů
+
