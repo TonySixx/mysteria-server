@@ -8,19 +8,26 @@ function startNextTurn(state, nextPlayer) {
     player.maxMana = Math.min(10, player.maxMana + 1);
     player.mana = player.maxMana;
 
-    // Reset útoků jednotek
+    // Reset útoků jednotek a kontrola zmražení
     player.field.forEach(card => {
         card.hasAttacked = false;
-        card.canAttack = !card.frozen; // Může útočit pouze pokud není zmražená
+        card.canAttack = true; // Výchozí hodnota
     });
 
-    // Rozmrazíme jednotky, které byly zmraženy v předchozím kole
-    player.field.forEach(card => {
-        if (card.frozenLastTurn) {
+    // Rozmrazíme jednotky protivníka, které byly zmražené během jeho tahu
+    const opponent = newState.players[1 - nextPlayer];
+    opponent.field.forEach(card => {
+        if (card.frozen && card.frozenLastTurn) {
             card.frozen = false;
             delete card.frozenLastTurn;
-        } else if (card.frozen) {
+        }
+    });
+
+    // Označíme vlastní zmražené jednotky jako již zmražené během svého tahu
+    player.field.forEach(card => {
+        if (card.frozen && !card.frozenLastTurn) {
             card.frozenLastTurn = true;
+            card.canAttack = false;
         }
     });
 

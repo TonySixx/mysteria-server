@@ -491,3 +491,21 @@
   - Implementován systém kopií karet podle vzácnosti
   - Přidáno logování pro kontrolu složení balíčku
   - Zachována funkcionalita unikátních ID pro karty
+
+### Changed
+- Upravena logika zmražených jednotek - jednotky se nyní rozmrazí na začátku tahu svého vlastníka místo o kolo později
+- Odstraněn systém dvou-kolového rozmrazování (frozenLastTurn)
+
+### Fixed
+- Opravena logika zmražených jednotek - jednotky nyní zůstanou zmražené během následujícího kola vlastníka a poté se rozmrazí
+- Obnoven systém dvou-kolového rozmrazování (frozenLastTurn) pro správnou funkčnost efektu zmražení
+
+### Fixed
+- Opravena logika zmražených jednotek - jednotky jsou nyní zmražené pouze do konce svého následujícího tahu
+- Vylepšen systém rozmrazování pro přesnější časování efektu zmražení
+
+### Fixed
+- Opravena logika zmražených jednotek:
+  - Jednotky jsou nyní zmražené pouze během svého následujícího tahu
+  - Jednotky se rozmrazí na začátku následujícího tahu protivníka
+  - Vylepšena přesnost časování efektu zmražení
