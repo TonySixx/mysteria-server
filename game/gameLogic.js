@@ -38,8 +38,9 @@ function startNextTurn(state, nextPlayer) {
         }
     }
 
+    const playerName = newState.players[nextPlayer].username;
     newState.combatLogMessage = {
-        message: `<span class="${nextPlayer === 0 ? 'player-name' : 'enemy-name'}">${nextPlayer === 0 ? 'Player' : 'Enemy'}'s</span> turn begins`,
+        message: `<span class="${nextPlayer === 0 ? 'player-name' : 'enemy-name'}">${playerName}'s</span> turn begins`,
         timestamp: Date.now()
     };
 
@@ -125,6 +126,9 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
         }
     });
 
+    const playerName = player.username;
+    const opponentName = opponent.username;
+
     switch (card.name) {
         case 'Fireball':
             // Fireball nyní působí pouze 6 poškození nepřátelskému hrdinovi
@@ -134,11 +138,11 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 newHealth: opponent.hero.health
             });
             newState.notification = {
-                message: `Fireball dealt 6 damage to the enemy hero!`,
+                message: `Fireball dealt 6 damage to the ${opponentName}'s hero!`,
                 forPlayer: playerIndex
             };
             newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> cast <span class="spell-name">Fireball</span> dealing <span class="damage">6 damage</span> to enemy hero`,
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Fireball</span> dealing <span class="damage">6 damage</span> to ${opponentName}'s hero`,
                 timestamp: Date.now()
             };
             break;
@@ -146,11 +150,11 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
         case 'Lightning Bolt':
             opponent.hero.health = Math.max(0, opponent.hero.health - 3);
             newState.notification = {
-                message: 'Lightning Bolt dealt 3 damage to the enemy hero!',
+                message: `Lightning Bolt dealt 3 damage to the ${opponentName}'s hero!`,
                 forPlayer: playerIndex
             };
             newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> cast <span class="spell-name">Lightning Bolt</span> dealing <span class="damage">3 damage</span> to enemy hero`,
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Lightning Bolt</span> dealing <span class="damage">3 damage</span> to ${opponentName}'s hero`,
                 timestamp: Date.now()
             };
             break;
@@ -170,7 +174,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 forPlayer: playerIndex
             };
             newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> cast <span class="spell-name">Healing Touch</span> restoring <span class="heal">${healAmount} health</span>`,
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Healing Touch</span> restoring <span class="heal">${healAmount} health</span>`,
                 timestamp: Date.now()
             };
             break;
@@ -187,7 +191,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 forPlayer: playerIndex
             };
             newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> cast <span class="spell-name">Glacial Burst</span> and <span class="freeze">froze all enemy units</span>`,
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Glacial Burst</span> and <span class="freeze">froze all enemy units</span>`,
                 timestamp: Date.now()
             };
             break;
@@ -202,7 +206,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 forPlayer: playerIndex
             };
             newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> cast <span class="spell-name">Inferno Wave</span> dealing <span class="damage">4 damage</span> to ${damagedUnits} enemy units`,
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Inferno Wave</span> dealing <span class="damage">4 damage</span> to ${damagedUnits} enemy units`,
                 timestamp: Date.now()
             };
             break;
@@ -214,7 +218,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 forPlayer: playerIndex
             };
             newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> used <span class="spell-name">The Coin</span> and gained <span class="mana">1 mana crystal</span>`,
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> used <span class="spell-name">The Coin</span> and gained <span class="mana">1 mana crystal</span>`,
                 timestamp: Date.now()
             };
             break;
@@ -235,7 +239,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 forPlayer: playerIndex
             };
             newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> cast <span class="spell-name">Arcane Intellect</span> and <span class="draw">drew ${cardsDrawn.length} cards</span>`,
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Arcane Intellect</span> and <span class="draw">drew ${cardsDrawn.length} cards</span>`,
                 timestamp: Date.now()
             };
             break;
@@ -253,15 +257,18 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
 function handleUnitEffects(card, player, opponent, state, playerIndex) {
     const newState = { ...state };
 
+    const playerName = player.username;
+    const opponentName = opponent.username;
+
     switch (card.name) {
         case 'Fire Elemental':
             opponent.hero.health -= 2;
             newState.notification = {
-                message: 'Fire Elemental dealt 2 damage to the enemy hero!',
+                message: `Fire Elemental dealt 2 damage to the ${opponentName}'s hero!`,
                 forPlayer: playerIndex
             };
             newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> played <span class="spell-name">Fire Elemental</span> dealing <span class="damage">2 damage</span> to enemy hero`,
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Fire Elemental</span> dealing <span class="damage">2 damage</span> to ${opponentName}'s hero`,
                 timestamp: Date.now()
             };
             break;
@@ -277,7 +284,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                     forPlayer: playerIndex
                 };
                 newState.combatLogMessage = {
-                    message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> played <span class="spell-name">Water Elemental</span> and <span class="freeze">froze</span> enemy <span class="spell-name">${targetUnit.name}</span>`,
+                    message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Water Elemental</span> and <span class="freeze">froze</span> enemy <span class="spell-name">${targetUnit.name}</span>`,
                     timestamp: Date.now()
                 };
             }
@@ -293,7 +300,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                         forPlayer: playerIndex
                     };
                     newState.combatLogMessage = {
-                        message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> played <span class="spell-name">Nimble Sprite</span> and <span class="draw">drew a card</span>`,
+                        message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Nimble Sprite</span> and <span class="draw">drew a card</span>`,
                         timestamp: Date.now()
                     };
                 }
@@ -320,6 +327,9 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
         };
     }
 
+    const playerName = player.username;
+    const opponentName = opponent.username;
+
     player.mana -= card.manaCost;
     player.hand.splice(cardIndex, 1);
 
@@ -337,7 +347,7 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
             
             // Přidáme log zprávu o vyložení jednotky
             newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> played <span class="spell-name">${card.name}</span> (${card.attack}/${card.health})`,
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">${card.name}</span> (${card.attack}/${card.health})`,
                 timestamp: Date.now()
             };
             

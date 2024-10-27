@@ -119,9 +119,12 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
             const oldHealth = targetHero.health;
             targetHero.health = Math.max(0, targetHero.health - attacker.attack);
             
-            // Přidáme log zprávu
+            // Upravíme log zprávu s použitím skutečných jmen
+            const attackerName = newState.players[attackerPlayerIndex].username;
+            const defenderName = newState.players[defenderPlayerIndex].username;
+            
             newState.combatLogMessage = {
-                message: `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayerIndex === 0 ? 'Player' : 'Enemy'}</span> attacked with <span class="spell-name">${attacker.name}</span> dealing <span class="damage">${attacker.attack} damage</span> to enemy hero`,
+                message: `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}</span> attacked with <span class="spell-name">${attacker.name}</span> dealing <span class="damage">${attacker.attack} damage</span> to ${defenderName}'s hero`,
                 timestamp: Date.now()
             };
 
@@ -166,9 +169,12 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                 player.field = player.field.filter(card => card.health > 0);
             });
 
-            // Přidáme log zprávu o útoku
+            // Upravíme log zprávu s použitím skutečných jmen
+            const attackerName = newState.players[attackerPlayerIndex].username;
+            const defenderName = newState.players[defenderPlayerIndex].username;
+            
             newState.combatLogMessage = {
-                message: `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayerIndex === 0 ? 'Player' : 'Enemy'}</span> attacked with <span class="spell-name">${attacker.name}</span> dealing <span class="damage">${attacker.attack} damage</span> to <span class="spell-name">${target.name}</span>`,
+                message: `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}</span> attacked with <span class="spell-name">${attacker.name}</span> dealing <span class="damage">${attacker.attack} damage</span> to ${defenderName}'s <span class="spell-name">${target.name}</span>`,
                 timestamp: Date.now()
             };
 

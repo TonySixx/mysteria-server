@@ -81,7 +81,7 @@ class GameManager {
 
             // Vytvoříme novou hru
             const gameId = this.createGame(player1Socket, player2Socket);
-            console.log(`Vytvořena nová hra s ID: ${gameId}`);
+            console.log(`Vytvořena nov�� hra s ID: ${gameId}`);
 
             // Zaregistrujeme hráče do hry
             this.playerGameMap.set(player1Id, gameId);
@@ -137,30 +137,32 @@ class GameManager {
             players: [
                 {
                     socket: player1Socket,
-                    hero: new Hero('Player 1', 30),
+                    username: player1Socket.username, // Přidáme username z socketu
+                    hero: new Hero(player1Socket.username, 30), // Použijeme skutečné jméno hráče
                     deck: player1Deck,
                     hand: player1Deck.splice(0, 3),
                     field: [],
                     mana: 1,
                     maxMana: 1,
-                    originalDeck: [...player1Deck] // Uložíme kopii původního balíčku
+                    originalDeck: [...player1Deck]
                 },
                 {
                     socket: player2Socket,
-                    hero: new Hero('Player 2', 30),
+                    username: player2Socket.username, // Přidáme username z socketu
+                    hero: new Hero(player2Socket.username, 30), // Použijeme skutečné jméno hráče
                     deck: player2Deck,
                     hand: [...player2Deck.splice(0, 3), new SpellCard('coin', 'The Coin', 0, 'Gain 1 Mana Crystal', 'coinImage')],
                     field: [],
                     mana: 0,
                     maxMana: 0,
-                    originalDeck: [...player2Deck] // Uložíme kopii původního balíčku
+                    originalDeck: [...player2Deck]
                 }
             ],
             currentPlayer: 0,
             turn: 1,
             gameOver: false,
             winner: null,
-            startTime: new Date() // Přidáme čas začátku hry
+            startTime: new Date()
         };
 
         this.games.set(gameId, gameState);
@@ -343,11 +345,11 @@ class GameManager {
                 field: player.field,
                 deck: player.deck.length,
                 mana: player.mana,
-                maxMana: player.maxMana
+                maxMana: player.maxMana,
+                username: player.username // Přidáme username hráče
             },
             opponent: {
                 hero: opponent.hero,
-                // Přidáme informace o kartách v ruce protihráče
                 hand: Array(opponent.hand.length).fill().map(() => ({
                     id: Math.random().toString(36).substr(2, 9),
                     type: 'unknown',
@@ -358,7 +360,8 @@ class GameManager {
                 field: opponent.field,
                 deckSize: opponent.deck.length,
                 mana: opponent.mana,
-                maxMana: opponent.maxMana
+                maxMana: opponent.maxMana,
+                username: opponent.username // Přidáme username oponenta
             },
             notification: notification,
             combatLogMessage: game.combatLogMessage,
