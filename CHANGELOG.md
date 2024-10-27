@@ -67,6 +67,15 @@
   - Zobrazení jména jednotky
   - Zobrazení útoku a zdraví jednotky
   - Zachování konzistentního formátování s ostatními logy
+- Implementován systém uživatelských účtů
+  - Přihlašování a registrace uživatelů
+  - Profily hráčů s historií her
+  - Žebříček nejlepších hráčů
+  - Statistiky výher a proher
+  - Systém hodnocení (rank)
+- Přidáno zobrazení žebříčku do hlavního menu
+- Implementována perzistence herních výsledků
+- Přidána autentizace pro Socket.IO spojení
 
 ### Changed
 - Vylepšena vizuální stránka hry přidáním dynamických efektů pro lepší uživatelský zážitek.
@@ -101,6 +110,9 @@
 - Vylepšeno zobrazení karet v ruce protivníka - nyní jsou viditelné nad jeho hrdinou
 - Upravena konfigurace socketů pro produkční prostředí
 - Přidány environment variables pro různá prostředí
+- Upravena struktura hlavního menu pro podporu uživatelských účtů
+- Vylepšeno UI pro lepší uživatelskou přívětivost
+- Optimalizováno načítání dat ze Supabase
 
 ### Removed
 - Odstraněno tlačítko "útok" z karet jednotek.
@@ -530,3 +542,8 @@
   - Přidáno mazání combatLogMessage po odeslání stavu hry klientům
   - Zamezeno duplicitnímu zobrazování stejných zpráv na klientovi
   - Vylepšena synchronizace Combat Logu mezi serverem a klientem
+
+### Security
+- Implementováno zabezpečení pomocí JWT tokenů
+- Přidány Row Level Security policies pro Supabase
+- Zabezpečení Socket.IO spojení

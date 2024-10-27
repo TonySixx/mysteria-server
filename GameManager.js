@@ -1,12 +1,25 @@
 const { Card, UnitCard, SpellCard, Hero } = require('./game/CardClasses');
 const { startNextTurn, checkGameOver, playCardCommon, handleUnitEffects } = require('./game/gameLogic');
 const { attack } = require('./game/combatLogic');
+const { createClient } = require('@supabase/supabase-js');
 
 class GameManager {
     constructor() {
         this.games = new Map(); // Map pro ukládání aktivních her
         this.searchingPlayers = new Set(); // Nový Set pro aktivně hledající hráče
         this.playerGameMap = new Map(); // Nová mapa pro sledování, ve které hře je který hráč
+        
+        // Inicializace Supabase klienta se service_role klíčem
+        this.supabase = createClient(
+            process.env.SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_KEY,
+            {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false
+                }
+            }
+        );
     }
 
     // Vytvoření nebo připojení ke hře
@@ -455,6 +468,74 @@ class GameManager {
     cancelSearch(socket) {
         this.searchingPlayers.delete(socket.id);
         console.log(`Hráč ${socket.id} zrušil hledání. Počet hledajících: ${this.searchingPlayers.size}`);
+    }
+
+    async handleGameEnd(gameId, winnerId) {
+        const game = this.games.get(gameId);
+        if (!game) return;
+
+        const player1 = game.players[0];
+        const player2 = game.players[1];
+
+        try {
+            // Použijeme this.supabase místo globálního supabase
+            const { data: historyData, error: historyError } = await this.supabase
+                .from('game_history')
+                .insert([{
+                    player_id: player1.userId,
+                    opponent_id: player2.userId,
+                    winner_id: winnerId,
+                    game_duration: new Date() - game.startTime,
+                    player_deck: game.players[0].originalDeck,
+                    opponent_deck: game.players[1].originalDeck
+                }]);
+
+            if (historyError) throw historyError;
+
+            const winner = winnerId === player1.userId ? player1 : player2;
+            const loser = winnerId === player1.userId ? player2 : player1;
+
+            await this.updatePlayerStats(winner.userId, true);
+            await this.updatePlayerStats(loser.userId, false);
+
+        } catch (error) {
+            console.error('Chyba při ukládání výsledků hry:', error);
+        }
+    }
+
+    async updatePlayerStats(userId, isWinner) {
+        try {
+            // Použijeme this.supabase místo globálního supabase
+            const { data: profile, error: profileError } = await this.supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            if (profileError) throw profileError;
+
+            const updates = {
+                total_games: profile.total_games + 1,
+                wins: profile.wins + (isWinner ? 1 : 0),
+                losses: profile.losses + (isWinner ? 0 : 1),
+                rank: this.calculateNewRank(profile.rank, isWinner)
+            };
+
+            const { error: updateError } = await this.supabase
+                .from('profiles')
+                .update(updates)
+                .eq('id', userId);
+
+            if (updateError) throw updateError;
+
+        } catch (error) {
+            console.error('Chyba při aktualizaci statistik hráče:', error);
+        }
+    }
+
+    calculateNewRank(currentRank, isWinner) {
+        const RANK_CHANGE = 25;
+        return isWinner ? currentRank + RANK_CHANGE : Math.max(0, currentRank - RANK_CHANGE);
     }
 }
 

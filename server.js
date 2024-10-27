@@ -7,16 +7,12 @@ const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 const GameManager = require('./GameManager');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Inicializace Supabase klienta
-const supabase = createClient(
-    process.env.SUPABASE_URL || 'https://csdhvyzojrmgiusijtho.supabase.co',
-    process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzZGh2eXpvanJtZ2l1c2lqdGhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjkzNjMwMTQsImV4cCI6MjA0NDkzOTAxNH0.eqhsppvuis93PjufOxn5w4Qhn6RK_zDYRSFIMTV-Wvo'
-);
 
 // Middleware pro logování
 app.use((req, res, next) => {
@@ -51,17 +47,75 @@ io.engine.on("connection_error", (err) => {
     console.log(err.context);  // some additional error context
 });
 
+// Middleware pro ověření JWT tokenu
+const authenticateToken = (socket, next) => {
+    const token = socket.handshake.auth.token;
+    const userId = socket.handshake.auth.userId;
+    const username = socket.handshake.auth.username;
+    
+    console.log('Autentizace socket připojení:', {
+        hasToken: !!token,
+        userId,
+        username
+    });
+
+    if (!token || !userId || !username) {
+        console.log('Chybějící autentizační údaje:', { 
+            token: !!token, 
+            userId: !!userId, 
+            username: !!username 
+        });
+        return next(new Error('Chybí autentizační údaje'));
+    }
+
+    try {
+        // Použijeme správný secret key ze Supabase
+        const decoded = jwt.verify(token, process.env.SUPABASE_JWT_SECRET || 'your-jwt-secret');
+        
+        // Supabase JWT má jiný formát, upravíme kontrolu
+        if (!decoded.sub && !decoded.user_id) {
+            console.log('Chybí ID uživatele v tokenu');
+            return next(new Error('Neplatný token - chybí ID uživatele'));
+        }
+
+        const tokenUserId = decoded.sub || decoded.user_id;
+        if (tokenUserId !== userId) {
+            console.log('Nesouhlasí ID uživatele:', { 
+                decoded: tokenUserId, 
+                userId 
+            });
+            return next(new Error('Neplatné ID uživatele'));
+        }
+        
+        socket.userId = userId;
+        socket.username = username;
+        console.log('Úspěšná autentizace socket připojení:', {
+            userId,
+            username
+        });
+        next();
+    } catch (err) {
+        console.log('Chyba při ověření tokenu:', err.message);
+        next(new Error('Neplatný token'));
+    }
+};
+
+io.use(authenticateToken);
+
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-    console.log(`Nový hráč se připojil (ID: ${socket.id})`);
-    console.log('Aktuální počet připojených klientů:', io.engine.clientsCount);
+    console.log(`Nový hráč se připojil (ID: ${socket.id}, User: ${socket.username})`);
 
-    socket.on('joinGame', () => {
+    socket.on('joinGame', (data) => {
         try {
-            gameManager.handlePlayerJoin(socket);
+            const { userId, username } = data;
+            if (userId !== socket.userId) {
+                throw new Error('Unauthorized');
+            }
+            gameManager.handlePlayerJoin(socket, { userId, username });
         } catch (error) {
             console.error('Chyba při připojování do hry:', error);
-            socket.emit('error', 'Nepodařilo se připojit do hry');
+            socket.emit('error', error.message);
         }
     });
 
