@@ -137,7 +137,7 @@
 - Vyřešeny problémy s desynchronizací herního stavu
 
 ### Changed
-- Upraveno chování karet v ruce hráče - všechny karty jsou nyní přetahovatelné, kouzla lze stále zahrát kliknutím.
+- Upraveno chování karet v ruce hráče - v��echny karty jsou nyní přetahovatelné, kouzla lze stále zahrát kliknutím.
 - Sjednoceno chování pro hraní všech typů karet - nyní se všechny karty hrají pomocí drag&drop.
 
 ### Změněno
@@ -547,3 +547,9 @@
 - Implementováno zabezpečení pomocí JWT tokenů
 - Přidány Row Level Security policies pro Supabase
 - Zabezpečení Socket.IO spojení
+
+### Fixed
+- Opraveno ukládání historie her
+  - Přidáno volání handleGameEnd při konci hry v handleAttack
+  - Zajištěno správné ukládání statistik hráčů po konci hry
+  - Implementováno ukládání délky hry a použitých balíčků

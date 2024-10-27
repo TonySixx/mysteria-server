@@ -135,27 +135,30 @@ class GameManager {
             players: [
                 {
                     socket: player1Socket,
-                    hero: new Hero('Player 1', 30), // Explicitně nastavíme jméno
+                    hero: new Hero('Player 1', 30),
                     deck: player1Deck,
                     hand: player1Deck.splice(0, 3),
                     field: [],
                     mana: 1,
-                    maxMana: 1
+                    maxMana: 1,
+                    originalDeck: [...player1Deck] // Uložíme kopii původního balíčku
                 },
                 {
                     socket: player2Socket,
-                    hero: new Hero('Player 2', 30), // Explicitně nastavíme jméno
+                    hero: new Hero('Player 2', 30),
                     deck: player2Deck,
                     hand: [...player2Deck.splice(0, 3), new SpellCard('coin', 'The Coin', 0, 'Gain 1 Mana Crystal', 'coinImage')],
                     field: [],
                     mana: 0,
-                    maxMana: 0
+                    maxMana: 0,
+                    originalDeck: [...player2Deck] // Uložíme kopii původního balíčku
                 }
             ],
             currentPlayer: 0,
             turn: 1,
             gameOver: false,
-            winner: null
+            winner: null,
+            startTime: new Date() // Přidáme čas začátku hry
         };
 
         this.games.set(gameId, gameState);
@@ -379,7 +382,7 @@ class GameManager {
         this.broadcastGameState(gameId);
     }
 
-    handleAttack(gameId, playerIndex, data) {
+    async handleAttack(gameId, playerIndex, data) {
         const game = this.games.get(gameId);
         if (!game || game.currentPlayer !== playerIndex) {
             // Pokud hráč není na tahu, pošleme mu notifikaci
@@ -405,6 +408,27 @@ class GameManager {
 
         if (updatedState.gameOver) {
             console.log('Hra skončila, vítěz:', updatedState.winner);
+            
+            // Určíme ID vítěze - opravíme logiku
+            let winnerId;
+            if (updatedState.winner === 'draw') {
+                // V případě remízy můžeme použít ID prvního hráče nebo speciální logiku
+                winnerId = game.players[0].socket.userId;
+            } else {
+                // Převedeme číselný index na ID
+                winnerId = game.players[updatedState.winner].socket.userId;
+            }
+
+            console.log('Určen vítěz:', {
+                winnerIndex: updatedState.winner,
+                winnerId: winnerId,
+                player1Id: game.players[0].socket.userId,
+                player2Id: game.players[1].socket.userId
+            });
+
+            // Zavoláme handleGameEnd pro zápis do DB
+            await this.handleGameEnd(gameId, winnerId);
+
             // Informujeme oba hráče o konci hry
             game.players.forEach((player, index) => {
                 const playerView = this.createPlayerView(updatedState, index);
@@ -474,29 +498,52 @@ class GameManager {
         const game = this.games.get(gameId);
         if (!game) return;
 
-        const player1 = game.players[0];
-        const player2 = game.players[1];
-
         try {
+            // Získáme ID hráčů ze socket objektů
+            const player1Id = game.players[0].socket.userId;
+            const player2Id = game.players[1].socket.userId;
+
+            // Uložíme originální balíčky (pokud existují, jinak prázdné pole)
+            const player1Deck = game.players[0].originalDeck || [];
+            const player2Deck = game.players[1].originalDeck || [];
+
+            // Vypočítáme délku hry
+            const gameDuration = game.startTime ? new Date() - game.startTime : 0;
+
+            console.log('Ukládám výsledky hry:', {
+                player1Id,
+                player2Id,
+                winnerId,
+                gameDuration,
+                deckSizes: {
+                    player1: player1Deck.length,
+                    player2: player2Deck.length
+                }
+            });
+
             // Použijeme this.supabase místo globálního supabase
             const { data: historyData, error: historyError } = await this.supabase
                 .from('game_history')
                 .insert([{
-                    player_id: player1.userId,
-                    opponent_id: player2.userId,
+                    player_id: player1Id,
+                    opponent_id: player2Id,
                     winner_id: winnerId,
-                    game_duration: new Date() - game.startTime,
-                    player_deck: game.players[0].originalDeck,
-                    opponent_deck: game.players[1].originalDeck
+                    game_duration: `${Math.floor(gameDuration / 1000)} seconds`, // Převedeme na sekundy a formátujeme pro INTERVAL
+                    player_deck: player1Deck,
+                    opponent_deck: player2Deck,
+                    created_at: new Date().toISOString()
                 }]);
 
-            if (historyError) throw historyError;
+            if (historyError) {
+                console.error('Chyba při ukládání historie:', historyError);
+                throw historyError;
+            }
 
-            const winner = winnerId === player1.userId ? player1 : player2;
-            const loser = winnerId === player1.userId ? player2 : player1;
+            // Aktualizujeme statistiky hráčů
+            await this.updatePlayerStats(player1Id, winnerId === player1Id);
+            await this.updatePlayerStats(player2Id, winnerId === player2Id);
 
-            await this.updatePlayerStats(winner.userId, true);
-            await this.updatePlayerStats(loser.userId, false);
+            console.log('Úspěšně uloženy výsledky hry a aktualizovány statistiky');
 
         } catch (error) {
             console.error('Chyba při ukládání výsledků hry:', error);
