@@ -304,7 +304,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
     return newState;
 }
 
-function playCardCommon(state, playerIndex, cardIndex, target = null) {
+function playCardCommon(state, playerIndex, cardIndex, target = null, destinationIndex = null) {
     const newState = { ...state };
     const player = newState.players[playerIndex];
     const opponent = newState.players[1 - playerIndex];
@@ -327,7 +327,13 @@ function playCardCommon(state, playerIndex, cardIndex, target = null) {
         if (player.field.length < 7) {
             card.canAttack = false;
             card.hasAttacked = false;
-            player.field.push(card);
+            
+            // Vložíme kartu na specifickou pozici nebo na konec
+            if (typeof destinationIndex === 'number') {
+                player.field.splice(destinationIndex, 0, card);
+            } else {
+                player.field.push(card);
+            }
             
             // Přidáme log zprávu o vyložení jednotky
             newState.combatLogMessage = {

@@ -1,5 +1,5 @@
 const { Card, UnitCard, SpellCard, Hero } = require('./game/CardClasses');
-const { startNextTurn, checkGameOver, playCardCommon } = require('./game/gameLogic');
+const { startNextTurn, checkGameOver, playCardCommon, handleUnitEffects } = require('./game/gameLogic');
 const { attack } = require('./game/combatLogic');
 
 class GameManager {
@@ -67,7 +67,7 @@ class GameManager {
             // Vytvoříme novou hru
             const gameId = this.createGame(player1Socket, player2Socket);
             console.log(`Vytvořena nová hra s ID: ${gameId}`);
-            
+
             // Zaregistrujeme hráče do hry
             this.playerGameMap.set(player1Id, gameId);
             this.playerGameMap.set(player2Id, gameId);
@@ -114,13 +114,13 @@ class GameManager {
     // Vytvoření nové hry
     createGame(player1Socket, player2Socket) {
         const gameId = this.generateGameId();
-        
+
         // Inicializace balíčků pro oba hráče
         const [player1Deck, player2Deck] = this.initializeDecks();
-        
+
         const gameState = {
             players: [
-                { 
+                {
                     socket: player1Socket,
                     hero: new Hero('Player 1', 30), // Explicitně nastavíme jméno
                     deck: player1Deck,
@@ -214,7 +214,7 @@ class GameManager {
     // Nastavení event listenerů pro hráče
     setupGameListeners(gameId, socket, playerIndex) {
         console.log(`Nastavuji listenery pro hráče ${socket.id} v game ${gameId}`);
-        
+
         socket.join(gameId);
         console.log(`Hráč ${socket.id} připojen do místnosti ${gameId}`);
 
@@ -226,7 +226,7 @@ class GameManager {
         socket.on('attack', (data) => {
             console.log(`Hráč ${socket.id} útočí:`, data);
             const game = this.games.get(gameId);
-            
+
             if (!game) {
                 console.log('Hra neexistuje');
                 return;
@@ -341,23 +341,27 @@ class GameManager {
     // Zpracování herních akcí
     handlePlayCard(gameId, playerIndex, data) {
         const game = this.games.get(gameId);
-        if (!game || game.currentPlayer !== playerIndex) {
-            // Pokud hráč není na tahu, pošleme mu notifikaci
+        if (!game) return;
+
+        // Kontrola, zda je hráč na tahu
+        if (game.currentPlayer !== playerIndex) {
             game.notification = {
-                message: 'Nejste na tahu!',
+                message: 'Not your turn!',
                 forPlayer: playerIndex
             };
             this.broadcastGameState(gameId);
             return;
         }
 
-        const updatedState = playCardCommon(game, playerIndex, data.cardIndex, data.target);
+        const { cardIndex, destinationIndex, target } = data;
+
+        // Použijeme jednotnou funkci playCardCommon pro všechny typy karet
+        const updatedState = playCardCommon(game, playerIndex, cardIndex, target, destinationIndex);
         
         // Aktualizujeme notifikaci
         if (updatedState.notification) {
             game.notification = updatedState.notification;
-        }
-        
+        } 
         this.games.set(gameId, updatedState);
         this.broadcastGameState(gameId);
     }
@@ -393,7 +397,7 @@ class GameManager {
                 const playerView = this.createPlayerView(updatedState, index);
                 player.socket.emit('gameState', playerView);
             });
-            
+
             // Ukončíme hru a vyčistíme
             setTimeout(() => {
                 this.games.delete(gameId);
@@ -413,7 +417,7 @@ class GameManager {
 
         const nextPlayer = (playerIndex + 1) % 2;
         const updatedState = startNextTurn(game, nextPlayer);
-        
+
         this.games.set(gameId, updatedState);
         this.broadcastGameState(gameId);
     }
@@ -423,7 +427,7 @@ class GameManager {
         if (!game) return;
 
         const disconnectedSocket = game.players[playerIndex].socket;
-        
+
         // Vyčistíme všechny reference na hráče
         this.searchingPlayers.delete(disconnectedSocket.id);
         this.playerGameMap.delete(disconnectedSocket.id);
@@ -443,7 +447,7 @@ class GameManager {
     getPlayerIndex(gameId, socketId) {
         const game = this.games.get(gameId);
         if (!game) return -1;
-        
+
         return game.players.findIndex(player => player.socket.id === socketId);
     }
 
