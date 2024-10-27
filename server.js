@@ -37,7 +37,7 @@ app.use((err, req, res, next) => {
     res.status(500).send('Something broke!');
 });
 
-const gameManager = new GameManager(io); // Předáme io instanci do GameManageru
+const gameManager = new GameManager(io);  // Předáme io instanci
 
 // Socket.IO error handling
 io.engine.on("connection_error", (err) => {
@@ -104,7 +104,14 @@ io.use(authenticateToken);
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-    console.log(`Nový hráč se připojil (ID: ${socket.id}, User: ${socket.username})`);
+    console.log(`New player connected (ID: ${socket.id}, User: ${socket.username})`);
+    
+    // Vypíšeme aktuální počet připojených klientů
+    const connectedClients = io.sockets.sockets.size;
+    console.log(`Current connected clients: ${connectedClients}`);
+
+    // Přidáme inicializaci hráče při připojení
+    gameManager.handlePlayerConnect(socket, socket.userId);
 
     socket.on('joinGame', (data) => {
         try {
@@ -112,24 +119,30 @@ io.on('connection', (socket) => {
             if (userId !== socket.userId) {
                 throw new Error('Unauthorized');
             }
+            // Aktualizujeme status hráče na "searching"
+            gameManager.updatePlayerStatus(userId, 'searching');
             gameManager.handlePlayerJoin(socket, { userId, username });
         } catch (error) {
-            console.error('Chyba při připojování do hry:', error);
+            console.error('Error joining game:', error);
             socket.emit('error', error.message);
         }
     });
 
     socket.on('cancelSearch', () => {
         try {
+            // Aktualizujeme status hráče zpět na "online"
+            gameManager.updatePlayerStatus(socket.userId, 'online');
             gameManager.cancelSearch(socket);
             socket.emit('searchCancelled');
         } catch (error) {
-            console.error('Chyba při rušení hledání:', error);
+            console.error('Error canceling search:', error);
         }
     });
 
     socket.on('disconnect', () => {
         try {
+            console.log(`Player disconnecting (ID: ${socket.id}, User: ${socket.username})`);
+            
             const gameId = gameManager.playerGameMap.get(socket.id);
             if (gameId) {
                 const playerIndex = gameManager.getPlayerIndex(gameId, socket.id);
@@ -137,9 +150,44 @@ io.on('connection', (socket) => {
             } else {
                 gameManager.cancelSearch(socket);
             }
-            console.log(`Hráč se odpojil (ID: ${socket.id})`);
+            
+            gameManager.handlePlayerDisconnect(socket.userId);
+            
+            // Vypíšeme aktuální počet připojených klientů po odpojení
+            const remainingClients = io.sockets.sockets.size;
+            console.log(`Remaining connected clients: ${remainingClients}`);
         } catch (error) {
-            console.error('Chyba při odpojování hráče:', error);
+            console.error('Error during disconnect:', error);
+        }
+    });
+
+    // Přidáme handler pro start hry
+    socket.on('gameStarted', (gameId) => {
+        try {
+            // Aktualizujeme status obou hráčů na "in_game"
+            const game = gameManager.games.get(gameId);
+            if (game) {
+                game.players.forEach(player => {
+                    gameManager.updatePlayerStatus(player.socket.userId, 'in_game');
+                });
+            }
+        } catch (error) {
+            console.error('Error updating player status on game start:', error);
+        }
+    });
+
+    // Přidáme handler pro konec hry
+    socket.on('gameEnded', (gameId) => {
+        try {
+            // Aktualizujeme status hráčů zpět na "online"
+            const game = gameManager.games.get(gameId);
+            if (game) {
+                game.players.forEach(player => {
+                    gameManager.updatePlayerStatus(player.socket.userId, 'online');
+                });
+            }
+        } catch (error) {
+            console.error('Error updating player status on game end:', error);
         }
     });
 });

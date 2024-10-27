@@ -4,10 +4,11 @@ const { attack } = require('./game/combatLogic');
 const { createClient } = require('@supabase/supabase-js');
 
 class GameManager {
-    constructor() {
+    constructor(io) {  // Přidáme io parametr do konstruktoru
         this.games = new Map(); // Map pro ukládání aktivních her
         this.searchingPlayers = new Set(); // Nový Set pro aktivně hledající hráče
         this.playerGameMap = new Map(); // Nová mapa pro sledování, ve které hře je který hráč
+        this.onlinePlayers = new Map(); // userId -> {status, socketId, ...playerData}
         
         // Inicializace Supabase klienta se service_role klíčem
         this.supabase = createClient(
@@ -20,6 +21,7 @@ class GameManager {
                 }
             }
         );
+        this.io = io;  // Uložíme io instanci
     }
 
     // Vytvoření nebo připojení ke hře
@@ -583,6 +585,78 @@ class GameManager {
     calculateNewRank(currentRank, isWinner) {
         const RANK_CHANGE = 25;
         return isWinner ? currentRank + RANK_CHANGE : Math.max(0, currentRank - RANK_CHANGE);
+    }
+
+    async handlePlayerConnect(socket, userId) {
+        try {
+            // Získáme data hráče z databáze
+            const { data: playerData, error } = await this.supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            if (error) throw error;
+
+            this.onlinePlayers.set(userId, {
+                id: userId,
+                username: playerData.username,
+                rank: playerData.rank,
+                status: 'online',
+                socketId: socket.id
+            });
+
+            this.broadcastOnlinePlayers();
+        } catch (error) {
+            console.error('Error handling player connect:', error);
+        }
+    }
+
+    handlePlayerDisconnect(userId) {
+        this.onlinePlayers.delete(userId);
+        this.broadcastOnlinePlayers();
+    }
+
+    updatePlayerStatus(userId, status) {
+        const player = this.onlinePlayers.get(userId);
+        if (player) {
+            player.status = status;
+            this.broadcastOnlinePlayers();
+        }
+    }
+
+    broadcastOnlinePlayers() {
+        try {
+            const players = Array.from(this.onlinePlayers.values()).map(player => ({
+                id: player.id,
+                username: player.username,
+                rank: player.rank,
+                status: player.status
+            }));
+
+            console.log('Broadcasting online players:', {
+                playerCount: players.length,
+                connectedSockets: this.io.sockets.sockets.size,
+                players: players.map(p => ({
+                    username: p.username,
+                    status: p.status
+                }))
+            });
+
+            // Broadcast všem připojeným klientům
+            this.io.emit('online_players_update', players);
+
+            // Pro ověření projdeme všechny připojené sockety
+            this.io.sockets.sockets.forEach((socket) => {
+                console.log('Sending to socket:', {
+                    socketId: socket.id,
+                    userId: socket.userId,
+                    username: socket.username
+                });
+            });
+        } catch (error) {
+            console.error('Error broadcasting online players:', error);
+        }
     }
 }
 
