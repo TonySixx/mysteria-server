@@ -166,6 +166,15 @@ class GameManager {
         this.games.set(gameId, gameState);
         this.setupGameListeners(gameId, player1Socket, 0);
         this.setupGameListeners(gameId, player2Socket, 1);
+
+        // Aktualizujeme status obou hráčů na "in_game"
+        this.updatePlayerStatus(player1Socket.userId, 'in_game');
+        this.updatePlayerStatus(player2Socket.userId, 'in_game');
+
+        // Odešleme oběma hráčům informaci o začátku hry
+        player1Socket.emit('gameStarted', gameId);
+        player2Socket.emit('gameStarted', gameId);
+
         this.broadcastGameState(gameId);
 
         return gameId;
