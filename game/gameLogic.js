@@ -38,6 +38,11 @@ function startNextTurn(state, nextPlayer) {
         }
     }
 
+    newState.combatLogMessage = {
+        message: `<span class="${nextPlayer === 0 ? 'player-name' : 'enemy-name'}">${nextPlayer === 0 ? 'Player' : 'Enemy'}'s</span> turn begins`,
+        timestamp: Date.now()
+    };
+
     return newState;
 }
 
@@ -132,18 +137,21 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 message: `Fireball dealt 6 damage to the enemy hero!`,
                 forPlayer: playerIndex
             };
+            newState.combatLogMessage = {
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'AI'}</span> cast <span class="spell-name">Fireball</span> dealing <span class="damage">6 damage</span> to enemy hero`,
+                timestamp: Date.now()
+            };
             break;
 
         case 'Lightning Bolt':
-            // Lightning Bolt nyní působí pouze 3 poškození nepřátelskému hrdinovi
             opponent.hero.health = Math.max(0, opponent.hero.health - 3);
-            console.log('Lightning Bolt zasáhl hrdinu:', {
-                damage: 3,
-                newHealth: opponent.hero.health
-            });
             newState.notification = {
                 message: 'Lightning Bolt dealt 3 damage to the enemy hero!',
                 forPlayer: playerIndex
+            };
+            newState.combatLogMessage = {
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> cast <span class="spell-name">Lightning Bolt</span> dealing <span class="damage">3 damage</span> to enemy hero`,
+                timestamp: Date.now()
             };
             break;
 
@@ -161,6 +169,10 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 message: `Healing Touch restored ${healAmount} health to your hero!`,
                 forPlayer: playerIndex
             };
+            newState.combatLogMessage = {
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'AI'}</span> cast <span class="spell-name">Healing Touch</span> restoring <span class="heal">${healAmount} health</span>`,
+                timestamp: Date.now()
+            };
             break;
 
         case 'Glacial Burst':
@@ -170,40 +182,40 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                     unit.frozenLastTurn = false;
                 }
             });
-            console.log('Glacial Burst zmrazil jednotky:', {
-                frozenUnits: opponent.field.filter(unit => unit?.frozen).length
-            });
             newState.notification = {
                 message: 'All enemy units were frozen!',
                 forPlayer: playerIndex
             };
+            newState.combatLogMessage = {
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> cast <span class="spell-name">Glacial Burst</span> and <span class="freeze">froze all enemy units</span>`,
+                timestamp: Date.now()
+            };
             break;
 
         case 'Inferno Wave':
+            const damagedUnits = opponent.field.filter(unit => unit).length;
             opponent.field.forEach(unit => {
                 if (unit) unit.health -= 4;
-            });
-            console.log('Inferno Wave zasáhla jednotky:', {
-                affectedUnits: opponent.field.map(unit => ({
-                    name: unit?.name,
-                    newHealth: unit?.health
-                }))
             });
             newState.notification = {
                 message: 'Inferno Wave dealt 4 damage to all enemy units!',
                 forPlayer: playerIndex
             };
+            newState.combatLogMessage = {
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> cast <span class="spell-name">Inferno Wave</span> dealing <span class="damage">4 damage</span> to ${damagedUnits} enemy units`,
+                timestamp: Date.now()
+            };
             break;
 
         case 'The Coin':
             player.mana = Math.min(player.mana + 1, 10);
-            console.log('The Coin použit:', {
-                oldMana: player.mana - 1,
-                newMana: player.mana
-            });
             newState.notification = {
                 message: 'Gained 1 mana crystal!',
                 forPlayer: playerIndex
+            };
+            newState.combatLogMessage = {
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> used <span class="spell-name">The Coin</span> and gained <span class="mana">1 mana crystal</span>`,
+                timestamp: Date.now()
             };
             break;
 
@@ -218,13 +230,13 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                     }
                 }
             }
-            console.log('Arcane Intellect líznul karty:', {
-                cardsDrawn,
-                newHandSize: player.hand.length
-            });
             newState.notification = {
                 message: `Drew ${cardsDrawn.length} cards!`,
                 forPlayer: playerIndex
+            };
+            newState.combatLogMessage = {
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> cast <span class="spell-name">Arcane Intellect</span> and <span class="draw">drew ${cardsDrawn.length} cards</span>`,
+                timestamp: Date.now()
             };
             break;
     }
@@ -248,16 +260,25 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                 message: 'Fire Elemental dealt 2 damage to the enemy hero!',
                 forPlayer: playerIndex
             };
+            newState.combatLogMessage = {
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> played <span class="spell-name">Fire Elemental</span> dealing <span class="damage">2 damage</span> to enemy hero`,
+                timestamp: Date.now()
+            };
             break;
 
         case 'Water Elemental':
             if (opponent.field.length > 0) {
                 const randomIndex = Math.floor(Math.random() * opponent.field.length);
-                opponent.field[randomIndex].frozen = true;
-                opponent.field[randomIndex].frozenLastTurn = false;
+                const targetUnit = opponent.field[randomIndex];
+                targetUnit.frozen = true;
+                targetUnit.frozenLastTurn = false;
                 newState.notification = {
-                    message: `Water Elemental froze enemy ${opponent.field[randomIndex].name}!`,
+                    message: `Water Elemental froze enemy ${targetUnit.name}!`,
                     forPlayer: playerIndex
+                };
+                newState.combatLogMessage = {
+                    message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> played <span class="spell-name">Water Elemental</span> and <span class="freeze">froze</span> enemy <span class="spell-name">${targetUnit.name}</span>`,
+                    timestamp: Date.now()
                 };
             }
             break;
@@ -270,6 +291,10 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                     newState.notification = {
                         message: 'Nimble Sprite allowed you to draw a card!',
                         forPlayer: playerIndex
+                    };
+                    newState.combatLogMessage = {
+                        message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> played <span class="spell-name">Nimble Sprite</span> and <span class="draw">drew a card</span>`,
+                        timestamp: Date.now()
                     };
                 }
             }
@@ -303,6 +328,12 @@ function playCardCommon(state, playerIndex, cardIndex, target = null) {
             card.canAttack = false;
             card.hasAttacked = false;
             player.field.push(card);
+            
+            // Přidáme log zprávu o vyložení jednotky
+            newState.combatLogMessage = {
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> played <span class="spell-name">${card.name}</span> (${card.attack}/${card.health})`,
+                timestamp: Date.now()
+            };
             
             // Aplikujeme efekty jednotky při vyložení
             const stateWithEffects = handleUnitEffects(card, player, opponent, newState, playerIndex);

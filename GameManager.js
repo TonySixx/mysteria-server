@@ -25,7 +25,7 @@ class GameManager {
             return { status: 'already_searching' };
         }
 
-        // Přidáme hráče mezi hledaj��cí
+        // Přidáme hráče mezi hledajcí
         this.searchingPlayers.add(socket.id);
         console.log(`Hráč ${socket.id} začal hledat hru. Počet hledajících: ${this.searchingPlayers.size}`);
         console.log('Aktuální hledající hráči:', Array.from(this.searchingPlayers));
@@ -275,11 +275,14 @@ class GameManager {
         const game = this.games.get(gameId);
         if (!game) return;
 
+        // Odešleme stav oběma hráčům
         game.players.forEach((player, index) => {
-            const opponent = game.players[1 - index];
             const playerView = this.createPlayerView(game, index);
             player.socket.emit('gameState', playerView);
         });
+
+        // Po odeslání vymažeme combatLogMessage
+        game.combatLogMessage = null;
     }
 
     createPlayerView(game, playerIndex) {
@@ -330,7 +333,8 @@ class GameManager {
                 mana: opponent.mana,
                 maxMana: opponent.maxMana
             },
-            notification: notification
+            notification: notification,
+            combatLogMessage: game.combatLogMessage,
         };
     }
 

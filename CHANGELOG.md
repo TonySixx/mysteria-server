@@ -52,6 +52,21 @@
 - Přidány tooltips v angličtině pro balíček karet a mana krystaly
   - Tooltip pro balíček: "Remaining cards in deck"
   - Tooltip pro manu: "Current/Maximum mana crystals - Used to play cards"
+- Implementován Combat Log systém
+  - Přidáno logování všech herních akcí
+  - Formátované zprávy s barevným rozlišením
+  - Logování útoků, kouzel a efektů jednotek
+  - Časové značky pro všechny akce
+  - Přenos combat log zpráv ze serveru na klienta
+- Rozšířen Combat Log systém
+  - Přidány detailní zprávy pro všechna kouzla a jejich efekty
+  - Přidány zprávy pro efekty jednotek při vyložení
+  - Vylepšeno formátování zpráv s barevným rozlišením různých typů efektů
+  - Změněno označení "AI" na "Enemy" pro multiplayer režim
+- Přidáno logování vyložení jednotek na stůl
+  - Zobrazení jména jednotky
+  - Zobrazení útoku a zdraví jednotky
+  - Zachování konzistentního formátování s ostatními logy
 
 ### Changed
 - Vylepšena vizuální stránka hry přidáním dynamických efektů pro lepší uživatelský zážitek.
@@ -509,3 +524,9 @@
   - Jednotky jsou nyní zmražené pouze během svého následujícího tahu
   - Jednotky se rozmrazí na začátku následujícího tahu protivníka
   - Vylepšena přesnost časování efektu zmražení
+
+### Fixed
+- Opraveno duplicitní přidávání zpráv do Combat Logu
+  - Přidáno mazání combatLogMessage po odeslání stavu hry klientům
+  - Zamezeno duplicitnímu zobrazování stejných zpráv na klientovi
+  - Vylepšena synchronizace Combat Logu mezi serverem a klientem

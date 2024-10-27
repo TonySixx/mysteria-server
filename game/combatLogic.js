@@ -119,11 +119,11 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
             const oldHealth = targetHero.health;
             targetHero.health = Math.max(0, targetHero.health - attacker.attack);
             
-            console.log('Útok na hrdinu:', {
-                oldHealth,
-                damage: attacker.attack,
-                newHealth: targetHero.health
-            });
+            // Přidáme log zprávu
+            newState.combatLogMessage = {
+                message: `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayerIndex === 0 ? 'Player' : 'Enemy'}</span> attacked with <span class="spell-name">${attacker.name}</span> dealing <span class="damage">${attacker.attack} damage</span> to enemy hero`,
+                timestamp: Date.now()
+            };
 
             return checkGameOver(newState);
         } else {
@@ -165,6 +165,12 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
             newState.players.forEach(player => {
                 player.field = player.field.filter(card => card.health > 0);
             });
+
+            // Přidáme log zprávu o útoku
+            newState.combatLogMessage = {
+                message: `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayerIndex === 0 ? 'Player' : 'Enemy'}</span> attacked with <span class="spell-name">${attacker.name}</span> dealing <span class="damage">${attacker.attack} damage</span> to <span class="spell-name">${target.name}</span>`,
+                timestamp: Date.now()
+            };
 
             return checkGameOver(newState);
         }
