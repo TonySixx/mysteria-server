@@ -138,7 +138,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 forPlayer: playerIndex
             };
             newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'AI'}</span> cast <span class="spell-name">Fireball</span> dealing <span class="damage">6 damage</span> to enemy hero`,
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> cast <span class="spell-name">Fireball</span> dealing <span class="damage">6 damage</span> to enemy hero`,
                 timestamp: Date.now()
             };
             break;
@@ -170,7 +170,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 forPlayer: playerIndex
             };
             newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'AI'}</span> cast <span class="spell-name">Healing Touch</span> restoring <span class="heal">${healAmount} health</span>`,
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerIndex === 0 ? 'Player' : 'Enemy'}</span> cast <span class="spell-name">Healing Touch</span> restoring <span class="heal">${healAmount} health</span>`,
                 timestamp: Date.now()
             };
             break;
