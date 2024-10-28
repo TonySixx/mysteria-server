@@ -307,10 +307,22 @@ class GameManager {
         // Odešleme stav oběma hráčům
         game.players.forEach((player, index) => {
             const playerView = this.createPlayerView(game, index);
+            
+            // Přidáme animační data, pokud existují
+            if (game.animation) {
+                playerView.animation = {
+                    ...game.animation,
+                    // Převrátíme indexy pro druhého hráče
+                    sourceIndex: index === 1 ? this.invertFieldIndex(game.animation.sourceIndex) : game.animation.sourceIndex,
+                    targetIndex: index === 1 ? this.invertFieldIndex(game.animation.targetIndex) : game.animation.targetIndex
+                };
+            }
+            
             player.socket.emit('gameState', playerView);
         });
 
-        // Po odeslání vymažeme combatLogMessage
+        // Vyčistíme animační data a combat log
+        game.animation = null;
         game.combatLogMessage = null;
     }
 
@@ -373,7 +385,6 @@ class GameManager {
         const game = this.games.get(gameId);
         if (!game) return;
 
-        // Kontrola, zda je hráč na tahu
         if (game.currentPlayer !== playerIndex) {
             game.notification = {
                 message: 'Not your turn!',
@@ -384,14 +395,23 @@ class GameManager {
         }
 
         const { cardIndex, destinationIndex, target } = data;
+        const card = game.players[playerIndex].hand[cardIndex];
 
-        // Použijeme jednotnou funkci playCardCommon pro všechny typy karet
+        // Přidáme animační data před provedením akce
+        game.animation = {
+            type: 'playCard',
+            sourceIndex: cardIndex,
+            targetIndex: destinationIndex,
+            cardType: card.type,
+            playerIndex: playerIndex
+        };
+
         const updatedState = playCardCommon(game, playerIndex, cardIndex, target, destinationIndex);
         
-        // Aktualizujeme notifikaci
         if (updatedState.notification) {
             game.notification = updatedState.notification;
-        } 
+        }
+        
         this.games.set(gameId, updatedState);
         this.broadcastGameState(gameId);
     }
@@ -399,14 +419,22 @@ class GameManager {
     async handleAttack(gameId, playerIndex, data) {
         const game = this.games.get(gameId);
         if (!game || game.currentPlayer !== playerIndex) {
-            // Pokud hráč není na tahu, pošleme mu notifikaci
             game.notification = {
-                message: 'Nejste na tahu!',
+                message: 'Not your turn!',
                 forPlayer: playerIndex
             };
             this.broadcastGameState(gameId);
             return;
         }
+
+        // Přidáme animační data před provedením útoku
+        game.animation = {
+            type: 'attack',
+            sourceIndex: data.attackerIndex,
+            targetIndex: data.targetIndex,
+            isHeroTarget: data.isHeroTarget,
+            playerIndex: playerIndex
+        };
 
         const updatedState = attack(
             data.attackerIndex,
@@ -415,7 +443,6 @@ class GameManager {
             false
         )(game);
 
-        // Aktualizujeme notifikaci
         if (updatedState.notification) {
             game.notification = updatedState.notification;
         }
@@ -675,6 +702,12 @@ class GameManager {
         } catch (error) {
             console.error('Error broadcasting online players:', error);
         }
+    }
+
+    // Pomocná metoda pro převrácení indexů pole
+    invertFieldIndex(index) {
+        if (index === null || index === undefined) return index;
+        return 6 - index; // Pro pole velikosti 7 (0-6)
     }
 }
 
