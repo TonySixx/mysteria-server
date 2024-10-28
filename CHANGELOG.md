@@ -137,7 +137,7 @@
 - Vyřešeny problémy s desynchronizací herního stavu
 
 ### Changed
-- Upraveno chování karet v ruce hráče - v��echny karty jsou nyní přetahovatelné, kouzla lze stále zahrát kliknutím.
+- Upraveno chování karet v ruce hráče - vechny karty jsou nyní přetahovatelné, kouzla lze stále zahrát kliknutím.
 - Sjednoceno chování pro hraní všech typů karet - nyní se všechny karty hrají pomocí drag&drop.
 
 ### Změněno
@@ -553,3 +553,13 @@
   - Přidáno volání handleGameEnd při konci hry v handleAttack
   - Zajištěno správné ukládání statistik hráčů po konci hry
   - Implementováno ukládání délky hry a použitých balíčků
+
+### Fixed
+- Opraveno duplicitní socket.io připojení
+  - Implementován systém sledování stavu připojení
+  - Přidána ochrana proti vícenásobnému připojení
+  - Vylepšena synchronizace stavu online hráčů
+- Opravena aktualizace seznamu online hráčů po přihlášení
+  - Přidán mechanismus pro vyžádání aktuálního seznamu
+  - Implementováno správné čištění event listenerů
+  - Vylepšena stabilita socket.io připojení

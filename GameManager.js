@@ -81,7 +81,7 @@ class GameManager {
 
             // Vytvoříme novou hru
             const gameId = this.createGame(player1Socket, player2Socket);
-            console.log(`Vytvořena nov�� hra s ID: ${gameId}`);
+            console.log(`Vytvořena nov hra s ID: ${gameId}`);
 
             // Zaregistrujeme hráče do hry
             this.playerGameMap.set(player1Id, gameId);
@@ -610,12 +610,18 @@ class GameManager {
 
             if (error) throw error;
 
+            // Aktualizujeme nebo přidáme hráče do mapy
             this.onlinePlayers.set(userId, {
                 id: userId,
                 username: playerData.username,
                 rank: playerData.rank,
                 status: 'online',
                 socketId: socket.id
+            });
+
+            // Přidáme handler pro požadavek na seznam hráčů
+            socket.on('request_online_players', () => {
+                this.broadcastOnlinePlayers();
             });
 
             this.broadcastOnlinePlayers();
