@@ -138,8 +138,7 @@ CREATE TABLE decks (
     name TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
-    is_active BOOLEAN DEFAULT false,
-    CONSTRAINT unique_active_deck_per_user UNIQUE (user_id, is_active)
+    is_active BOOLEAN DEFAULT false
 );
 
 -- Přidáme tabulku pro karty v balíčku
@@ -294,3 +293,26 @@ WHERE name = 'Shadow Assassin';
 UPDATE cards 
 SET mana_cost = 6, effect = 'Take control of a random enemy minion' 
 WHERE name = 'Mind Control';
+
+-- Odstraníme starý constraint
+ALTER TABLE decks DROP CONSTRAINT IF EXISTS unique_active_deck_per_user;
+
+-- Přidáme nový trigger pro kontrolu aktivních balíčků
+CREATE OR REPLACE FUNCTION check_active_decks()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.is_active = true THEN
+        -- Deaktivujeme všechny ostatní balíčky uživatele
+        UPDATE decks 
+        SET is_active = false 
+        WHERE user_id = NEW.user_id 
+        AND id != NEW.id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER ensure_single_active_deck
+    BEFORE INSERT OR UPDATE ON decks
+    FOR EACH ROW
+    EXECUTE FUNCTION check_active_decks();
