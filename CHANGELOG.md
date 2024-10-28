@@ -557,9 +557,15 @@
 ### Fixed
 - Opraveno duplicitní socket.io připojení
   - Implementován systém sledování stavu připojení
-  - Přidána ochrana proti vícenásobnému připojení
+  - Přidána ochrana proti vícenásobnému p��ipojení
   - Vylepšena synchronizace stavu online hráčů
 - Opravena aktualizace seznamu online hráčů po přihlášení
   - Přidán mechanismus pro vyžádání aktuálního seznamu
   - Implementováno správné čištění event listenerů
   - Vylepšena stabilita socket.io připojení
+
+### Fixed
+- Přidána kontrola existence username při registraci
+  - Zamezeno vytváření duplicitních uživatelských jmen
+  - Přidána validace na úrovni aplikace i databáze
+  - Vylepšeno chybové hlášení při pokusu o registraci s existujícím username

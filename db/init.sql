@@ -112,3 +112,7 @@ $$;
 
 -- Přidáme oprávnění pro anonymní uživatele k volání funkce
 GRANT EXECUTE ON FUNCTION create_profile(UUID, TEXT, INTEGER) TO anon;
+
+-- Přidáme UNIQUE constraint pro username, pokud již neexistuje
+ALTER TABLE profiles 
+ADD CONSTRAINT unique_username UNIQUE (username);
