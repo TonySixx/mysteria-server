@@ -211,3 +211,49 @@ app.use(cors({
 server.listen(PORT, () => {
     console.log(`Server běží na portu ${PORT}`);
 });
+
+// Přidáme nové endpointy pro správu balíčků
+app.get('/api/decks', async (req, res) => {
+    try {
+        const { user_id } = req.query;
+        const { data, error } = await supabase
+            .from('decks')
+            .select('*')
+            .eq('user_id', user_id);
+
+        if (error) throw error;
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/decks', async (req, res) => {
+    try {
+        const { user_id, name, cards } = req.body;
+        
+        // Začneme transakci
+        const { data: deck, error: deckError } = await supabase
+            .from('decks')
+            .insert({ user_id, name })
+            .select()
+            .single();
+
+        if (deckError) throw deckError;
+
+        // Vložíme karty do balíčku
+        const { error: cardsError } = await supabase
+            .from('deck_cards')
+            .insert(cards.map(card => ({
+                deck_id: deck.id,
+                card_id: card.id,
+                quantity: card.quantity
+            })));
+
+        if (cardsError) throw cardsError;
+
+        res.json(deck);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});

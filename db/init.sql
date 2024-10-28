@@ -116,3 +116,156 @@ GRANT EXECUTE ON FUNCTION create_profile(UUID, TEXT, INTEGER) TO anon;
 -- Přidáme UNIQUE constraint pro username, pokud již neexistuje
 ALTER TABLE profiles 
 ADD CONSTRAINT unique_username UNIQUE (username);
+
+-- Přidáme tabulku pro karty
+CREATE TABLE cards (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    mana_cost INTEGER NOT NULL,
+    attack INTEGER,
+    health INTEGER,
+    effect TEXT,
+    image TEXT NOT NULL,
+    rarity TEXT NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('unit', 'spell')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Přidáme tabulku pro balíčky karet
+CREATE TABLE decks (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES profiles(id) NOT NULL,
+    name TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    is_active BOOLEAN DEFAULT false,
+    CONSTRAINT unique_active_deck_per_user UNIQUE (user_id, is_active)
+);
+
+-- Přidáme tabulku pro karty v balíčku
+CREATE TABLE deck_cards (
+    deck_id UUID REFERENCES decks(id) ON DELETE CASCADE,
+    card_id INTEGER REFERENCES cards(id),
+    quantity INTEGER CHECK (quantity > 0 AND quantity <= 2),
+    PRIMARY KEY (deck_id, card_id)
+);
+
+-- Přidáme trigger pro kontrolu počtu karet v balíčku
+CREATE OR REPLACE FUNCTION check_deck_size()
+RETURNS TRIGGER AS $$
+DECLARE
+    total_cards INTEGER;
+BEGIN
+    SELECT SUM(quantity) INTO total_cards
+    FROM deck_cards
+    WHERE deck_id = NEW.deck_id;
+
+    IF total_cards > 30 THEN
+        RAISE EXCEPTION 'Deck cannot contain more than 30 cards';
+    END IF;
+
+    -- Kontrola legendary karet
+    IF EXISTS (
+        SELECT 1 
+        FROM cards c
+        JOIN deck_cards dc ON c.id = dc.card_id
+        WHERE dc.deck_id = NEW.deck_id 
+        AND c.rarity = 'legendary' 
+        AND dc.quantity > 1
+    ) THEN
+        RAISE EXCEPTION 'Legendary cards can only have one copy in deck';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER check_deck_size_trigger
+AFTER INSERT OR UPDATE ON deck_cards
+FOR EACH ROW
+EXECUTE FUNCTION check_deck_size();
+
+-- Přidáme indexy pro lepší výkon
+CREATE INDEX idx_deck_cards_deck_id ON deck_cards(deck_id);
+CREATE INDEX idx_deck_cards_card_id ON deck_cards(card_id);
+CREATE INDEX idx_decks_user_id ON decks(user_id);
+
+-- Přidáme RLS policies
+ALTER TABLE decks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE deck_cards ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cards ENABLE ROW LEVEL SECURITY;
+
+-- Policies pro karty
+CREATE POLICY "Cards are viewable by everyone"
+    ON cards FOR SELECT
+    USING (true);
+
+-- Policies pro balíčky
+CREATE POLICY "Users can view own decks"
+    ON decks FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own decks"
+    ON decks FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own decks"
+    ON decks FOR UPDATE
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own decks"
+    ON decks FOR DELETE
+    USING (auth.uid() = user_id);
+
+-- Policies pro karty v balíčku
+CREATE POLICY "Users can view own deck cards"
+    ON deck_cards FOR SELECT
+    USING (EXISTS (
+        SELECT 1 FROM decks
+        WHERE decks.id = deck_cards.deck_id
+        AND decks.user_id = auth.uid()
+    ));
+
+CREATE POLICY "Users can insert cards to own decks"
+    ON deck_cards FOR INSERT
+    WITH CHECK (EXISTS (
+        SELECT 1 FROM decks
+        WHERE decks.id = deck_cards.deck_id
+        AND decks.user_id = auth.uid()
+    ));
+
+CREATE POLICY "Users can update cards in own decks"
+    ON deck_cards FOR UPDATE
+    USING (EXISTS (
+        SELECT 1 FROM decks
+        WHERE decks.id = deck_cards.deck_id
+        AND decks.user_id = auth.uid()
+    ));
+
+CREATE POLICY "Users can delete cards from own decks"
+    ON deck_cards FOR DELETE
+    USING (EXISTS (
+        SELECT 1 FROM decks
+        WHERE decks.id = deck_cards.deck_id
+        AND decks.user_id = auth.uid()
+    ));
+
+-- Vložení základních karet do databáze
+INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type) VALUES
+    ('Fire Elemental', 4, 5, 6, 'Deals 2 damage when played', 'fireElemental', 'rare', 'unit'),
+    ('Shield Bearer', 2, 1, 7, 'Taunt', 'shieldBearer', 'common', 'unit'),
+    ('Water Elemental', 3, 3, 5, 'Freeze enemy when played', 'waterElemental', 'rare', 'unit'),
+    ('Earth Golem', 5, 4, 8, 'Taunt', 'earthGolem', 'uncommon', 'unit'),
+    ('Nimble Sprite', 1, 1, 2, 'Draw a card when played', 'nimbleSprite', 'common', 'unit'),
+    ('Arcane Familiar', 1, 1, 3, 'Gain +1 attack for each spell cast', 'arcaneFamiliar', 'epic', 'unit'),
+    ('Fireball', 4, NULL, NULL, 'Deal 6 damage', 'fireball', 'uncommon', 'spell'),
+    ('Lightning Bolt', 2, NULL, NULL, 'Deal 3 damage', 'lightningBolt', 'common', 'spell'),
+    ('Healing Touch', 3, NULL, NULL, 'Restore 8 health', 'healingTouch', 'common', 'spell'),
+    ('Arcane Intellect', 3, NULL, NULL, 'Draw 2 cards', 'arcaneIntellect', 'rare', 'spell'),
+    ('Glacial Burst', 3, NULL, NULL, 'Freeze all enemy minions', 'glacialBurst', 'epic', 'spell'),
+    ('Inferno Wave', 7, NULL, NULL, 'Deal 4 damage to all enemy minions', 'infernoWave', 'epic', 'spell');
+
+-- Přidáme indexy pro rychlejší vyhledávání
+CREATE INDEX idx_cards_type ON cards(type);
+CREATE INDEX idx_cards_rarity ON cards(rarity);
+CREATE INDEX idx_cards_mana_cost ON cards(mana_cost);

@@ -127,11 +127,14 @@ class GameManager {
     }
 
     // Vytvoření nové hry
-    createGame(player1Socket, player2Socket) {
+    async createGame(player1Socket, player2Socket) {
         const gameId = this.generateGameId();
 
         // Inicializace balíčků pro oba hráče
-        const [player1Deck, player2Deck] = this.initializeDecks();
+        const [player1Deck, player2Deck] = await this.initializeDecks(
+            player1Socket.userId,
+            player2Socket.userId
+        );
 
         const gameState = {
             players: [
@@ -182,7 +185,75 @@ class GameManager {
         return gameId;
     }
 
-    initializeDecks() {
+    async initializeDecks(player1Id, player2Id) {
+        const player1Deck = await this.loadPlayerDeck(player1Id);
+        const player2Deck = await this.loadPlayerDeck(player2Id);
+        return [player1Deck, player2Deck];
+    }
+
+    async loadPlayerDeck(userId) {
+        try {
+            // Načteme aktivní balíček hráče
+            const { data: deck, error: deckError } = await this.supabase
+                .from('decks')
+                .select(`
+                    id,
+                    deck_cards (
+                        card_id,
+                        quantity,
+                        cards (*)
+                    )
+                `)
+                .eq('user_id', userId)
+                .eq('is_active', true)
+                .single();
+
+            if (deckError) throw deckError;
+
+            // Pokud hráč nemá aktivní balíček, vrátíme výchozí
+            if (!deck) {
+                console.log(`No active deck found for user ${userId}, using default`);
+                return this.createDefaultDeck();
+            }
+
+            // Vytvoříme balíček karet podle dat z databáze
+            const playerDeck = [];
+            deck.deck_cards.forEach(({ cards: card, quantity }) => {
+                for (let i = 0; i < quantity; i++) {
+                    const uniqueId = `${userId}-${card.id}-${Math.random()}`;
+                    if (card.type === 'unit') {
+                        playerDeck.push(new UnitCard(
+                            uniqueId,
+                            card.name,
+                            card.mana_cost,
+                            card.attack,
+                            card.health,
+                            card.effect,
+                            card.image,
+                            card.rarity
+                        ));
+                    } else {
+                        playerDeck.push(new SpellCard(
+                            uniqueId,
+                            card.name,
+                            card.mana_cost,
+                            card.effect,
+                            card.image,
+                            card.rarity
+                        ));
+                    }
+                }
+            });
+
+            return playerDeck.sort(() => Math.random() - 0.5);
+        } catch (error) {
+            console.error('Error loading player deck:', error);
+            return this.createDefaultDeck();
+        }
+    }
+
+    createDefaultDeck() {
+        // Přesuneme původní logiku vytváření balíčku sem
         const baseDeck = [
             // Základní jednotky (3 kopie každé)
             ...Array(3).fill({ id: 1, name: 'Fire Elemental', manaCost: 4, attack: 5, health: 6, effect: 'Deals 2 damage when played', image: 'fireElemental', rarity: 'rare' }),
@@ -204,40 +275,31 @@ class GameManager {
             { id: 11, name: 'Glacial Burst', manaCost: 3, effect: 'Freeze all enemy minions', image: 'glacialBurst', rarity: 'epic' },
             { id: 13, name: 'Inferno Wave', manaCost: 7, effect: 'Deal 4 damage to all enemy minions', image: 'infernoWave', rarity: 'epic' }
         ];
-
-        // Vytvoření karet s unikátními ID pro každého hráče
-        const createPlayerDeck = (playerIndex) => {
-            return baseDeck.map(card => {
-                const uniqueId = `${playerIndex}-${card.id}-${Math.random()}`;
-                if (card.attack !== undefined) {
-                    return new UnitCard(
-                        uniqueId,
-                        card.name,
-                        card.manaCost,
-                        card.attack,
-                        card.health,
-                        card.effect,
-                        card.image,
-                        card.rarity
-                    );
-                } else {
-                    return new SpellCard(
-                        uniqueId,
-                        card.name,
-                        card.manaCost,
-                        card.effect,
-                        card.image,
-                        card.rarity
-                    );
-                }
-            }).sort(() => Math.random() - 0.5); // Zamíchání balíčku
-        };
-
-        // Kontrola velikosti balíčku
-        console.log('Velikost balíčku:', baseDeck.length);
-        console.log('Složení balíčku:', baseDeck.map(card => card.name));
-
-        return [createPlayerDeck(0), createPlayerDeck(1)];
+        
+        return baseDeck.map(card => {
+            const uniqueId = `default-${card.id}-${Math.random()}`;
+            if (card.attack !== undefined) {
+                return new UnitCard(
+                    uniqueId,
+                    card.name,
+                    card.manaCost,
+                    card.attack,
+                    card.health,
+                    card.effect,
+                    card.image,
+                    card.rarity
+                );
+            } else {
+                return new SpellCard(
+                    uniqueId,
+                    card.name,
+                    card.manaCost,
+                    card.effect,
+                    card.image,
+                    card.rarity
+                );
+            }
+        }).sort(() => Math.random() - 0.5);
     }
 
     // Nastavení event listenerů pro hráče

@@ -76,6 +76,20 @@
 - Přidáno zobrazení žebříčku do hlavního menu
 - Implementována perzistence herních výsledků
 - Přidána autentizace pro Socket.IO spojení
+- Implementována podpora pro vlastní balíčky karet
+- Přidána databázová struktura pro ukládání balíčků
+- Přidány API endpointy pro správu balíčků
+- Implementováno načítání balíčků z databáze při startu hry
+- Přidána podpora pro omezení počtu kopií karet v balíčku
+- Implementována kontrola velikosti balíčku
+- Přidána podpora pro legendary karty (max 1 kopie)
+- Přidána nová sekce "Decks" do hlavního menu
+- Implementováno rozhraní pro správu balíčků karet
+- Přidána kontrola existence aktivního balíčku před zahájením hry
+- Implementován tooltip pro informaci o nutnosti vybrat aktivní balíček
+- Přidáno tlačítko pro vytvoření nového balíčku
+- Implementováno zobrazení seznamu balíčků s počtem karet
+- Přidáno zvýraznění aktivního balíčku
 
 ### Changed
 - Vylepšena vizuální stránka hry přidáním dynamických efektů pro lepší uživatelský zážitek.
@@ -113,6 +127,13 @@
 - Upravena struktura hlavního menu pro podporu uživatelských účtů
 - Vylepšeno UI pro lepší uživatelskou přívětivost
 - Optimalizováno načítání dat ze Supabase
+- Upraveno UI hlavního menu pro lepší integraci správy balíčků
+- Vylepšena vizuální hierarchie menu pomocí nového uspořádání tabů
+- Přidána kontrola existence aktivního balíčku před spuštěním hry
+- Implementován tooltip pro informaci o nutnosti vybrat aktivní balíček
+- Přidáno tlačítko pro vytvoření nového balíčku
+- Implementováno zobrazení seznamu balíčků s počtem karet
+- Přidáno zvýraznění aktivního balíčku
 
 ### Removed
 - Odstraněno tlačítko "útok" z karet jednotek.
@@ -135,6 +156,8 @@
 - Vylepšeno logování bojových akcí s přesnějšími informacemi o útočníkovi a cíli
 - Opraveny problémy s připojením při výpadku sítě
 - Vyřešeny problémy s desynchronizací herního stavu
+- Opraveno načítání seznamu balíčků při přepnutí na záložku Decks
+- Implementována správná aktualizace seznamu po změně aktivního balíčku
 
 ### Changed
 - Upraveno chování karet v ruce hráče - vechny karty jsou nyní přetahovatelné, kouzla lze stále zahrát kliknutím.
@@ -309,15 +332,6 @@
   - Water Elemental nyní správně zmrazí náhodnou nepřátelskou jednotku
   - Fire Elemental způsobuje poškození při vyložení
   - Nimble Sprite správně umožňuje líznout kartu
-
-### Fixed
-- Opraveno zobrazování notifikací na klientovi
-  - Přidáno zpracování notifikací v GameScene komponentě
-  - Implementováno správné zobrazování a odstraňování notifikací
-- Opravena mechanika zmrazení jednotek
-  - Jednotky nyní zůstávají zmražené celé kolo
-  - Přidán systém dvou-kolového zmrazení
-  - Opraveno rozmrazování jednotek na začátku druhého kola
 
 ### Fixed
 - Opravena chyba při zobrazování notifikací
@@ -557,7 +571,7 @@
 ### Fixed
 - Opraveno duplicitní socket.io připojení
   - Implementován systém sledování stavu připojení
-  - Přidána ochrana proti vícenásobnému p��ipojení
+  - Přidána ochrana proti vícenásobnému pipojení
   - Vylepšena synchronizace stavu online hráčů
 - Opravena aktualizace seznamu online hráčů po přihlášení
   - Přidán mechanismus pro vyžádání aktuálního seznamu
@@ -569,3 +583,13 @@
   - Zamezeno vytváření duplicitních uživatelských jmen
   - Přidána validace na úrovni aplikace i databáze
   - Vylepšeno chybové hlášení při pokusu o registraci s existujícím username
+
+### Added
+- Implementována podpora pro vlastní balíčky karet
+- Přidána databázová struktura pro ukládání balíčků
+- Přidány API endpointy pro správu balíčků
+- Implementováno načítání balíčků z databáze při startu hry
+- Přidána podpora pro omezení počtu kopií karet v balíčku
+- Implementována kontrola velikosti balíčku
+- Přidána podpora pro legendary karty (max 1 kopie)
+
