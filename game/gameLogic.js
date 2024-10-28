@@ -249,6 +249,85 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 timestamp: Date.now()
             };
             break;
+
+        case 'Mind Control':
+            if (player.field.length >= 7) {
+                // Pole je plné, vrátíme kartu do ruky
+                newState.notification = {
+                    message: 'Your field is full! Cannot take control of enemy minion.',
+                    forPlayer: playerIndex
+                };
+                // Vrátíme false pro indikaci, že karta nebyla použita
+                return false;
+            }
+
+            if (data.targetIndex !== undefined && opponent.field[data.targetIndex]) {
+                const targetUnit = opponent.field.splice(data.targetIndex, 1)[0];
+                targetUnit.hasAttacked = true; // Nemůže útočit v tomto kole
+                player.field.push(targetUnit);
+                newState.notification = {
+                    message: `Took control of enemy ${targetUnit.name}!`,
+                    forPlayer: playerIndex
+                };
+                newState.combatLogMessage = {
+                    message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mind Control</span> and took control of <span class="spell-name">${targetUnit.name}</span>`,
+                    timestamp: Date.now()
+                };
+            }
+            break;
+
+        case 'Arcane Explosion':
+            let damagedCount = 0;
+            opponent.field.forEach(unit => {
+                if (unit) {
+                    unit.health -= 1;
+                    damagedCount++;
+                }
+            });
+            newState.notification = {
+                message: `Dealt 1 damage to ${damagedCount} enemy minions!`,
+                forPlayer: playerIndex
+            };
+            newState.combatLogMessage = {
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Arcane Explosion</span> dealing <span class="damage">1 damage</span> to ${damagedCount} enemy minions`,
+                timestamp: Date.now()
+            };
+            break;
+
+        case 'Holy Nova':
+            let healedCount = 0;
+            let damagedEnemies = 0;
+
+            // Poškození nepřátel
+            opponent.field.forEach(unit => {
+                if (unit) {
+                    unit.health -= 2;
+                    damagedEnemies++;
+                }
+            });
+            opponent.hero.health = Math.max(0, opponent.hero.health - 2);
+
+            // Léčení přátel
+            player.field.forEach(unit => {
+                if (unit) {
+                    const oldHealth = unit.health;
+                    unit.health = Math.min(unit.maxHealth, unit.health + 2);
+                    if (unit.health > oldHealth) healedCount++;
+                }
+            });
+            const oldHeroHealth = player.hero.health;
+            player.hero.health = Math.min(30, player.hero.health + 2);
+            if (player.hero.health > oldHeroHealth) healedCount++;
+
+            newState.notification = {
+                message: `Dealt 2 damage to all enemies and restored 2 health to all friendly characters!`,
+                forPlayer: playerIndex
+            };
+            newState.combatLogMessage = {
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Holy Nova</span> dealing <span class="damage">2 damage</span> to enemies and restoring <span class="heal">2 health</span> to friendly characters`,
+                timestamp: Date.now()
+            };
+            break;
     }
 
     // Odstranění mrtvých jednotek
@@ -262,7 +341,6 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
 
 function handleUnitEffects(card, player, opponent, state, playerIndex) {
     const newState = { ...state };
-
     const playerName = player.username;
     const opponentName = opponent.username;
 
@@ -312,6 +390,27 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                 }
             }
             break;
+
+        case 'Shadow Assassin':
+            // Způsobí 2 poškození nepřátelskému hrdinovi při vyložení
+            opponent.hero.health = Math.max(0, opponent.hero.health - 2);
+            newState.notification = {
+                message: 'Shadow Assassin dealt 2 damage to enemy hero!',
+                forPlayer: playerIndex
+            };
+            newState.combatLogMessage = {
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Shadow Assassin</span> dealing <span class="damage">2 damage</span> to ${opponentName}'s hero`,
+                timestamp: Date.now()
+            };
+            break;
+
+        case 'Mana Wyrm':
+            // Efekt je implementován v handleSpellEffects - když je zahráno kouzlo
+            break;
+
+        case 'Soul Collector':
+            // Efekt je implementován v combat logice - když jednotka zabije nepřítele
+            break;
     }
 
     return newState;
@@ -332,9 +431,6 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
             }
         };
     }
-
-    const playerName = player.username;
-    const opponentName = opponent.username;
 
     if (card instanceof UnitCard) {
         // Nejdřív zkontrolujeme, jestli je místo na poli
@@ -364,7 +460,7 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
         
         // Přidáme log zprávu o vyložení jednotky
         newState.combatLogMessage = {
-            message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">${card.name}</span> (${card.attack}/${card.health})`,
+            message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> played <span class="spell-name">${card.name}</span> (${card.attack}/${card.health})`,
             timestamp: Date.now()
         };
         
@@ -372,10 +468,18 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
         const stateWithEffects = handleUnitEffects(card, player, opponent, newState, playerIndex);
         return checkGameOver(stateWithEffects);
     } else if (card instanceof SpellCard) {
+        // Nejdřív zkusíme aplikovat efekt kouzla
+        const spellResult = handleSpellEffects(card, player, opponent, newState, playerIndex);
+        
+        // Pokud je spellResult false, kouzlo se nepovedlo použít
+        if (spellResult === false) {
+            return newState; // Vrátíme původní stav bez odečtení many a odebrání karty
+        }
+
+        // Jinak odečteme manu a odebereme kartu z ruky
         player.mana -= card.manaCost;
         player.hand.splice(cardIndex, 1);
-        card.target = target;
-        return handleSpellEffects(card, player, opponent, newState, playerIndex);
+        return spellResult;
     }
 
     return checkGameOver(newState);

@@ -149,7 +149,7 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                 }
             });
 
-            handleCombat(attacker, target);
+            handleCombat(attacker, target, newState, attackerPlayerIndex);
 
             console.log('Po útoku:', {
                 targetAfter: {
@@ -183,7 +183,7 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
     };
 }
 
-function handleCombat(attacker, defender) {
+function handleCombat(attacker, defender, state, attackerPlayerIndex) {
     console.log('Začátek souboje:', {
         attacker: {
             name: attacker.name,
@@ -199,6 +199,9 @@ function handleCombat(attacker, defender) {
         }
     });
 
+    const defenderInitialHealth = defender.health;
+
+    // Zpracování útoku
     if (defender.hasDivineShield) {
         defender.hasDivineShield = false;
     } else {
@@ -209,6 +212,29 @@ function handleCombat(attacker, defender) {
         attacker.hasDivineShield = false;
     } else {
         attacker.health -= defender.attack;
+    }
+
+    // Kontrola efektu Soul Collector
+    if (attacker.name === 'Soul Collector' && defenderInitialHealth > 0 && defender.health <= 0) {
+        const attackerPlayer = state.players[attackerPlayerIndex];
+        
+        // Pokud má hráč karty v balíčku a místo v ruce
+        if (attackerPlayer.deck.length > 0 && attackerPlayer.hand.length < 10) {
+            const drawnCard = attackerPlayer.deck.pop();
+            attackerPlayer.hand.push(drawnCard);
+            
+            // Přidáme notifikaci o efektu
+            state.notification = {
+                message: 'Soul Collector drew a card!',
+                forPlayer: attackerPlayerIndex
+            };
+            
+            // Přidáme zprávu do combat logu
+            state.combatLogMessage = {
+                message: `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}</span>'s <span class="spell-name">Soul Collector</span> <span class="draw">drew a card</span> after killing an enemy`,
+                timestamp: Date.now()
+            };
+        }
     }
 
     console.log('Konec souboje:', {

@@ -265,7 +265,27 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Glacial Burst', 3, NULL, NULL, 'Freeze all enemy minions', 'glacialBurst', 'epic', 'spell'),
     ('Inferno Wave', 7, NULL, NULL, 'Deal 4 damage to all enemy minions', 'infernoWave', 'epic', 'spell');
 
+-- Přidání nových karet do databáze (přidat za existující INSERT příkazy)
+INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type) VALUES
+    -- Legendární ochránce
+    ('Radiant Protector', 6, 4, 5, 'Taunt, Divine Shield', 'radiantProtector', 'legendary', 'unit'),
+    
+    -- Nové jednotky
+    ('Shadow Assassin', 3, 4, 2, 'Deal 2 damage to enemy hero when played', 'shadowAssassin', 'rare', 'unit'),
+    ('Mana Wyrm', 2, 2, 3, 'Gain +1 attack when you cast a spell', 'manaWyrm', 'rare', 'unit'),
+    ('Soul Collector', 5, 3, 4, 'Draw a card when this minion kills an enemy', 'soulCollector', 'epic', 'unit'),
+    
+    -- Nová kouzla
+    ('Mind Control', 8, NULL, NULL, 'Take control of an enemy minion', 'mindControl', 'epic', 'spell'),
+    ('Arcane Explosion', 2, NULL, NULL, 'Deal 1 damage to all enemy minions', 'arcaneExplosion', 'common', 'spell'),
+    ('Holy Nova', 5, NULL, NULL, 'Deal 2 damage to all enemies and restore 2 health to all friendly characters', 'holyNova', 'rare', 'spell');
+
 -- Přidáme indexy pro rychlejší vyhledávání
 CREATE INDEX idx_cards_type ON cards(type);
 CREATE INDEX idx_cards_rarity ON cards(rarity);
 CREATE INDEX idx_cards_mana_cost ON cards(mana_cost);
+
+-- Upravíme efekt Shadow Assassin
+UPDATE cards 
+SET effect = 'Deal 2 damage to enemy hero when played', attack = 4, health = 2 
+WHERE name = 'Shadow Assassin';
