@@ -35,6 +35,12 @@ function startNextTurn(state, nextPlayer) {
         const drawnCard = player.deck.pop();
         if (player.hand.length < 10) {
             player.hand.push(drawnCard);
+        } else {
+            // Přidáme notifikaci o spálení karty
+            newState.notification = {
+                message: `Card "${drawnCard.name}" was burned because your hand was full!`,
+                forPlayer: nextPlayer
+            };
         }
     }
 
@@ -330,39 +336,44 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
     const playerName = player.username;
     const opponentName = opponent.username;
 
-    player.mana -= card.manaCost;
-    player.hand.splice(cardIndex, 1);
-
     if (card instanceof UnitCard) {
-        if (player.field.length < 7) {
-            card.canAttack = false;
-            card.hasAttacked = false;
-            
-            // Vložíme kartu na specifickou pozici nebo na konec
-            if (typeof destinationIndex === 'number') {
-                player.field.splice(destinationIndex, 0, card);
-            } else {
-                player.field.push(card);
-            }
-            
-            // Přidáme log zprávu o vyložení jednotky
-            newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">${card.name}</span> (${card.attack}/${card.health})`,
-                timestamp: Date.now()
+        // Nejdřív zkontrolujeme, jestli je místo na poli
+        if (player.field.length >= 7) {
+            return { 
+                ...newState, 
+                notification: {
+                    message: 'No space on the field!',
+                    forPlayer: playerIndex
+                }
             };
-            
-            // Aplikujeme efekty jednotky při vyložení
-            const stateWithEffects = handleUnitEffects(card, player, opponent, newState, playerIndex);
-            return checkGameOver(stateWithEffects);
         }
-        return { 
-            ...newState, 
-            notification: {
-                message: 'No space on the field!',
-                forPlayer: playerIndex
-            }
+
+        // Pokud je místo, teprve pak odečteme manu a zahrajeme kartu
+        player.mana -= card.manaCost;
+        player.hand.splice(cardIndex, 1);
+        
+        card.canAttack = false;
+        card.hasAttacked = false;
+        
+        // Vložíme kartu na specifickou pozici nebo na konec
+        if (typeof destinationIndex === 'number') {
+            player.field.splice(destinationIndex, 0, card);
+        } else {
+            player.field.push(card);
+        }
+        
+        // Přidáme log zprávu o vyložení jednotky
+        newState.combatLogMessage = {
+            message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">${card.name}</span> (${card.attack}/${card.health})`,
+            timestamp: Date.now()
         };
+        
+        // Aplikujeme efekty jednotky při vyložení
+        const stateWithEffects = handleUnitEffects(card, player, opponent, newState, playerIndex);
+        return checkGameOver(stateWithEffects);
     } else if (card instanceof SpellCard) {
+        player.mana -= card.manaCost;
+        player.hand.splice(cardIndex, 1);
         card.target = target;
         return handleSpellEffects(card, player, opponent, newState, playerIndex);
     }
