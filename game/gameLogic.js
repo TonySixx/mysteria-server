@@ -114,18 +114,18 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
 
     const newState = { ...state };
     
-    // Přidáme efekt Arcane Familiar před zpracováním kouzla
+    // Přidáme efekt Mana Wyrm a Arcane Familiar před zpracováním kouzla
     player.field.forEach(unit => {
-        if (unit.name === 'Arcane Familiar') {
+        if (unit.name === 'Arcane Familiar' || unit.name === 'Mana Wyrm') {
             unit.attack += 1;
-            console.log('Arcane Familiar posílen:', {
+            console.log(`${unit.name} posílen:`, {
                 unitName: unit.name,
                 newAttack: unit.attack
             });
             // Přidáme notifikaci o posílení
             if (!newState.notification) {
                 newState.notification = {
-                    message: 'Arcane Familiar gained +1 attack!',
+                    message: `${unit.name} gained +1 attack!`,
                     forPlayer: playerIndex
                 };
             }
@@ -252,28 +252,44 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
 
         case 'Mind Control':
             if (player.field.length >= 7) {
-                // Pole je plné, vrátíme kartu do ruky
                 newState.notification = {
                     message: 'Your field is full! Cannot take control of enemy minion.',
                     forPlayer: playerIndex
                 };
-                // Vrátíme false pro indikaci, že karta nebyla použita
                 return false;
             }
 
-            if (data.targetIndex !== undefined && opponent.field[data.targetIndex]) {
-                const targetUnit = opponent.field.splice(data.targetIndex, 1)[0];
-                targetUnit.hasAttacked = true; // Nemůže útočit v tomto kole
-                player.field.push(targetUnit);
+            // Najdeme všechny dostupné nepřátelské jednotky
+            const availableTargets = opponent.field.filter(unit => unit !== null);
+            
+            if (availableTargets.length === 0) {
                 newState.notification = {
-                    message: `Took control of enemy ${targetUnit.name}!`,
+                    message: 'No enemy minions to control!',
                     forPlayer: playerIndex
                 };
-                newState.combatLogMessage = {
-                    message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mind Control</span> and took control of <span class="spell-name">${targetUnit.name}</span>`,
-                    timestamp: Date.now()
-                };
+                return false;
             }
+
+            // Vybereme náhodnou jednotku
+            const randomIndex = Math.floor(Math.random() * availableTargets.length);
+            const targetUnit = availableTargets[randomIndex];
+            
+            // Najdeme původní index jednotky v poli protivníka
+            const originalIndex = opponent.field.indexOf(targetUnit);
+            opponent.field[originalIndex] = null; // Odstraníme jednotku z původní pozice
+            
+            // Přidáme jednotku do pole hráče
+            targetUnit.hasAttacked = true; // Nemůže útočit v tomto kole
+            player.field.push(targetUnit);
+            
+            newState.notification = {
+                message: `Took control of enemy ${targetUnit.name}!`,
+                forPlayer: playerIndex
+            };
+            newState.combatLogMessage = {
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mind Control</span> and took control of <span class="spell-name">${targetUnit.name}</span>`,
+                timestamp: Date.now()
+            };
             break;
 
         case 'Arcane Explosion':

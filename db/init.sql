@@ -289,3 +289,8 @@ CREATE INDEX idx_cards_mana_cost ON cards(mana_cost);
 UPDATE cards 
 SET effect = 'Deal 2 damage to enemy hero when played', attack = 4, health = 2 
 WHERE name = 'Shadow Assassin';
+
+-- Upravíme cenu many pro Mind Control
+UPDATE cards 
+SET mana_cost = 6, effect = 'Take control of a random enemy minion' 
+WHERE name = 'Mind Control';
