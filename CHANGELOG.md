@@ -628,3 +628,10 @@
   - Nyní správně doplní manu bez následného odečtení ceny kouzla
   - Upraven popisek karty pro lepší srozumitelnost efektu
 
+### Changed
+- Vylepšen systém Combat Logu
+  - Přidána podpora pro více zpráv najednou
+  - Implementováno pole combatLogMessages místo jedné zprávy
+  - Zachováno správné pořadí zpráv podle času
+  - Vylepšeno zpracování více herních událostí v rámci jednoho tahu
+

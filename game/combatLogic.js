@@ -1,4 +1,4 @@
-const { checkGameOver } = require("./gameLogic");
+const { checkGameOver, addCombatLogMessage } = require("./gameLogic");
 
 // Helper funkce pro bezpečnou kopii herního stavu
 function cloneGameState(state) {
@@ -135,10 +135,7 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
             const attackerName = newState.players[attackerPlayerIndex].username;
             const defenderName = newState.players[defenderPlayerIndex].username;
             
-            newState.combatLogMessage = {
-                message: `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}</span> attacked with <span class="spell-name">${attacker.name}</span> dealing <span class="damage">${attacker.attack} damage</span> to ${defenderName}'s hero`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}</span> attacked with <span class="spell-name">${attacker.name}</span> dealing <span class="damage">${attacker.attack} damage</span> to ${defenderName}'s hero`);
 
             return checkGameOver(newState);
         } else {
@@ -185,10 +182,7 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
             const attackerName = newState.players[attackerPlayerIndex].username;
             const defenderName = newState.players[defenderPlayerIndex].username;
             
-            newState.combatLogMessage = {
-                message: `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}</span> attacked with <span class="spell-name">${attacker.name}</span> dealing <span class="damage">${attacker.attack} damage</span> to ${defenderName}'s <span class="spell-name">${target.name}</span>`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}</span> attacked with <span class="spell-name">${attacker.name}</span> dealing <span class="damage">${attacker.attack} damage</span> to ${defenderName}'s <span class="spell-name">${target.name}</span>`);
 
             return checkGameOver(newState);
         }
@@ -235,10 +229,7 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
             message: 'Mana Crystal death granted 1 mana crystal!',
             forPlayer: attackerPlayerIndex
         };
-        state.combatLogMessage = {
-            message: `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Mana Crystal</span> granted <span class="mana">1 mana crystal</span> on death`,
-            timestamp: Date.now()
-        };
+        addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Mana Crystal</span> granted <span class="mana">1 mana crystal</span> on death`);
     }
 
     // Kontrola efektu Soul Collector
@@ -257,10 +248,7 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
             };
             
             // Přidáme zprávu do combat logu
-            state.combatLogMessage = {
-                message: `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}</span>'s <span class="spell-name">Soul Collector</span> <span class="draw">drew a card</span> after killing an enemy`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}</span>'s <span class="spell-name">Soul Collector</span> <span class="draw">drew a card</span> after killing an enemy`);
         }
     }
 
@@ -274,6 +262,7 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
             message: `Mana Leech restored ${damageDone} mana!`,
             forPlayer: attackerPlayerIndex
         };
+        addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Mana Leech</span> restored <span class="mana">${damageDone} mana</span>`);
     }
 
     // Efekt Healing Wisp
@@ -286,10 +275,7 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
             message: `Healing Wisp restored ${healAmount} health to your hero!`,
             forPlayer: attackerPlayerIndex
         };
-        state.combatLogMessage = {
-            message: `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Healing Wisp</span> restored <span class="heal">${healAmount} health</span>`,
-            timestamp: Date.now()
-        };
+        addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Healing Wisp</span> restored <span class="heal">${healAmount} health</span>`);
     }
 
     console.log('Konec souboje:', {
@@ -304,6 +290,8 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
             hasDivineShield: defender.hasDivineShield
         }
     });
+
+    // addCombatLogMessage(state, /* zpráva */);
 }
 
 module.exports = {

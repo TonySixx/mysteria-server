@@ -167,7 +167,8 @@ class GameManager {
             winner: null,
             startTime: new Date(),
             spellsPlayedThisGame: 0,
-            endTurnEffects: []  // Přidáme inicializaci pole pro efekty na konci tahu
+            endTurnEffects: [],
+            combatLogMessages: []
         };
 
         this.games.set(gameId, gameState);
@@ -385,9 +386,9 @@ class GameManager {
             player.socket.emit('gameState', playerView);
         });
 
-        // Vyčistíme animační data a combat log
+        // Vyčistíme combat log zprávy a animace
+        game.combatLogMessages = [];
         game.animation = null;
-        game.combatLogMessage = null;
     }
 
     createPlayerView(game, playerIndex) {
@@ -440,7 +441,7 @@ class GameManager {
                 username: opponent.username // Přidáme username oponenta
             },
             notification: notification,
-            combatLogMessage: game.combatLogMessage,
+            combatLogMessages: game.combatLogMessages || [],
         };
     }
 

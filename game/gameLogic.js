@@ -1,5 +1,16 @@
 const { UnitCard, SpellCard } = require('./CardClasses');
 
+// Helper funkce pro přidání combat log zprávy
+function addCombatLogMessage(state, message) {
+    if (!state.combatLogMessages) {
+        state.combatLogMessages = [];
+    }
+    state.combatLogMessages.push({
+        message,
+        timestamp: Date.now()
+    });
+}
+
 function startNextTurn(state, nextPlayer) {
     const newState = { ...state };
     newState.currentPlayer = nextPlayer;
@@ -45,10 +56,7 @@ function startNextTurn(state, nextPlayer) {
     }
 
     const playerName = newState.players[nextPlayer].username;
-    newState.combatLogMessage = {
-        message: `<span class="${nextPlayer === 0 ? 'player-name' : 'enemy-name'}">${playerName}'s</span> turn begins`,
-        timestamp: Date.now()
-    };
+    addCombatLogMessage(newState, `<span class="${nextPlayer === 0 ? 'player-name' : 'enemy-name'}">${playerName}'s</span> turn begins`);
 
     // Zpracování end-turn efektů
     if (newState.endTurnEffects) {
@@ -62,11 +70,7 @@ function startNextTurn(state, nextPlayer) {
                     }
                 });
 
-                // Přidáme zprávu do combat logu o léčení
-                newState.combatLogMessage = {
-                    message: `<span class="${nextPlayer === 0 ? 'player-name' : 'enemy-name'}">${playerName}'s</span> <span class="spell-name">Time Weaver</span> restored <span class="heal">${effect.amount} health</span> to all friendly characters`,
-                    timestamp: Date.now()
-                };
+                addCombatLogMessage(newState, `<span class="${nextPlayer === 0 ? 'player-name' : 'enemy-name'}">${playerName}'s</span> <span class="spell-name">Time Weaver</span> restored <span class="heal">${effect.amount} health</span> to all friendly characters`);
             }
         });
         newState.endTurnEffects = []; // Vyčistíme efekty po zpracování
@@ -169,10 +173,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 message: `Fireball dealt 6 damage to the ${opponentName}'s hero!`,
                 forPlayer: playerIndex
             };
-            newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Fireball</span> dealing <span class="damage">6 damage</span> to ${opponentName}'s hero`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Fireball</span> dealing <span class="damage">6 damage</span> to ${opponentName}'s hero`);
             break;
 
         case 'Lightning Bolt':
@@ -181,10 +182,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 message: `Lightning Bolt dealt 3 damage to the ${opponentName}'s hero!`,
                 forPlayer: playerIndex
             };
-            newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Lightning Bolt</span> dealing <span class="damage">3 damage</span> to ${opponentName}'s hero`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Lightning Bolt</span> dealing <span class="damage">3 damage</span> to ${opponentName}'s hero`);
             break;
 
         case 'Healing Touch':
@@ -201,10 +199,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 message: `Healing Touch restored ${healAmount} health to your hero!`,
                 forPlayer: playerIndex
             };
-            newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Healing Touch</span> restoring <span class="heal">${healAmount} health</span>`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Healing Touch</span> restoring <span class="heal">${healAmount} health</span>`);
             break;
 
         case 'Glacial Burst':
@@ -218,10 +213,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 message: 'All enemy units were frozen!',
                 forPlayer: playerIndex
             };
-            newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Glacial Burst</span> and <span class="freeze">froze all enemy units</span>`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Glacial Burst</span> and <span class="freeze">froze all enemy units</span>`);
             break;
 
         case 'Inferno Wave':
@@ -233,10 +225,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 message: 'Inferno Wave dealt 4 damage to all enemy units!',
                 forPlayer: playerIndex
             };
-            newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Inferno Wave</span> dealing <span class="damage">4 damage</span> to ${damagedUnits} enemy units`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Inferno Wave</span> dealing <span class="damage">4 damage</span> to ${damagedUnits} enemy units`);
             break;
 
         case 'The Coin':
@@ -245,10 +234,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 message: 'Gained 1 mana crystal!',
                 forPlayer: playerIndex
             };
-            newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> used <span class="spell-name">The Coin</span> and gained <span class="mana">1 mana crystal</span>`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> used <span class="spell-name">The Coin</span> and gained <span class="mana">1 mana crystal</span>`);
             break;
 
         case 'Arcane Intellect':
@@ -266,10 +252,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 message: `Drew ${cardsDrawn.length} cards!`,
                 forPlayer: playerIndex
             };
-            newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Arcane Intellect</span> and <span class="draw">drew ${cardsDrawn.length} cards</span>`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Arcane Intellect</span> and <span class="draw">drew ${cardsDrawn.length} cards</span>`);
             break;
 
         case 'Mind Control':
@@ -308,10 +291,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 message: `Took control of enemy ${targetUnit.name}!`,
                 forPlayer: playerIndex
             };
-            newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mind Control</span> and took control of <span class="spell-name">${targetUnit.name}</span>`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mind Control</span> and took control of <span class="spell-name">${targetUnit.name}</span>`);
             break;
 
         case 'Arcane Explosion':
@@ -326,10 +306,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 message: `Dealt 1 damage to ${damagedCount} enemy minions!`,
                 forPlayer: playerIndex
             };
-            newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Arcane Explosion</span> dealing <span class="damage">1 damage</span> to ${damagedCount} enemy minions`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Arcane Explosion</span> dealing <span class="damage">1 damage</span> to ${damagedCount} enemy minions`);
             break;
 
         case 'Holy Nova':
@@ -361,10 +338,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 message: `Dealt 2 damage to all enemies and restored 2 health to all friendly characters!`,
                 forPlayer: playerIndex
             };
-            newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Holy Nova</span> dealing <span class="damage">2 damage</span> to enemies and restoring <span class="heal">2 health</span> to friendly characters`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Holy Nova</span> dealing <span class="damage">2 damage</span> to enemies and restoring <span class="heal">2 health</span> to friendly characters`);
             break;
 
         case 'Mana Surge':
@@ -377,10 +351,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 message: `Restored mana to maximum (${player.maxMana})!`,
                 forPlayer: playerIndex
             };
-            newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mana Surge</span> and restored mana to <span class="mana">${player.maxMana}</span>`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mana Surge</span> and restored mana to <span class="mana">${player.maxMana}</span>`);
             break;
 
         case 'Soul Exchange':
@@ -391,10 +362,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 message: `Swapped hero health with opponent!`,
                 forPlayer: playerIndex
             };
-            newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Soul Exchange</span> and swapped hero health values`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Soul Exchange</span> and swapped hero health values`);
             break;
 
         case 'Arcane Storm':
@@ -422,10 +390,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 message: `Arcane Storm dealt ${damage} damage to all characters!`,
                 forPlayer: playerIndex
             };
-            newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Arcane Storm</span> dealing <span class="damage">${damage} damage</span> to all characters`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Arcane Storm</span> dealing <span class="damage">${damage} damage</span> to all characters`);
             break;
 
         case 'Mirror Image':
@@ -457,10 +422,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 message: `Created ${mirrorImages.length} Mirror Images with Taunt!`,
                 forPlayer: playerIndex
             };
-            newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mirror Image</span> and summoned ${mirrorImages.length} Mirror Images`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mirror Image</span> and summoned ${mirrorImages.length} Mirror Images`);
             break;
     }
 
@@ -485,10 +447,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                 message: `Fire Elemental dealt 2 damage to the ${opponentName}'s hero!`,
                 forPlayer: playerIndex
             };
-            newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Fire Elemental</span> dealing <span class="damage">2 damage</span> to ${opponentName}'s hero`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Fire Elemental</span> dealing <span class="damage">2 damage</span> to ${opponentName}'s hero`);
             break;
 
         case 'Water Elemental':
@@ -501,10 +460,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                     message: `Water Elemental froze enemy ${targetUnit.name}!`,
                     forPlayer: playerIndex
                 };
-                newState.combatLogMessage = {
-                    message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Water Elemental</span> and <span class="freeze">froze</span> enemy <span class="spell-name">${targetUnit.name}</span>`,
-                    timestamp: Date.now()
-                };
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Water Elemental</span> and <span class="freeze">froze</span> enemy <span class="spell-name">${targetUnit.name}</span>`);
             }
             break;
 
@@ -517,10 +473,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                         message: 'Nimble Sprite allowed you to draw a card!',
                         forPlayer: playerIndex
                     };
-                    newState.combatLogMessage = {
-                        message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Nimble Sprite</span> and <span class="draw">drew a card</span>`,
-                        timestamp: Date.now()
-                    };
+                    addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Nimble Sprite</span> and <span class="draw">drew a card</span>`);
                 }
             }
             break;
@@ -532,10 +485,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                 message: 'Shadow Assassin dealt 2 damage to enemy hero!',
                 forPlayer: playerIndex
             };
-            newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Shadow Assassin</span> dealing <span class="damage">2 damage</span> to ${opponentName}'s hero`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Shadow Assassin</span> dealing <span class="damage">2 damage</span> to ${opponentName}'s hero`);
             break;
 
         case 'Mana Wyrm':
@@ -562,10 +512,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                 message: 'Time Weaver will heal all friendly characters at the end of your turn!',
                 forPlayer: playerIndex
             };
-            newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Time Weaver</span> with end of turn healing effect`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Time Weaver</span> with end of turn healing effect`);
             break;
 
         case 'Mana Leech':
@@ -582,10 +529,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                     message: `Mirror Entity copied ${randomUnit.name}'s stats!`,
                     forPlayer: playerIndex
                 };
-                newState.combatLogMessage = {
-                    message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Mirror Entity</span> copying enemy <span class="spell-name">${randomUnit.name}</span>`,
-                    timestamp: Date.now()
-                };
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Mirror Entity</span> copying enemy <span class="spell-name">${randomUnit.name}</span>`);
             }
             break;
 
@@ -595,10 +539,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                 message: `Mana Golem's attack set to ${card.attack}!`,
                 forPlayer: playerIndex
             };
-            newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Mana Golem</span> with <span class="attack">${card.attack} attack</span>`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Mana Golem</span> with <span class="attack">${card.attack} attack</span>`);
             break;
 
         case 'Spirit Healer':
@@ -617,10 +558,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                         message: `Drew ${randomSpell.name}!`,
                         forPlayer: playerIndex
                     };
-                    newState.combatLogMessage = {
-                        message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Spell Seeker</span> and <span class="draw">drew a spell</span>`,
-                        timestamp: Date.now()
-                    };
+                    addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Spell Seeker</span> and <span class="draw">drew a spell</span>`);
                 }
             }
             break;
@@ -635,10 +573,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                 message: `Arcane Guardian gained +${spellsInHand} health from spells in hand!`,
                 forPlayer: playerIndex
             };
-            newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Arcane Guardian</span> with <span class="health">+${spellsInHand} bonus health</span>`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Arcane Guardian</span> with <span class="health">+${spellsInHand} bonus health</span>`);
             break;
 
         case 'Healing Wisp':
@@ -701,10 +636,7 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
         }
         
         // Přidáme log zprávu o vyložení jednotky
-        newState.combatLogMessage = {
-            message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> played <span class="spell-name">${card.name}</span> (${card.attack}/${card.health})`,
-            timestamp: Date.now()
-        };
+        addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> played <span class="spell-name">${card.name}</span> (${card.attack}/${card.health})`);
         
         // Aplikujeme efekty jednotky při vyložení
         const stateWithEffects = handleUnitEffects(card, player, opponent, newState, playerIndex);
@@ -730,10 +662,7 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
             const healAmount = 2 * spiritHealers.length;
             player.hero.health = Math.min(30, player.hero.health + healAmount);
             
-            newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Spirit Healer</span> restored <span class="heal">${healAmount} health</span>`,
-                timestamp: Date.now()
-            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Spirit Healer</span> restored <span class="heal">${healAmount} health</span>`);
         }
 
         if (spellResult === false) {
@@ -756,5 +685,6 @@ module.exports = {
     checkGameOver,
     playCardCommon,
     handleSpellEffects,
-    handleUnitEffects
+    handleUnitEffects,
+    addCombatLogMessage
 };
