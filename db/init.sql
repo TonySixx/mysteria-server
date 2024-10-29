@@ -279,6 +279,26 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Arcane Explosion', 2, NULL, NULL, 'Deal 1 damage to all enemy minions', 'arcaneExplosion', 'common', 'spell'),
     ('Holy Nova', 5, NULL, NULL, 'Deal 2 damage to all enemies and restore 2 health to all friendly characters', 'holyNova', 'rare', 'spell');
 
+-- Přidání nových karet do databáze (přidat za existující INSERT příkazy)
+INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type) VALUES
+    -- Legendární jednotky
+    ('Time Weaver', 8, 6, 8, 'At the end of your turn, restore 2 health to all friendly characters', 'timeWeaver', 'legendary', 'unit'),
+    ('Mana Leech', 6, 5, 5, 'When this minion deals damage, restore that much mana to you', 'manaLeech', 'legendary', 'unit'),
+    
+    -- Epické jednotky
+    ('Mirror Entity', 4, 3, 3, 'Copy a random enemy minion stats when played', 'mirrorEntity', 'epic', 'unit'),
+    ('Mana Golem', 3, 0, 4, 'Attack equals your current mana crystals', 'manaGolem', 'epic', 'unit'),
+    
+    -- Vzácné jednotky
+    ('Spirit Healer', 5, 4, 4, 'When you cast a spell, restore 2 health to your hero', 'spiritHealer', 'rare', 'unit'),
+    ('Spell Seeker', 2, 2, 3, 'Draw a random spell from your deck when played', 'spellSeeker', 'rare', 'unit'),
+    
+    -- Kouzla
+    ('Mana Surge', 3, NULL, NULL, 'Double your current mana crystals this turn', 'manaSurge', 'epic', 'spell'),
+    ('Soul Exchange', 5, NULL, NULL, 'Swap the health of your hero with the enemy hero', 'soulExchange', 'legendary', 'spell'),
+    ('Arcane Storm', 7, NULL, NULL, 'Deal 1 damage to all characters for each spell you cast this game', 'arcaneStorm', 'epic', 'spell'),
+    ('Mirror Image', 2, NULL, NULL, 'Create two 0/2 Mirror Images with Taunt', 'mirrorImage', 'rare', 'spell');
+
 -- Přidáme indexy pro rychlejší vyhledávání
 CREATE INDEX idx_cards_type ON cards(type);
 CREATE INDEX idx_cards_rarity ON cards(rarity);
@@ -316,3 +336,9 @@ CREATE TRIGGER ensure_single_active_deck
     BEFORE INSERT OR UPDATE ON decks
     FOR EACH ROW
     EXECUTE FUNCTION check_active_decks();
+
+-- Přidání nových common jednotek
+INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type) VALUES
+    ('Mana Crystal', 1, 1, 3, 'When this minion dies, gain 1 mana crystal', 'manaCrystal', 'common', 'unit'),
+    ('Healing Wisp', 2, 2, 2, 'When this minion attacks, restore 1 health to your hero', 'healingWisp', 'common', 'unit'),
+    ('Arcane Guardian', 3, 2, 4, 'Has +1 health for each spell in your hand', 'arcaneGuardian', 'common', 'unit');

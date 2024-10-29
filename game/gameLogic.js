@@ -50,6 +50,28 @@ function startNextTurn(state, nextPlayer) {
         timestamp: Date.now()
     };
 
+    // Zpracování end-turn efektů
+    if (newState.endTurnEffects) {
+        newState.endTurnEffects.forEach(effect => {
+            if (effect.type === 'heal' && effect.owner === nextPlayer) {
+                const player = newState.players[nextPlayer];
+                player.hero.health = Math.min(30, player.hero.health + effect.amount);
+                player.field.forEach(unit => {
+                    if (unit) {
+                        unit.health = Math.min(unit.maxHealth, unit.health + effect.amount);
+                    }
+                });
+
+                // Přidáme zprávu do combat logu o léčení
+                newState.combatLogMessage = {
+                    message: `<span class="${nextPlayer === 0 ? 'player-name' : 'enemy-name'}">${playerName}'s</span> <span class="spell-name">Time Weaver</span> restored <span class="heal">${effect.amount} health</span> to all friendly characters`,
+                    timestamp: Date.now()
+                };
+            }
+        });
+        newState.endTurnEffects = []; // Vyčistíme efekty po zpracování
+    }
+
     return newState;
 }
 
@@ -344,6 +366,93 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 timestamp: Date.now()
             };
             break;
+
+        case 'Mana Surge':
+            const currentMana = player.mana;
+            player.mana = Math.min(10, currentMana * 2);
+            newState.notification = {
+                message: `Doubled mana crystals from ${currentMana} to ${player.mana}!`,
+                forPlayer: playerIndex
+            };
+            newState.combatLogMessage = {
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mana Surge</span> and doubled their mana crystals`,
+                timestamp: Date.now()
+            };
+            break;
+
+        case 'Soul Exchange':
+            const playerHealth = player.hero.health;
+            player.hero.health = opponent.hero.health;
+            opponent.hero.health = playerHealth;
+            newState.notification = {
+                message: `Swapped hero health with opponent!`,
+                forPlayer: playerIndex
+            };
+            newState.combatLogMessage = {
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Soul Exchange</span> and swapped hero health values`,
+                timestamp: Date.now()
+            };
+            break;
+
+        case 'Arcane Storm':
+            // Získáme počet zahraných kouzel z historie
+            const spellsCast = state.spellsPlayedThisGame || 0;
+            const damage = spellsCast;
+            
+            // Poškození všech postav
+            player.hero.health = Math.max(0, player.hero.health - damage);
+            opponent.hero.health = Math.max(0, opponent.hero.health - damage);
+            
+            player.field.forEach(unit => {
+                if (unit) unit.health -= damage;
+            });
+            opponent.field.forEach(unit => {
+                if (unit) unit.health -= damage;
+            });
+            
+            newState.notification = {
+                message: `Arcane Storm dealt ${damage} damage to all characters!`,
+                forPlayer: playerIndex
+            };
+            newState.combatLogMessage = {
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Arcane Storm</span> dealing <span class="damage">${damage} damage</span> to all characters`,
+                timestamp: Date.now()
+            };
+            break;
+
+        case 'Mirror Image':
+            if (player.field.length >= 7) {
+                newState.notification = {
+                    message: 'Your field is full!',
+                    forPlayer: playerIndex
+                };
+                return false;
+            }
+            
+            const mirrorImages = [];
+            for (let i = 0; i < 2 && player.field.length < 7; i++) {
+                mirrorImages.push(new UnitCard(
+                    `mirror-${Date.now()}-${i}`,
+                    'Mirror Image',
+                    0,
+                    0,
+                    2,
+                    'Taunt',
+                    'mirrorImage',
+                    'common'
+                ));
+            }
+            
+            player.field.push(...mirrorImages);
+            newState.notification = {
+                message: `Created ${mirrorImages.length} Mirror Images with Taunt!`,
+                forPlayer: playerIndex
+            };
+            newState.combatLogMessage = {
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mirror Image</span> and summoned ${mirrorImages.length} Mirror Images`,
+                timestamp: Date.now()
+            };
+            break;
     }
 
     // Odstranění mrtvých jednotek
@@ -427,6 +536,109 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
         case 'Soul Collector':
             // Efekt je implementován v combat logice - když jednotka zabije nepřítele
             break;
+
+        case 'Time Weaver':
+            // Inicializujeme pole pro efekty, pokud neexistuje
+            if (!newState.endTurnEffects) {
+                newState.endTurnEffects = [];
+            }
+            
+            newState.endTurnEffects.push({
+                type: 'heal',
+                amount: 2,
+                owner: playerIndex
+            });
+
+            newState.notification = {
+                message: 'Time Weaver will heal all friendly characters at the end of your turn!',
+                forPlayer: playerIndex
+            };
+            newState.combatLogMessage = {
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Time Weaver</span> with end of turn healing effect`,
+                timestamp: Date.now()
+            };
+            break;
+
+        case 'Mana Leech':
+            // Efekt se zpracuje při útoku v combat logice
+            break;
+
+        case 'Mirror Entity':
+            if (opponent.field.length > 0) {
+                const randomUnit = opponent.field[Math.floor(Math.random() * opponent.field.length)];
+                card.attack = randomUnit.attack;
+                card.health = randomUnit.health;
+                card.maxHealth = randomUnit.health;
+                newState.notification = {
+                    message: `Mirror Entity copied ${randomUnit.name}'s stats!`,
+                    forPlayer: playerIndex
+                };
+                newState.combatLogMessage = {
+                    message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Mirror Entity</span> copying enemy <span class="spell-name">${randomUnit.name}</span>`,
+                    timestamp: Date.now()
+                };
+            }
+            break;
+
+        case 'Mana Golem':
+            card.attack = player.mana;
+            newState.notification = {
+                message: `Mana Golem's attack set to ${card.attack}!`,
+                forPlayer: playerIndex
+            };
+            newState.combatLogMessage = {
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Mana Golem</span> with <span class="attack">${card.attack} attack</span>`,
+                timestamp: Date.now()
+            };
+            break;
+
+        case 'Spirit Healer':
+            // Efekt se zpracuje při seslání kouzla
+            break;
+
+        case 'Spell Seeker':
+            const spells = player.deck.filter(card => card.type === 'spell');
+            if (spells.length > 0) {
+                const randomSpell = spells[Math.floor(Math.random() * spells.length)];
+                const spellIndex = player.deck.indexOf(randomSpell);
+                player.deck.splice(spellIndex, 1);
+                if (player.hand.length < 10) {
+                    player.hand.push(randomSpell);
+                    newState.notification = {
+                        message: `Drew ${randomSpell.name}!`,
+                        forPlayer: playerIndex
+                    };
+                    newState.combatLogMessage = {
+                        message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Spell Seeker</span> and <span class="draw">drew a spell</span>`,
+                        timestamp: Date.now()
+                    };
+                }
+            }
+            break;
+
+        case 'Arcane Guardian':
+            // Spočítáme počet kouzel v ruce
+            const spellsInHand = player.hand.filter(c => c.type === 'spell').length;
+            card.health += spellsInHand;
+            card.maxHealth = card.health; // Aktualizujeme i maxHealth
+            
+            newState.notification = {
+                message: `Arcane Guardian gained +${spellsInHand} health from spells in hand!`,
+                forPlayer: playerIndex
+            };
+            newState.combatLogMessage = {
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Arcane Guardian</span> with <span class="health">+${spellsInHand} bonus health</span>`,
+                timestamp: Date.now()
+            };
+            break;
+
+        case 'Healing Wisp':
+            // Efekt se zpracuje v combat logice
+            break;
+
+        case 'Mana Crystal':
+            // Efekt se zpracuje při smrti jednotky
+            break;
     }
 
     return newState;
@@ -446,6 +658,11 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
                 forPlayer: playerIndex
             }
         };
+    }
+
+    // Inicializace počítadla kouzel, pokud neexistuje
+    if (!newState.spellsPlayedThisGame) {
+        newState.spellsPlayedThisGame = 0;
     }
 
     if (card instanceof UnitCard) {
@@ -484,12 +701,18 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
         const stateWithEffects = handleUnitEffects(card, player, opponent, newState, playerIndex);
         return checkGameOver(stateWithEffects);
     } else if (card instanceof SpellCard) {
+        // Zvýšíme počítadlo zahraných kouzel před aplikací efektu
+        newState.spellsPlayedThisGame++;
+        console.log(`Zahráno kouzel celkem: ${newState.spellsPlayedThisGame}`);
+
         // Nejdřív zkusíme aplikovat efekt kouzla
         const spellResult = handleSpellEffects(card, player, opponent, newState, playerIndex);
         
         // Pokud je spellResult false, kouzlo se nepovedlo použít
         if (spellResult === false) {
-            return newState; // Vrátíme původní stav bez odečtení many a odebrání karty
+            // Vrátíme počítadlo zpět, protože kouzlo se nepovedlo seslat
+            newState.spellsPlayedThisGame--;
+            return newState;
         }
 
         // Jinak odečteme manu a odebereme kartu z ruky

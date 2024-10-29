@@ -140,8 +140,8 @@ class GameManager {
             players: [
                 {
                     socket: player1Socket,
-                    username: player1Socket.username, // Přidáme username z socketu
-                    hero: new Hero(player1Socket.username, 30), // Použijeme skutečné jméno hráče
+                    username: player1Socket.username,
+                    hero: new Hero(player1Socket.username, 30),
                     deck: player1Deck,
                     hand: player1Deck.splice(0, 3),
                     field: [],
@@ -151,8 +151,8 @@ class GameManager {
                 },
                 {
                     socket: player2Socket,
-                    username: player2Socket.username, // Přidáme username z socketu
-                    hero: new Hero(player2Socket.username, 30), // Použijeme skutečné jméno hráče
+                    username: player2Socket.username,
+                    hero: new Hero(player2Socket.username, 30),
                     deck: player2Deck,
                     hand: [...player2Deck.splice(0, 3), new SpellCard('coin', 'The Coin', 0, 'Gain 1 Mana Crystal', 'coinImage')],
                     field: [],
@@ -165,7 +165,9 @@ class GameManager {
             turn: 1,
             gameOver: false,
             winner: null,
-            startTime: new Date()
+            startTime: new Date(),
+            spellsPlayedThisGame: 0,
+            endTurnEffects: []  // Přidáme inicializaci pole pro efekty na konci tahu
         };
 
         this.games.set(gameId, gameState);

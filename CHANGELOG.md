@@ -90,6 +90,21 @@
 - Přidáno tlačítko pro vytvoření nového balíčku
 - Implementováno zobrazení seznamu balíčků s počtem karet
 - Přidáno zvýraznění aktivního balíčku
+- Přidáno 10 nových karet s unikátními efekty:
+  - Time Weaver (Legendary) - léčí spojence na konci tahu
+  - Mana Leech (Legendary) - získává manu za způsobené poškození
+  - Mirror Entity (Epic) - kopíruje statistiky nepřátelské jednotky
+  - Mana Golem (Epic) - útok podle aktuální many
+  - Spirit Healer (Rare) - léčí při sesílání kouzel
+  - Spell Seeker (Rare) - vyhledává kouzla z balíčku
+  - Mana Surge (Epic) - zdvojnásobuje manu
+  - Soul Exchange (Legendary) - výměna životů hrdinů
+  - Arcane Storm (Epic) - poškození podle zahraných kouzel
+  - Mirror Image (Rare) - vytváří obranné jednotky s Tauntem
+- Přidány 3 nové běžné (common) jednotky:
+  - Mana Crystal (1/3) - při smrti poskytne 1 mana krystal
+  - Healing Wisp (2/2) - při útoku léčí vlastního hrdinu
+  - Arcane Guardian (2/4) - získává +1 zdraví za každé kouzlo v ruce
 
 ### Changed
 - Vylepšena vizuální stránka hry přidáním dynamických efektů pro lepší uživatelský zážitek.
@@ -216,7 +231,7 @@
   - Opravena URL serveru v konfiguraci
 - Sjednoceny porty pro socketovou komunikaci
 - Vylepšena inicializace socketového připojení
-- Přidána lepší správa životnho cyklu socket instance
+- Přidána lepš�� správa životnho cyklu socket instance
 
 ### Changed
 - Přepracována architektura socketové komunikace pro použití jednotného socketService
@@ -592,4 +607,10 @@
 - Přidána podpora pro omezení počtu kopií karet v balíčku
 - Implementována kontrola velikosti balíčku
 - Přidána podpora pro legendary karty (max 1 kopie)
+
+### Added
+- Implementováno počítadlo zahraných kouzel v průběhu hry
+  - Sledování všech úspěšně seslaných kouzel
+  - Podpora pro kartu Arcane Storm
+  - Přidáno logování počtu zahraných kouzel
 

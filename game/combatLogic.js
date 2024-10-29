@@ -237,6 +237,49 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
         }
     }
 
+    // V handleCombat funkci přidáme zpracování efektu Mana Leech
+    if (attacker.name === 'Mana Leech' && defenderInitialHealth > defender.health) {
+        const damageDone = defenderInitialHealth - defender.health;
+        const attackerPlayer = state.players[attackerPlayerIndex];
+        attackerPlayer.mana = Math.min(10, attackerPlayer.mana + damageDone);
+        
+        state.notification = {
+            message: `Mana Leech restored ${damageDone} mana!`,
+            forPlayer: attackerPlayerIndex
+        };
+    }
+
+    // Efekt Healing Wisp
+    if (attacker.name === 'Healing Wisp') {
+        const attackerPlayer = state.players[attackerPlayerIndex];
+        const healAmount = 1;
+        attackerPlayer.hero.health = Math.min(30, attackerPlayer.hero.health + healAmount);
+        
+        state.notification = {
+            message: `Healing Wisp restored ${healAmount} health to your hero!`,
+            forPlayer: attackerPlayerIndex
+        };
+        state.combatLogMessage = {
+            message: `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Healing Wisp</span> restored <span class="heal">${healAmount} health</span>`,
+            timestamp: Date.now()
+        };
+    }
+
+    // Efekt Mana Crystal při smrti
+    if (defender.name === 'Mana Crystal' && defender.health <= 0) {
+        const defenderPlayer = state.players[1 - attackerPlayerIndex];
+        defenderPlayer.mana = Math.min(10, defenderPlayer.mana + 1);
+        
+        state.notification = {
+            message: 'Mana Crystal death granted 1 mana crystal!',
+            forPlayer: 1 - attackerPlayerIndex
+        };
+        state.combatLogMessage = {
+            message: `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${defenderPlayer.username}'s</span> <span class="spell-name">Mana Crystal</span> granted <span class="mana">1 mana crystal</span> on death`,
+            timestamp: Date.now()
+        };
+    }
+
     console.log('Konec souboje:', {
         attacker: {
             name: attacker.name,
