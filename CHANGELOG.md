@@ -105,6 +105,10 @@
   - Mana Crystal (1/3) - při smrti poskytne 1 mana krystal
   - Healing Wisp (2/2) - při útoku léčí vlastního hrdinu
   - Arcane Guardian (2/4) - získává +1 zdraví za každé kouzlo v ruce
+- Vylepšeno zobrazení karty Arcane Storm
+  - Přidáno zobrazení aktuálního poškození podle počtu zahraných kouzel
+  - Zachován původní popis efektu v závorce
+  - Dynamická aktualizace hodnoty během hry
 
 ### Changed
 - Vylepšena vizuální stránka hry přidáním dynamických efektů pro lepší uživatelský zážitek.
@@ -634,4 +638,15 @@
   - Implementováno pole combatLogMessages místo jedné zprávy
   - Zachováno správné pořadí zpráv podle času
   - Vylepšeno zpracování více herních událostí v rámci jednoho tahu
+
+### Fixed
+- Opraveno zobrazování poškození karty Arcane Storm
+  - Přidáno předávání počtu zahraných kouzel na klienta
+  - Zajištěna synchronizace stavu spellsPlayedThisGame mezi serverem a klientem
+  - Vylepšeno zobrazení aktuálního poškození v popisu karty
+
+### Changed
+- Upraven popisek karty Arcane Storm
+  - Zpřesněn popis efektu pro lepší srozumitelnost
+  - Nyní explicitně uvádí, že se počítají kouzla obou hráčů
 

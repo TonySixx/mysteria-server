@@ -296,7 +296,7 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     -- Kouzla
     ('Mana Surge', 3, NULL, NULL, 'Restore your mana crystals to maximum available this turn', 'manaSurge', 'epic', 'spell'),
     ('Soul Exchange', 5, NULL, NULL, 'Swap the health of your hero with the enemy hero', 'soulExchange', 'legendary', 'spell'),
-    ('Arcane Storm', 7, NULL, NULL, 'Deal 1 damage to all characters for each spell you cast this game', 'arcaneStorm', 'epic', 'spell'),
+    ('Arcane Storm', 7, NULL, NULL, 'Deal 1 damage to all characters for each spell cast by both players this game', 'arcaneStorm', 'epic', 'spell'),
     ('Mirror Image', 2, NULL, NULL, 'Create two 0/2 Mirror Images with Taunt', 'mirrorImage', 'rare', 'spell');
 
 -- Přidáme indexy pro rychlejší vyhledávání
@@ -347,3 +347,12 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
 UPDATE cards 
 SET effect = 'Restore your mana crystals to maximum available this turn' 
 WHERE name = 'Mana Surge';
+
+-- Upravíme popisek pro Arcane Storm
+UPDATE cards 
+SET effect = 'Deal 1 damage to all characters for each spell cast by both players this game' 
+WHERE name = 'Arcane Storm';
+
+UPDATE cards 
+SET effect = 'Gain +1 attack when you cast a spell' 
+WHERE name = 'Arcane Familiar';

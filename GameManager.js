@@ -416,6 +416,7 @@ class GameManager {
             gameOver: game.gameOver,
             winner: game.winner,
             playerIndex,
+            spellsPlayedThisGame: game.spellsPlayedThisGame || 0,
             player: {
                 hero: player.hero,
                 hand: player.hand,
@@ -423,7 +424,7 @@ class GameManager {
                 deck: player.deck.length,
                 mana: player.mana,
                 maxMana: player.maxMana,
-                username: player.username // Přidáme username hráče
+                username: player.username
             },
             opponent: {
                 hero: opponent.hero,
@@ -438,7 +439,7 @@ class GameManager {
                 deckSize: opponent.deck.length,
                 mana: opponent.mana,
                 maxMana: opponent.maxMana,
-                username: opponent.username // Přidáme username oponenta
+                username: opponent.username
             },
             notification: notification,
             combatLogMessages: game.combatLogMessages || [],

@@ -366,8 +366,8 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             break;
 
         case 'Arcane Storm':
-            // Získáme počet zahraných kouzel z historie (včetně aktuálního kouzla)
-            const spellsCast = (state.spellsPlayedThisGame || 0) + 1;
+            // Získáme počet zahraných kouzel z historie
+            const spellsCast = (state.spellsPlayedThisGame || 0);
             const damage = spellsCast;
             
             console.log('Arcane Storm damage:', {
