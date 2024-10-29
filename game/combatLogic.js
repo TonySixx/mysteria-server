@@ -129,6 +129,9 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                     message: `Healing Wisp restored ${healAmount} health to your hero!`,
                     forPlayer: attackerPlayerIndex
                 };
+                
+                // Přidáme zprávu do combat logu pro Healing Wisp
+                addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Healing Wisp</span> restored <span class="heal">${healAmount} health to their hero</span>`);
             }
             
             // Upravíme log zprávu s použitím skutečných jmen
