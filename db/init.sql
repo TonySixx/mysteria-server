@@ -294,7 +294,7 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Spell Seeker', 2, 2, 3, 'Draw a random spell from your deck when played', 'spellSeeker', 'rare', 'unit'),
     
     -- Kouzla
-    ('Mana Surge', 3, NULL, NULL, 'Double your current mana crystals this turn', 'manaSurge', 'epic', 'spell'),
+    ('Mana Surge', 3, NULL, NULL, 'Restore your mana crystals to maximum available this turn', 'manaSurge', 'epic', 'spell'),
     ('Soul Exchange', 5, NULL, NULL, 'Swap the health of your hero with the enemy hero', 'soulExchange', 'legendary', 'spell'),
     ('Arcane Storm', 7, NULL, NULL, 'Deal 1 damage to all characters for each spell you cast this game', 'arcaneStorm', 'epic', 'spell'),
     ('Mirror Image', 2, NULL, NULL, 'Create two 0/2 Mirror Images with Taunt', 'mirrorImage', 'rare', 'spell');
@@ -342,3 +342,8 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Mana Crystal', 1, 1, 3, 'When this minion dies, gain 1 mana crystal', 'manaCrystal', 'common', 'unit'),
     ('Healing Wisp', 2, 2, 2, 'When this minion attacks, restore 1 health to your hero', 'healingWisp', 'common', 'unit'),
     ('Arcane Guardian', 3, 2, 4, 'Has +1 health for each spell in your hand', 'arcaneGuardian', 'common', 'unit');
+
+-- Upravíme popisek pro Mana Surge
+UPDATE cards 
+SET effect = 'Restore your mana crystals to maximum available this turn' 
+WHERE name = 'Mana Surge';

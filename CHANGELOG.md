@@ -158,7 +158,7 @@
 - Opraveno vkládání karet mezi existující karty na herním poli.
 - Odstraněno varování o nekonsekutivních indexech Draggable komponent.
 - Opravena chyba, která bránila vyložení karty na stůl pomocí přetažení.
-- Opravena chyba, která neumožňovala vybrat konkrétní cíl útoku mezi nepřátelskými jednotkami.
+- Opravena chyba, která neumožňovala vybrat konkrétní cíl toků mezi nepřátelskými jednotkami.
 - Opravena chyba, která bránila provedení útoku při přetažení karty na cíl.
 - Odstranna nadbytečná Droppable oblast pro celé nepřítelovo pole.
 - Opravena chyba, která umožňovala ignorovat efekt Taunt při útoku pomocí drag&drop.
@@ -231,7 +231,7 @@
   - Opravena URL serveru v konfiguraci
 - Sjednoceny porty pro socketovou komunikaci
 - Vylepšena inicializace socketového připojení
-- Přidána lepš�� správa životnho cyklu socket instance
+- Přidána lepš správa životnho cyklu socket instance
 
 ### Changed
 - Přepracována architektura socketové komunikace pro použití jednotného socketService
@@ -295,7 +295,7 @@
 - Přidáno bezpečnostní opatření proti podvádění - klient nevidí detaily karet v ruce protihráče
 
 ### Fixed
-- Opraveno odesílání stavu karet v ruce protihráče ze serveru
+- Opraveno odesílán stavu karet v ruce protihráče ze serveru
 - Přidány chybějící vlastnosti pro skryté karty protihráče
 - Vylepšena struktura GameManager třídy pro správnou práci s herním stavem
 - Opraveno zobrazování počtu karet v ruce protihráče
@@ -414,7 +414,7 @@
 
 ### Fixed
 - Opraveno zobrazování obrázků karet
-  - Přidána mapa pro mapování názvů obrázk na importované soubory
+  - Přidána mapa pro mapování názvů obrzk na importované soubory
   - Implementována fallback hodnota pro případ chybějícího obrázku
   - Vylepšeno zpracování obrázků karet ze serveru
 
@@ -613,4 +613,18 @@
   - Sledování všech úspěšně seslaných kouzel
   - Podpora pro kartu Arcane Storm
   - Přidáno logování počtu zahraných kouzel
+
+### Fixed
+- Opraven efekt Healing Wisp - nyní léčí i při útoku na hrdinu
+- Opraveno kouzlo Mana Surge - nyní správně zdvojnásobuje celkovou manu včetně ceny kouzla
+- Opraven efekt Spirit Healer - nyní správně léčí hrdinu při seslání kouzel
+- Opraven efekt Mana Crystal - nyní poskytuje manu pouze když je vlastník na tahu
+- Opraven efekt Time Weaver - nyní správně léčí na konci tahu vlastníka
+- Opraveno kouzlo Mirror Image - přidána kontrola maximálního počtu jednotek na poli
+
+### Fixed
+- Opraven efekt Mana Crystal - nyní se správně přičte mana při smrti jednotky
+- Opraveno kouzlo Mana Surge:
+  - Nyní správně doplní manu bez následného odečtení ceny kouzla
+  - Upraven popisek karty pro lepší srozumitelnost efektu
 

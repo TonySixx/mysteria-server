@@ -53,8 +53,8 @@ function startNextTurn(state, nextPlayer) {
     // Zpracování end-turn efektů
     if (newState.endTurnEffects) {
         newState.endTurnEffects.forEach(effect => {
-            if (effect.type === 'heal' && effect.owner === nextPlayer) {
-                const player = newState.players[nextPlayer];
+            if (effect.type === 'heal' && effect.owner === state.currentPlayer) {
+                const player = newState.players[state.currentPlayer];
                 player.hero.health = Math.min(30, player.hero.health + effect.amount);
                 player.field.forEach(unit => {
                     if (unit) {
@@ -105,7 +105,7 @@ function checkGameOver(state) {
             newState.winner = 0;
         }
 
-        // Deaktivujeme všechny karty
+        // Deaktivujeme vechny karty
         newState.players.forEach(player => {
             if (player.field) {
                 player.field.forEach(card => {
@@ -368,14 +368,17 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             break;
 
         case 'Mana Surge':
-            const currentMana = player.mana;
-            player.mana = Math.min(10, currentMana * 2);
+            // Nejprve vrátíme manu za kouzlo (protože jsme ji odečetli na začátku)
+            player.mana += card.manaCost;
+            // Doplníme manu na maximum dostupné v tomto kole
+            player.mana = player.maxMana;
+            
             newState.notification = {
-                message: `Doubled mana crystals from ${currentMana} to ${player.mana}!`,
+                message: `Restored mana to maximum (${player.maxMana})!`,
                 forPlayer: playerIndex
             };
             newState.combatLogMessage = {
-                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mana Surge</span> and doubled their mana crystals`,
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mana Surge</span> and restored mana to <span class="mana">${player.maxMana}</span>`,
                 timestamp: Date.now()
             };
             break;
@@ -395,9 +398,14 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             break;
 
         case 'Arcane Storm':
-            // Získáme počet zahraných kouzel z historie
-            const spellsCast = state.spellsPlayedThisGame || 0;
+            // Získáme počet zahraných kouzel z historie (včetně aktuálního kouzla)
+            const spellsCast = (state.spellsPlayedThisGame || 0) + 1;
             const damage = spellsCast;
+            
+            console.log('Arcane Storm damage:', {
+                spellsPlayed: spellsCast,
+                damage: damage
+            });
             
             // Poškození všech postav
             player.hero.health = Math.max(0, player.hero.health - damage);
@@ -421,7 +429,8 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             break;
 
         case 'Mirror Image':
-            if (player.field.length >= 7) {
+            const maxNewImages = Math.min(2, 7 - player.field.length);
+            if (maxNewImages <= 0) {
                 newState.notification = {
                     message: 'Your field is full!',
                     forPlayer: playerIndex
@@ -430,7 +439,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             }
             
             const mirrorImages = [];
-            for (let i = 0; i < 2 && player.field.length < 7; i++) {
+            for (let i = 0; i < maxNewImages; i++) {
                 mirrorImages.push(new UnitCard(
                     `mirror-${Date.now()}-${i}`,
                     'Mirror Image',
@@ -701,22 +710,27 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
         const stateWithEffects = handleUnitEffects(card, player, opponent, newState, playerIndex);
         return checkGameOver(stateWithEffects);
     } else if (card instanceof SpellCard) {
-        // Zvýšíme počítadlo zahraných kouzel před aplikací efektu
+        // Nejdřív odečteme manu pro všechna kouzla kromě Mana Surge
+        if (card.name !== 'Mana Surge') {
+            player.mana -= card.manaCost;
+        }
+
+        // Zvýšíme počítadlo zahraných kouzel
         newState.spellsPlayedThisGame++;
         console.log(`Zahráno kouzel celkem: ${newState.spellsPlayedThisGame}`);
 
-        // Nejdřív zkusíme aplikovat efekt kouzla
+        // Aplikujeme efekt kouzla
         const spellResult = handleSpellEffects(card, player, opponent, newState, playerIndex);
-        
-        // Pokud je spellResult false, kouzlo se nepovedlo použít
+         // Pokud je spellResult false, kouzlo se nepovedlo použít
         if (spellResult === false) {
-            // Vrátíme počítadlo zpět, protože kouzlo se nepovedlo seslat
-            newState.spellsPlayedThisGame--;
+             // Vrátíme počítadlo zpět, protože kouzlo se nepovedlo seslat
+            newState.spellsPlayedThisGame = Math.max(0, newState.spellsPlayedThisGame - 1);
+            if (card.name !== 'Mana Surge') {
+                player.mana += card.manaCost; // Vrátíme manu pokud se kouzlo nepovedlo
+            }
             return newState;
         }
-
-        // Jinak odečteme manu a odebereme kartu z ruky
-        player.mana -= card.manaCost;
+        // Jinak odebereme kartu z ruky
         player.hand.splice(cardIndex, 1);
         return spellResult;
     }

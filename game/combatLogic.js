@@ -119,6 +119,18 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
             const oldHealth = targetHero.health;
             targetHero.health = Math.max(0, targetHero.health - attacker.attack);
             
+            // Přidáme efekt Healing Wisp při útoku na hrdinu
+            if (attacker.name === 'Healing Wisp') {
+                const attackerPlayer = newState.players[attackerPlayerIndex];
+                const healAmount = 1;
+                attackerPlayer.hero.health = Math.min(30, attackerPlayer.hero.health + healAmount);
+                
+                newState.notification = {
+                    message: `Healing Wisp restored ${healAmount} health to your hero!`,
+                    forPlayer: attackerPlayerIndex
+                };
+            }
+            
             // Upravíme log zprávu s použitím skutečných jmen
             const attackerName = newState.players[attackerPlayerIndex].username;
             const defenderName = newState.players[defenderPlayerIndex].username;
@@ -214,6 +226,21 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
         attacker.health -= defender.attack;
     }
 
+    // Efekt Mana Crystal při smrti - přesunut před filtrování mrtvých jednotek
+    if (attacker.name === 'Mana Crystal' && attacker.health <= 0) {
+        const attackerPlayer = state.players[attackerPlayerIndex];
+        attackerPlayer.mana = Math.min(10, attackerPlayer.mana + 1);
+        
+        state.notification = {
+            message: 'Mana Crystal death granted 1 mana crystal!',
+            forPlayer: attackerPlayerIndex
+        };
+        state.combatLogMessage = {
+            message: `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Mana Crystal</span> granted <span class="mana">1 mana crystal</span> on death`,
+            timestamp: Date.now()
+        };
+    }
+
     // Kontrola efektu Soul Collector
     if (attacker.name === 'Soul Collector' && defenderInitialHealth > 0 && defender.health <= 0) {
         const attackerPlayer = state.players[attackerPlayerIndex];
@@ -261,21 +288,6 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
         };
         state.combatLogMessage = {
             message: `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Healing Wisp</span> restored <span class="heal">${healAmount} health</span>`,
-            timestamp: Date.now()
-        };
-    }
-
-    // Efekt Mana Crystal při smrti
-    if (defender.name === 'Mana Crystal' && defender.health <= 0) {
-        const defenderPlayer = state.players[1 - attackerPlayerIndex];
-        defenderPlayer.mana = Math.min(10, defenderPlayer.mana + 1);
-        
-        state.notification = {
-            message: 'Mana Crystal death granted 1 mana crystal!',
-            forPlayer: 1 - attackerPlayerIndex
-        };
-        state.combatLogMessage = {
-            message: `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${defenderPlayer.username}'s</span> <span class="spell-name">Mana Crystal</span> granted <span class="mana">1 mana crystal</span> on death`,
             timestamp: Date.now()
         };
     }
