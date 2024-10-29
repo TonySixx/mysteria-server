@@ -719,18 +719,31 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
         newState.spellsPlayedThisGame++;
         console.log(`Zahráno kouzel celkem: ${newState.spellsPlayedThisGame}`);
 
+        // Před aplikací kouzla zkontrolujeme Spirit Healer efekt
+        const spiritHealers = player.field.filter(unit => unit.name === 'Spirit Healer');
+        
         // Aplikujeme efekt kouzla
         const spellResult = handleSpellEffects(card, player, opponent, newState, playerIndex);
-         // Pokud je spellResult false, kouzlo se nepovedlo použít
+        
+        // Po úspěšném seslání kouzla aplikujeme efekt Spirit Healera
+        if (spellResult !== false && spiritHealers.length > 0) {
+            const healAmount = 2 * spiritHealers.length;
+            player.hero.health = Math.min(30, player.hero.health + healAmount);
+            
+            newState.combatLogMessage = {
+                message: `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Spirit Healer</span> restored <span class="heal">${healAmount} health</span>`,
+                timestamp: Date.now()
+            };
+        }
+
         if (spellResult === false) {
-             // Vrátíme počítadlo zpět, protože kouzlo se nepovedlo seslat
             newState.spellsPlayedThisGame = Math.max(0, newState.spellsPlayedThisGame - 1);
             if (card.name !== 'Mana Surge') {
                 player.mana += card.manaCost; // Vrátíme manu pokud se kouzlo nepovedlo
             }
             return newState;
         }
-        // Jinak odebereme kartu z ruky
+        
         player.hand.splice(cardIndex, 1);
         return spellResult;
     }
