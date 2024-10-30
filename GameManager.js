@@ -21,7 +21,7 @@ class GameManager {
                 }
             }
         );
-        this.io = io;  // Uložíme io instanci
+        this.io = io;  // Ulož��me io instanci
     }
 
     // Vytvoření nebo připojení ke hře
@@ -356,6 +356,20 @@ class GameManager {
         socket.on('disconnect', () => {
             console.log(`Hráč ${socket.id} se odpojil z game ${gameId}`);
             this.handleDisconnect(gameId, playerIndex);
+        });
+
+        socket.on('chatMessage', (data) => {
+            const game = this.games.get(gameId);
+            if (!game) return;
+
+            // Odešleme zprávu oběma hráčům
+            game.players.forEach(player => {
+                player.socket.emit('chatMessage', {
+                    sender: data.sender,
+                    message: data.message,
+                    timestamp: Date.now()
+                });
+            });
         });
     }
 
