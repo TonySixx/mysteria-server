@@ -656,3 +656,9 @@
 ### Fixed
 - Opraveno zobrazování jména hráče v combat logu pro Time Weaver efekt - nyní se zobrazuje jméno vlastníka jednotky místo aktivního hráče
 
+### Fixed
+- Opraveno ukládání výsledků her do historie
+  - Přidáno ukládání výsledku při konci hry způsobeném zahráním karty
+  - Zajištěno konzistentní ukládání výsledků bez ohledu na způsob ukončení hry
+  - Sjednocena logika zpracování konce hry v handleAttack a handlePlayCard
+

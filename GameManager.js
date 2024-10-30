@@ -21,7 +21,7 @@ class GameManager {
                 }
             }
         );
-        this.io = io;  // Ulož��me io instanci
+        this.io = io;  // Uložme io instanci
     }
 
     // Vytvoření nebo připojení ke hře
@@ -461,7 +461,7 @@ class GameManager {
     }
 
     // Zpracování herních akcí
-    handlePlayCard(gameId, playerIndex, data) {
+    async handlePlayCard(gameId, playerIndex, data) {
         const game = this.games.get(gameId);
         if (!game) return;
 
@@ -491,9 +491,46 @@ class GameManager {
         if (updatedState.notification) {
             game.notification = updatedState.notification;
         }
-        
-        this.games.set(gameId, updatedState);
-        this.broadcastGameState(gameId);
+
+        // Přidáme kontrolu konce hry a uložení výsledku
+        if (updatedState.gameOver) {
+            console.log('Hra skončila po zahrání karty, vítěz:', updatedState.winner);
+            
+            // Určíme ID vítěze
+            let winnerId;
+            if (updatedState.winner === 'draw') {
+                winnerId = game.players[0].socket.userId;
+            } else {
+                winnerId = game.players[updatedState.winner].socket.userId;
+            }
+
+            console.log('Určen vítěz:', {
+                winnerIndex: updatedState.winner,
+                winnerId: winnerId,
+                player1Id: game.players[0].socket.userId,
+                player2Id: game.players[1].socket.userId
+            });
+
+            // Zavoláme handleGameEnd pro zápis do DB
+            await this.handleGameEnd(gameId, winnerId);
+
+            // Informujeme oba hráče o konci hry
+            game.players.forEach((player, index) => {
+                const playerView = this.createPlayerView(updatedState, index);
+                player.socket.emit('gameState', playerView);
+            });
+
+            // Ukončíme hru a vyčistíme
+            setTimeout(() => {
+                this.games.delete(gameId);
+                game.players.forEach(player => {
+                    this.playerGameMap.delete(player.socket.id);
+                });
+            }, 5000); // Počkáme 5 sekund před vyčištěním
+        } else {
+            this.games.set(gameId, updatedState);
+            this.broadcastGameState(gameId);
+        }
     }
 
     async handleAttack(gameId, playerIndex, data) {
