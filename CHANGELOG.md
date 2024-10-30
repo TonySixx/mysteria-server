@@ -653,3 +653,6 @@
 ### Fixed
 - Opraveno chování Divine Shield při poškození kouzly - nyní se správně nejprve zruší Divine Shield a až poté se aplikuje poškození
 
+### Fixed
+- Opraveno zobrazování jména hráče v combat logu pro Time Weaver efekt - nyní se zobrazuje jméno vlastníka jednotky místo aktivního hráče
+

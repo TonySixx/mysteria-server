@@ -15,6 +15,9 @@ function startNextTurn(state, nextPlayer) {
     const newState = { ...state };
     newState.currentPlayer = nextPlayer;
     
+    // Získáme předchozího hráče (ten, kdo právě končí tah)
+    const previousPlayer = 1 - nextPlayer;
+    
     const player = newState.players[nextPlayer];
     player.maxMana = Math.min(10, player.maxMana + 1);
     player.mana = player.maxMana;
@@ -58,19 +61,20 @@ function startNextTurn(state, nextPlayer) {
     const playerName = newState.players[nextPlayer].username;
     addCombatLogMessage(newState, `<span class="${nextPlayer === 0 ? 'player-name' : 'enemy-name'}">${playerName}'s</span> turn begins`);
 
-    // Zpracování end-turn efektů
+    // Zpracování end-turn efektů pro předchozího hráče (ten, kdo končí tah)
     if (newState.endTurnEffects) {
         newState.endTurnEffects.forEach(effect => {
-            if (effect.type === 'heal' && effect.owner === state.currentPlayer) {
-                const player = newState.players[state.currentPlayer];
-                player.hero.health = Math.min(30, player.hero.health + effect.amount);
-                player.field.forEach(unit => {
+            if (effect.type === 'heal' && effect.owner === previousPlayer) {
+                const effectOwner = newState.players[previousPlayer];
+                effectOwner.hero.health = Math.min(30, effectOwner.hero.health + effect.amount);
+                effectOwner.field.forEach(unit => {
                     if (unit) {
                         unit.health = Math.min(unit.maxHealth, unit.health + effect.amount);
                     }
                 });
 
-                addCombatLogMessage(newState, `<span class="${nextPlayer === 0 ? 'player-name' : 'enemy-name'}">${playerName}'s</span> <span class="spell-name">Time Weaver</span> restored <span class="heal">${effect.amount} health</span> to all friendly characters`);
+                const effectOwnerName = effectOwner.username;
+                addCombatLogMessage(newState, `<span class="${previousPlayer === 0 ? 'player-name' : 'enemy-name'}">${effectOwnerName}'s</span> <span class="spell-name">Time Weaver</span> restored <span class="heal">${effect.amount} health</span> to all friendly characters`);
             }
         });
         newState.endTurnEffects = []; // Vyčistíme efekty po zpracování
