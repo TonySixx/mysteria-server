@@ -109,6 +109,14 @@
   - Přidáno zobrazení aktuálního poškození podle počtu zahraných kouzel
   - Zachován původní popis efektu v závorce
   - Dynamická aktualizace hodnoty během hry
+- Implementována nová komponenta ConnectionStatus pro zobrazování stavu připojení k serveru
+  - Přidána animovaná notifikace při ztrátě připojení
+  - Přidáno automatické skrývání notifikace po úspěšném připojení
+  - Vylepšena vizuální zpětná vazba pro uživatele
+- Vylepšeno zobrazování stavu připojení k serveru
+  - Přidána informativní zpráva v angličtině
+  - Implementováno lepší umístění a styling notifikací
+  - Přidána animace pro plynulé zobrazení/skrytí
 
 ### Changed
 - Vylepšena vizuální stránka hry přidáním dynamických efektů pro lepší uživatelský zážitek.
@@ -648,7 +656,7 @@
 ### Changed
 - Upraven popisek karty Arcane Storm
   - Zpřesněn popis efektu pro lepší srozumitelnost
-  - Nyní explicitně uvádí, že se počítají kouzla obou hráčů
+  - Nyní explicitně uvádí, ��e se počítají kouzla obou hráčů
 
 ### Fixed
 - Opraveno chování Divine Shield při poškození kouzly - nyní se správně nejprve zruší Divine Shield a až poté se aplikuje poškození
@@ -661,4 +669,10 @@
   - Přidáno ukládání výsledku při konci hry způsobeném zahráním karty
   - Zajištěno konzistentní ukládání výsledků bez ohledu na způsob ukončení hry
   - Sjednocena logika zpracování konce hry v handleAttack a handlePlayCard
+
+### Changed
+- Vylepšeno zobrazení notifikace o stavu připojení
+  - Přesunuta notifikace do středu obrazovky
+  - Upraveny animace pro plynulejší přechody
+  - Vylepšena čitelnost a viditelnost zprávy
 
