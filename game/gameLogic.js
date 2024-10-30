@@ -219,7 +219,13 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
         case 'Inferno Wave':
             const damagedUnits = opponent.field.filter(unit => unit).length;
             opponent.field.forEach(unit => {
-                if (unit) unit.health -= 4;
+                if (unit) {
+                    if (unit.hasDivineShield) {
+                        unit.hasDivineShield = false;
+                    } else {
+                        unit.health -= 4;
+                    }
+                }
             });
             newState.notification = {
                 message: 'Inferno Wave dealt 4 damage to all enemy units!',
@@ -298,7 +304,11 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             let damagedCount = 0;
             opponent.field.forEach(unit => {
                 if (unit) {
-                    unit.health -= 1;
+                    if (unit.hasDivineShield) {
+                        unit.hasDivineShield = false;
+                    } else {
+                        unit.health -= 1;
+                    }
                     damagedCount++;
                 }
             });
@@ -379,11 +389,25 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             player.hero.health = Math.max(0, player.hero.health - damage);
             opponent.hero.health = Math.max(0, opponent.hero.health - damage);
             
+            // Upravené zpracování poškození jednotek
             player.field.forEach(unit => {
-                if (unit) unit.health -= damage;
+                if (unit) {
+                    if (unit.hasDivineShield) {
+                        unit.hasDivineShield = false;
+                    } else {
+                        unit.health -= damage;
+                    }
+                }
             });
+            
             opponent.field.forEach(unit => {
-                if (unit) unit.health -= damage;
+                if (unit) {
+                    if (unit.hasDivineShield) {
+                        unit.hasDivineShield = false;
+                    } else {
+                        unit.health -= damage;
+                    }
+                }
             });
             
             newState.notification = {

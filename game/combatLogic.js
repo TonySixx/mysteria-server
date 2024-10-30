@@ -217,6 +217,7 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
         defender.health -= attacker.attack;
     }
 
+    // Pokud má útočník Divine Shield, zruší se mu, jinak dostane poškození
     if (attacker.hasDivineShield) {
         attacker.hasDivineShield = false;
     } else {

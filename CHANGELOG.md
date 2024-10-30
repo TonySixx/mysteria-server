@@ -650,3 +650,6 @@
   - Zpřesněn popis efektu pro lepší srozumitelnost
   - Nyní explicitně uvádí, že se počítají kouzla obou hráčů
 
+### Fixed
+- Opraveno chování Divine Shield při poškození kouzly - nyní se správně nejprve zruší Divine Shield a až poté se aplikuje poškození
+
