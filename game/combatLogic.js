@@ -119,7 +119,7 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
             const oldHealth = targetHero.health;
             targetHero.health = Math.max(0, targetHero.health - attacker.attack);
             
-            // Přidáme efekt Healing Wisp při útoku na hrdinu
+            // Přidáme efekty pro útok na hrdinu
             if (attacker.name === 'Healing Wisp') {
                 const attackerPlayer = newState.players[attackerPlayerIndex];
                 const healAmount = 1;
@@ -132,6 +132,34 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                 
                 // Přidáme zprávu do combat logu pro Healing Wisp
                 addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Healing Wisp</span> restored <span class="heal">${healAmount} health to their hero</span>`);
+            }
+
+            // Přidáme efekt Mana Siphon při útoku na hrdinu
+            if (attacker.name === 'Mana Siphon') {
+                const attackerPlayer = newState.players[attackerPlayerIndex];
+                attackerPlayer.mana = Math.min(10, attackerPlayer.mana + 1);
+                
+                newState.notification = {
+                    message: 'Mana Siphon granted 1 temporary mana!',
+                    forPlayer: attackerPlayerIndex
+                };
+                addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Mana Siphon</span> granted <span class="mana">1 temporary mana</span>`);
+            }
+
+            // Upravíme logiku pro Twin Blade při útoku na hrdinu
+            if (attacker.name === 'Twin Blade') {
+                if (!attacker.attacksThisTurn) {
+                    attacker.attacksThisTurn = 1;
+                    attacker.hasAttacked = false;
+                    attacker.canAttack = true;
+                } else {
+                    attacker.attacksThisTurn = 2;
+                    attacker.hasAttacked = true;
+                    attacker.canAttack = false;
+                }
+            } else {
+                attacker.hasAttacked = true;
+                attacker.canAttack = false;
             }
             
             // Upravíme log zprávu s použitím skutečných jmen
@@ -224,6 +252,19 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
         attacker.health -= defender.attack;
     }
 
+    // Kontrola a odstranění startTurnEffects pro zničené jednotky
+    if (defender.health <= 0 && defender.name === 'Mana Collector') {
+        state.startTurnEffects = state.startTurnEffects?.filter(effect => 
+            !(effect.type === 'mana' && effect.unitId === defender.id)
+        ) || [];
+    }
+
+    if (attacker.health <= 0 && attacker.name === 'Mana Collector') {
+        state.startTurnEffects = state.startTurnEffects?.filter(effect => 
+            !(effect.type === 'mana' && effect.unitId === attacker.id)
+        ) || [];
+    }
+
     // Efekt Mana Crystal při smrti - přesunut před filtrování mrtvých jednotek
     if (attacker.name === 'Mana Crystal' && attacker.health <= 0) {
         const attackerPlayer = state.players[attackerPlayerIndex];
@@ -280,6 +321,46 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
             forPlayer: attackerPlayerIndex
         };
         addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Healing Wisp</span> restored <span class="heal">${healAmount} health</span>`);
+    }
+
+    // Efekt Mana Siphon
+    if (attacker.name === 'Mana Siphon') {
+        const attackerPlayer = state.players[attackerPlayerIndex];
+        attackerPlayer.mana = Math.min(10, attackerPlayer.mana + 1);
+        
+        state.notification = {
+            message: 'Mana Siphon granted 1 temporary mana!',
+            forPlayer: attackerPlayerIndex
+        };
+        addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Mana Siphon</span> granted <span class="mana">1 temporary mana</span>`);
+    }
+
+    // Efekt Defensive Scout
+    if (defender.name === 'Defensive Scout' && defenderInitialHealth > defender.health) {
+        const defenderPlayer = state.players[1 - attackerPlayerIndex];
+        if (defenderPlayer.deck.length > 0 && defenderPlayer.hand.length < 10) {
+            const drawnCard = defenderPlayer.deck.pop();
+            defenderPlayer.hand.push(drawnCard);
+            
+            state.notification = {
+                message: 'Defensive Scout drew a card!',
+                forPlayer: 1 - attackerPlayerIndex
+            };
+            addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${defenderPlayer.username}'s</span> <span class="spell-name">Defensive Scout</span> <span class="draw">drew a card</span>`);
+        }
+    }
+
+    // Upravíme logiku pro Twin Blade
+    if (attacker.name === 'Twin Blade') {
+        if (!attacker.attacksThisTurn) {
+            attacker.attacksThisTurn = 1;
+            attacker.hasAttacked = false;
+            attacker.canAttack = true;
+        } else {
+            attacker.attacksThisTurn = 2;
+            attacker.hasAttacked = true;
+            attacker.canAttack = false;
+        }
     }
 
     console.log('Konec souboje:', {

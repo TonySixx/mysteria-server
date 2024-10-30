@@ -25,6 +25,7 @@ function startNextTurn(state, nextPlayer) {
     // Reset útoků jednotek a kontrola zmražení
     player.field.forEach(card => {
         card.hasAttacked = false;
+        card.attacksThisTurn = 0;
         card.canAttack = true; // Výchozí hodnota
     });
 
@@ -78,6 +79,23 @@ function startNextTurn(state, nextPlayer) {
             }
         });
         newState.endTurnEffects = []; // Vyčistíme efekty po zpracování
+    }
+
+    // Zpracování start-turn efektů
+    if (newState.startTurnEffects) {
+        newState.startTurnEffects.forEach(effect => {
+            if (effect.type === 'mana' && effect.owner === nextPlayer) {
+                const currentPlayer = newState.players[nextPlayer];
+                // Najdeme všechny Mana Collector jednotky na poli
+                currentPlayer.field.forEach(unit => {
+                    if (unit.name === 'Mana Collector') {
+                        const manaGain = unit.attack;
+                        currentPlayer.mana = Math.min(10, currentPlayer.mana + manaGain);
+                        addCombatLogMessage(newState, `<span class="${nextPlayer === 0 ? 'player-name' : 'enemy-name'}">${currentPlayer.username}'s</span> <span class="spell-name">Mana Collector</span> granted <span class="mana">${manaGain} mana</span>`);
+                    }
+                });
+            }
+        });
     }
 
     return newState;
@@ -164,6 +182,28 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
 
     const playerName = player.username;
     const opponentName = opponent.username;
+
+    // Kontrola Spell Breaker efektu
+    const spellBreakers = opponent.field.filter(unit => unit.name === 'Spell Breaker');
+    if (spellBreakers.length > 0) {
+        const extraCost = spellBreakers.length; // Každý Spell Breaker zvyšuje cenu o 1
+        const totalCost = card.manaCost + extraCost;
+        
+        if (player.mana < totalCost) {
+            return {
+                ...state,
+                notification: {
+                    message: `Spell costs ${extraCost} more due to enemy Spell Breaker!`,
+                    forPlayer: playerIndex
+                }
+            };
+        }
+        // Odečteme extra manu za Spell Breaker efekt
+        player.mana -= extraCost;
+    }
+
+    // Odečteme základní cenu kouzla
+    player.mana -= card.manaCost;
 
     switch (card.name) {
         case 'Fireball':
@@ -611,6 +651,33 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
         case 'Mana Crystal':
             // Efekt se zpracuje při smrti jednotky
             break;
+
+        case 'Spell Breaker':
+            // Efekt se zpracuje při hraní kouzel protivníkem
+            break;
+
+        case 'Twin Blade':
+            // Nastavíme speciální vlastnost pro dvojitý útok
+            card.canAttackTwice = true;
+            card.attacksThisTurn = 0;
+            break;
+
+        case 'Mana Collector':
+            // Přidáme efekt do pole efektů na začátku tahu
+            if (!newState.startTurnEffects) {
+                newState.startTurnEffects = [];
+            }
+            newState.startTurnEffects.push({
+                type: 'mana',
+                owner: playerIndex,
+                unitId: card.id
+            });
+            break;
+
+        case 'Mana Siphon':
+        case 'Defensive Scout':
+            // Efekty se zpracují v combat logice
+            break;
     }
 
     return newState;
@@ -696,7 +763,7 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
         if (spellResult === false) {
             newState.spellsPlayedThisGame = Math.max(0, newState.spellsPlayedThisGame - 1);
             if (card.name !== 'Mana Surge') {
-                player.mana += card.manaCost; // Vrátíme manu pokud se kouzlo nepovedlo
+                player.mana += card.manaCost + extraCost; // Vrátíme manu pokud se kouzlo nepovedlo
             }
             return newState;
         }

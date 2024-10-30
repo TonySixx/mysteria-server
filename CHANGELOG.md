@@ -656,7 +656,7 @@
 ### Changed
 - Upraven popisek karty Arcane Storm
   - Zpřesněn popis efektu pro lepší srozumitelnost
-  - Nyní explicitně uvádí, ��e se počítají kouzla obou hráčů
+  - Nyní explicitně uvádí, e se počítají kouzla obou hráčů
 
 ### Fixed
 - Opraveno chování Divine Shield při poškození kouzly - nyní se správně nejprve zruší Divine Shield a až poté se aplikuje poškození
@@ -675,4 +675,13 @@
   - Přesunuta notifikace do středu obrazovky
   - Upraveny animace pro plynulejší přechody
   - Vylepšena čitelnost a viditelnost zprávy
+
+### Fixed
+- Opravena karta Twin Blade - nyní může útočit dvakrát i na hrdinu
+- Opraven efekt Mana Siphon - nyní poskytuje manu i při útoku na hrdinu
+- Opraven efekt Mana Collector - nyní správně přidává manu na začátku tahu
+- Opraven efekt Spell Breaker - nyní správně zdražuje protivníkova kouzla
+
+### Fixed
+- Opraven efekt Mana Collector - nyní se efekt správně odstraní při zničení jednotky
 

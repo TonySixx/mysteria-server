@@ -168,6 +168,7 @@ class GameManager {
             startTime: new Date(),
             spellsPlayedThisGame: 0,
             endTurnEffects: [],
+            startTurnEffects: [],
             combatLogMessages: []
         };
 

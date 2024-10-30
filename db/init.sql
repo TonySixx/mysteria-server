@@ -356,3 +356,14 @@ WHERE name = 'Arcane Storm';
 UPDATE cards 
 SET effect = 'Gain +1 attack when you cast a spell' 
 WHERE name = 'Arcane Familiar';
+
+-- Přidání nových common a uncommon jednotek
+INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type) VALUES
+    -- Common jednotky
+    ('Mana Siphon', 2, 2, 2, 'When this minion attacks, gain 1 mana crystal this turn only', 'manaSiphon', 'common', 'unit'),
+    ('Defensive Scout', 3, 1, 5, 'When this minion takes damage, draw a card', 'defensiveScout', 'common', 'unit'),
+    
+    -- Uncommon jednotky
+    ('Spell Breaker', 4, 3, 4, 'Enemy spells cost 1 more mana while this minion is alive', 'spellBreaker', 'uncommon', 'unit'),
+    ('Twin Blade', 3, 2, 4, 'This minion can attack twice each turn', 'twinBlade', 'uncommon', 'unit'),
+    ('Mana Collector', 5, 3, 6, 'At the start of your turn, gain mana equal to this minions attack', 'manaCollector', 'uncommon', 'unit');
