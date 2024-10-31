@@ -367,3 +367,9 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Spell Breaker', 4, 3, 4, 'Enemy spells cost 1 more mana while this minion is alive', 'spellBreaker', 'uncommon', 'unit'),
     ('Twin Blade', 3, 2, 4, 'This minion can attack twice each turn', 'twinBlade', 'uncommon', 'unit'),
     ('Mana Collector', 5, 3, 6, 'At the start of your turn, gain mana equal to this minions attack', 'manaCollector', 'uncommon', 'unit');
+
+-- Přidání nových karet
+INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type) VALUES
+    ('Mountain Giant', 7, 6, 9, 'Taunt', 'mountainGiant', 'rare', 'unit'),
+    ('Ancient Guardian', 3, 4, 6, 'Taunt. Cannot attack', 'ancientGuardian', 'rare', 'unit'),
+    ('Arcane Protector', 4, 2, 5, 'Taunt. Gain +1 attack when you cast a spell', 'arcaneProtector', 'rare', 'unit');

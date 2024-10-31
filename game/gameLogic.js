@@ -24,9 +24,14 @@ function startNextTurn(state, nextPlayer) {
 
     // Reset útoků jednotek a kontrola zmražení
     player.field.forEach(card => {
-        card.hasAttacked = false;
-        card.attacksThisTurn = 0;
-        card.canAttack = true; // Výchozí hodnota
+        if (card.name === 'Ancient Guardian') {
+            card.hasAttacked = true;
+            card.canAttack = false;
+        } else {
+            card.hasAttacked = false;
+            card.attacksThisTurn = 0;
+            card.canAttack = true; // Výchozí hodnota
+        }
     });
 
     // Rozmrazíme jednotky protivníka, které byly zmražené během jeho tahu
@@ -225,15 +230,15 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
 
     const newState = { ...state };
     
-    // Přidáme efekt Mana Wyrm a Arcane Familiar před zpracováním kouzla
+    // Přidáme efekt Arcane Protector k existující kontrole
     player.field.forEach(unit => {
-        if (unit.name === 'Arcane Familiar' || unit.name === 'Mana Wyrm') {
+        if (unit.name === 'Arcane Familiar' || unit.name === 'Arcane Protector' || unit.name === 'Mana Wyrm') {
             unit.attack += 1;
             console.log(`${unit.name} posílen:`, {
                 unitName: unit.name,
                 newAttack: unit.attack
             });
-            // Přidáme notifikaci o posílení
+               // Přidáme notifikaci o posílení
             if (!newState.notification) {
                 newState.notification = {
                     message: `${unit.name} gained +1 attack!`,
@@ -678,6 +683,17 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
         case 'Mana Siphon':
         case 'Defensive Scout':
             // Efekty se zpracují v combat logice
+            break;
+
+        case 'Ancient Guardian':
+            // Nastavíme kartu tak, aby nemohla útočit
+            card.hasAttacked = true;
+            card.canAttack = false;
+            break;
+
+        case 'Arcane Protector':
+            // Využijeme stejnou logiku jako u Arcane Familiar
+            // Efekt se zpracuje v handleSpellEffects při seslání kouzla
             break;
     }
 

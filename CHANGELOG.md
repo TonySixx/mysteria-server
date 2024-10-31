@@ -117,6 +117,10 @@
   - Přidána informativní zpráva v angličtině
   - Implementováno lepší umístění a styling notifikací
   - Přidána animace pro plynulé zobrazení/skrytí
+- Přidány 3 nové karty:
+  - Mountain Giant (7 mana, 6/9) - Velká jednotka s Tauntem
+  - Ancient Guardian (3 mana, 4/6) - Defenzivní jednotka s Tauntem, která nemůže útočit
+  - Arcane Protector (4 mana, 2/5) - Jednotka s Tauntem, která získává +1 útok za každé seslané kouzlo
 
 ### Changed
 - Vylepšena vizuální stránka hry přidáním dynamických efektů pro lepší uživatelský zážitek.
@@ -130,7 +134,7 @@
 - Přidána plynulá animace pro objevení a zmizení notifikací.
 - Prodloužena doba zobrazení notifikací pro lepší čitelnost.
 - Vylepšena logika drag and drop pro prevenci nelegálních tahů.
-- Vylepšena umělá inteligence nepřítele pro náročnější a zajímavější hru
+- Vylepšena umělá inteligence nepřítele pro náročněj��í a zajímavější hru
   - AI nyní lépe prioritizuje cíle při útoku
   - Implementována lepší strategie pro hraní karet
   - AI nyní efektivněji využívá manu a The Coin
@@ -570,7 +574,7 @@
 
 ### Fixed
 - Opravena logika zmražených jednotek - jednotky jsou nyní zmražené pouze do konce svého následujícího tahu
-- Vylepšen systém rozmrazován�� pro přesnější časování efektu zmražení
+- Vylepšen systém rozmrazován pro přesnější časování efektu zmražení
 
 ### Fixed
 - Opravena logika zmražených jednotek:
@@ -702,4 +706,7 @@
   - Přidána jednotná logika pro zpracování poškození jednotek
   - Implementována správná kontrola Divine Shield efektu
   - Sjednoceno chování Defensive Scout efektu pro všechna AOE kouzla (Arcane Storm, Holy Nova, Inferno Wave, Arcane Explosion)
+
+### Fixed
+- Opraveno chování Ancient Guardian - nyní správně nemůže útočit ani v následujících kolech
 
