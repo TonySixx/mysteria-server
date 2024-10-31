@@ -361,7 +361,7 @@ WHERE name = 'Arcane Familiar';
 INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type) VALUES
     -- Common jednotky
     ('Mana Siphon', 2, 2, 2, 'When this minion attacks, gain 1 mana crystal this turn only', 'manaSiphon', 'common', 'unit'),
-    ('Defensive Scout', 3, 1, 5, 'When this minion takes damage, draw a card', 'defensiveScout', 'common', 'unit'),
+    ('Defensive Scout', 3, 1, 5, 'When this minion is attacked, draw a card', 'defensiveScout', 'common', 'unit'),
     
     -- Uncommon jednotky
     ('Spell Breaker', 4, 3, 4, 'Enemy spells cost 1 more mana while this minion is alive', 'spellBreaker', 'uncommon', 'unit'),
