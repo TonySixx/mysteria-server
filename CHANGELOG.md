@@ -106,7 +106,7 @@
   - Healing Wisp (2/2) - při útoku léčí vlastního hrdinu
   - Arcane Guardian (2/4) - získává +1 zdraví za každé kouzlo v ruce
 - Vylepšeno zobrazení karty Arcane Storm
-  - Přidáno zobrazení aktuálního poškození podle počtu zahraných kouzel
+  - Přidáno zobrazení aktuálního poškozen podle počtu zahraných kouzel
   - Zachován původní popis efektu v závorce
   - Dynamická aktualizace hodnoty během hry
 - Implementována nová komponenta ConnectionStatus pro zobrazování stavu připojení k serveru
@@ -170,7 +170,7 @@
 - Opraveno vkládání karet mezi existující karty na herním poli.
 - Odstraněno varování o nekonsekutivních indexech Draggable komponent.
 - Opravena chyba, která bránila vyložení karty na stůl pomocí přetažení.
-- Opravena chyba, která neumožňovala vybrat konkrétní cíl toků mezi nepřátelskými jednotkami.
+- Opravena chyba, která neumožňovala vybrat konkrétní cíl toků mezi nepátelskými jednotkami.
 - Opravena chyba, která bránila provedení útoku při přetažení karty na cíl.
 - Odstranna nadbytečná Droppable oblast pro celé nepřítelovo pole.
 - Opravena chyba, která umožňovala ignorovat efekt Taunt při útoku pomocí drag&drop.
@@ -591,7 +591,7 @@
 
 ### Fixed
 - Opraveno ukládání historie her
-  - Přidáno volání handleGameEnd při konci hry v handleAttack
+  - Přidáno volán handleGameEnd při konci hry v handleAttack
   - Zajištěno správné ukládání statistik hráčů po konci hry
   - Implementováno ukládání délky hry a použitých balíčků
 
@@ -684,4 +684,10 @@
 
 ### Fixed
 - Opraven efekt Mana Collector - nyní se efekt správně odstraní při zničení jednotky
+
+### Fixed
+- Opravena funkcionalita Time Weaver karty - efekt léčení se nyní správně aplikuje každé kolo, dokud je karta ve hře
+
+### Fixed
+- Opravena funkcionalita Mana Collector karty - efekt přidání many se nyní správně aplikuje každé kolo, dokud je karta ve hře
 

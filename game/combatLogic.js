@@ -252,19 +252,6 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
         attacker.health -= defender.attack;
     }
 
-    // Kontrola a odstranění startTurnEffects pro zničené jednotky
-    if (defender.health <= 0 && defender.name === 'Mana Collector') {
-        state.startTurnEffects = state.startTurnEffects?.filter(effect => 
-            !(effect.type === 'mana' && effect.unitId === defender.id)
-        ) || [];
-    }
-
-    if (attacker.health <= 0 && attacker.name === 'Mana Collector') {
-        state.startTurnEffects = state.startTurnEffects?.filter(effect => 
-            !(effect.type === 'mana' && effect.unitId === attacker.id)
-        ) || [];
-    }
-
     // Efekt Mana Crystal při smrti - přesunut před filtrování mrtvých jednotek
     if (attacker.name === 'Mana Crystal' && attacker.health <= 0) {
         const attackerPlayer = state.players[attackerPlayerIndex];

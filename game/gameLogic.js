@@ -62,8 +62,25 @@ function startNextTurn(state, nextPlayer) {
     const playerName = newState.players[nextPlayer].username;
     addCombatLogMessage(newState, `<span class="${nextPlayer === 0 ? 'player-name' : 'enemy-name'}">${playerName}'s</span> turn begins`);
 
-    // Zpracování end-turn efektů pro předchozího hráče (ten, kdo končí tah)
-    if (newState.endTurnEffects) {
+    // Inicializujeme pole pro efekty, pokud neexistuje
+    if (!newState.endTurnEffects) {
+        newState.endTurnEffects = [];
+    }
+
+    // Přidáme efekty pro všechny Time Weavery na poli předchozího hráče
+    const previousPlayerState = newState.players[previousPlayer];
+    previousPlayerState.field.forEach(card => {
+        if (card.name === 'Time Weaver') {
+            newState.endTurnEffects.push({
+                type: 'heal',
+                amount: 2,
+                owner: previousPlayer
+            });
+        }
+    });
+
+    // Zpracování end-turn efektů pro předchozího hráče
+    if (newState.endTurnEffects && newState.endTurnEffects.length > 0) {
         newState.endTurnEffects.forEach(effect => {
             if (effect.type === 'heal' && effect.owner === previousPlayer) {
                 const effectOwner = newState.players[previousPlayer];
@@ -78,11 +95,29 @@ function startNextTurn(state, nextPlayer) {
                 addCombatLogMessage(newState, `<span class="${previousPlayer === 0 ? 'player-name' : 'enemy-name'}">${effectOwnerName}'s</span> <span class="spell-name">Time Weaver</span> restored <span class="heal">${effect.amount} health</span> to all friendly characters`);
             }
         });
-        newState.endTurnEffects = []; // Vyčistíme efekty po zpracování
+        // Vyčistíme efekty po zpracování
+        newState.endTurnEffects = [];
     }
 
+    // Inicializujeme pole pro start-turn efekty, pokud neexistuje
+    if (!newState.startTurnEffects) {
+        newState.startTurnEffects = [];
+    }
+
+    // Přidáme efekty pro všechny Mana Collector jednotky na poli aktuálního hráče
+    const currentPlayer = newState.players[nextPlayer];
+    currentPlayer.field.forEach(card => {
+        if (card.name === 'Mana Collector') {
+            newState.startTurnEffects.push({
+                type: 'mana',
+                owner: nextPlayer,
+                unitId: card.id
+            });
+        }
+    });
+
     // Zpracování start-turn efektů
-    if (newState.startTurnEffects) {
+    if (newState.startTurnEffects && newState.startTurnEffects.length > 0) {
         newState.startTurnEffects.forEach(effect => {
             if (effect.type === 'mana' && effect.owner === nextPlayer) {
                 const currentPlayer = newState.players[nextPlayer];
@@ -96,6 +131,8 @@ function startNextTurn(state, nextPlayer) {
                 });
             }
         });
+        // Vyčistíme efekty po zpracování
+        newState.startTurnEffects = [];
     }
 
     return newState;
@@ -544,17 +581,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
             break;
 
         case 'Time Weaver':
-            // Inicializujeme pole pro efekty, pokud neexistuje
-            if (!newState.endTurnEffects) {
-                newState.endTurnEffects = [];
-            }
-            
-            newState.endTurnEffects.push({
-                type: 'heal',
-                amount: 2,
-                owner: playerIndex
-            });
-
+            // Logika se zpracuje ve funkci startNextTurn
             newState.notification = {
                 message: 'Time Weaver will heal all friendly characters at the end of your turn!',
                 forPlayer: playerIndex
@@ -642,15 +669,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
             break;
 
         case 'Mana Collector':
-            // Přidáme efekt do pole efektů na začátku tahu
-            if (!newState.startTurnEffects) {
-                newState.startTurnEffects = [];
-            }
-            newState.startTurnEffects.push({
-                type: 'mana',
-                owner: playerIndex,
-                unitId: card.id
-            });
+            // Logika se zpracuje v startNextTurn
             break;
 
         case 'Mana Siphon':
