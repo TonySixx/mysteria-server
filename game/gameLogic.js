@@ -189,6 +189,32 @@ function checkGameOver(state) {
     return newState;
 }
 
+// Pomocná funkce pro zpracování poškození jednotky a její efekty
+function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
+    if (!unit) return;
+
+    const oldHealth = unit.health;
+    if (unit.hasDivineShield) {
+        unit.hasDivineShield = false;
+    } else {
+        unit.health -= damage;
+    }
+
+    // Kontrola pro Defensive Scout
+    if (unit.name === 'Defensive Scout' && oldHealth > unit.health) {
+        if (opponent.deck.length > 0 && opponent.hand.length < 10) {
+            const drawnCard = opponent.deck.pop();
+            opponent.hand.push(drawnCard);
+            
+            newState.notification = {
+                message: 'Defensive Scout drew a card!',
+                forPlayer: 1 - playerIndex
+            };
+            addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">Defensive Scout</span> <span class="draw">drew a card</span>`);
+        }
+    }
+}
+
 function handleSpellEffects(card, player, opponent, state, playerIndex) {
     console.log('Začátek aplikace kouzla:', {
         cardName: card.name,
@@ -279,13 +305,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
         case 'Inferno Wave':
             const damagedUnits = opponent.field.filter(unit => unit).length;
             opponent.field.forEach(unit => {
-                if (unit) {
-                    if (unit.hasDivineShield) {
-                        unit.hasDivineShield = false;
-                    } else {
-                        unit.health -= 4;
-                    }
-                }
+                handleUnitDamage(unit, 4, opponent, playerIndex, newState);
             });
             newState.notification = {
                 message: 'Inferno Wave dealt 4 damage to all enemy units!',
@@ -364,11 +384,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             let damagedCount = 0;
             opponent.field.forEach(unit => {
                 if (unit) {
-                    if (unit.hasDivineShield) {
-                        unit.hasDivineShield = false;
-                    } else {
-                        unit.health -= 1;
-                    }
+                    handleUnitDamage(unit, 1, opponent, playerIndex, newState);
                     damagedCount++;
                 }
             });
@@ -386,7 +402,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             // Poškození nepřátel
             opponent.field.forEach(unit => {
                 if (unit) {
-                    unit.health -= 2;
+                    handleUnitDamage(unit, 2, opponent, playerIndex, newState);
                     damagedEnemies++;
                 }
             });
@@ -436,7 +452,6 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             break;
 
         case 'Arcane Storm':
-            // Získáme počet zahraných kouzel z historie
             const spellsCast = (state.spellsPlayedThisGame || 0);
             const damage = spellsCast;
             
@@ -451,23 +466,11 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             
             // Upravené zpracování poškození jednotek
             player.field.forEach(unit => {
-                if (unit) {
-                    if (unit.hasDivineShield) {
-                        unit.hasDivineShield = false;
-                    } else {
-                        unit.health -= damage;
-                    }
-                }
+                handleUnitDamage(unit, damage, player, playerIndex, newState);
             });
             
             opponent.field.forEach(unit => {
-                if (unit) {
-                    if (unit.hasDivineShield) {
-                        unit.hasDivineShield = false;
-                    } else {
-                        unit.health -= damage;
-                    }
-                }
+                handleUnitDamage(unit, damage, opponent, playerIndex, newState);
             });
             
             newState.notification = {

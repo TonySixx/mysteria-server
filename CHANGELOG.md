@@ -570,7 +570,7 @@
 
 ### Fixed
 - Opravena logika zmražených jednotek - jednotky jsou nyní zmražené pouze do konce svého následujícího tahu
-- Vylepšen systém rozmrazování pro přesnější časování efektu zmražení
+- Vylepšen systém rozmrazován�� pro přesnější časování efektu zmražení
 
 ### Fixed
 - Opravena logika zmražených jednotek:
@@ -693,4 +693,13 @@
 
 ### Fixed
 - Opraven efekt Mana Leech - nyní správně obnovuje manu i při útoku na hrdinu
+
+### Fixed
+- Opraven efekt Defensive Scout - nyní správně líže kartu i při poškození kouzlem (Inferno Wave, Arcane Explosion)
+
+### Changed
+- Vylepšeno zpracování AOE kouzel
+  - Přidána jednotná logika pro zpracování poškození jednotek
+  - Implementována správná kontrola Divine Shield efektu
+  - Sjednoceno chování Defensive Scout efektu pro všechna AOE kouzla (Arcane Storm, Holy Nova, Inferno Wave, Arcane Explosion)
 
