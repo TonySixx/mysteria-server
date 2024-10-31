@@ -183,27 +183,6 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
     const playerName = player.username;
     const opponentName = opponent.username;
 
-    // Kontrola Spell Breaker efektu
-    const spellBreakers = opponent.field.filter(unit => unit.name === 'Spell Breaker');
-    if (spellBreakers.length > 0) {
-        const extraCost = spellBreakers.length; // Každý Spell Breaker zvyšuje cenu o 1
-        const totalCost = card.manaCost + extraCost;
-        
-        if (player.mana < totalCost) {
-            return {
-                ...state,
-                notification: {
-                    message: `Spell costs ${extraCost} more due to enemy Spell Breaker!`,
-                    forPlayer: playerIndex
-                }
-            };
-        }
-        // Odečteme extra manu za Spell Breaker efekt
-        player.mana -= extraCost;
-    }
-
-    // Odečteme základní cenu kouzla
-    player.mana -= card.manaCost;
 
     switch (card.name) {
         case 'Fireball':
@@ -749,6 +728,30 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
         // Před aplikací kouzla zkontrolujeme Spirit Healer efekt
         const spiritHealers = player.field.filter(unit => unit.name === 'Spirit Healer');
         
+
+        // Kontrola Spell Breaker efektuv
+        var extraCost = 0;
+        const spellBreakers = opponent.field.filter(unit => unit.name === 'Spell Breaker');
+        if (spellBreakers.length > 0) {
+            extraCost = spellBreakers.length; // Každý Spell Breaker zvyšuje cenu o 1
+            const totalCost = card.manaCost + extraCost;
+            console.log('Spell Breaker efekt:', {
+                extraCost,
+                totalCost
+            });
+            if (player.mana < totalCost) {
+                return {
+                    ...newState,
+                    notification: {
+                        message: `Spell costs ${extraCost} more due to enemy Spell Breaker!`,
+                        forPlayer: playerIndex
+                    }
+                };
+            }
+            // Odečteme extra manu za Spell Breaker efekt
+            player.mana -= extraCost;
+        }
+
         // Aplikujeme efekt kouzla
         const spellResult = handleSpellEffects(card, player, opponent, newState, playerIndex);
         
