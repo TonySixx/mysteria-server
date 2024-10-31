@@ -691,3 +691,6 @@
 ### Fixed
 - Opravena funkcionalita Mana Collector karty - efekt přidání many se nyní správně aplikuje každé kolo, dokud je karta ve hře
 
+### Fixed
+- Opraven efekt Mana Leech - nyní správně obnovuje manu i při útoku na hrdinu
+

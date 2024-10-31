@@ -119,6 +119,19 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
             const oldHealth = targetHero.health;
             targetHero.health = Math.max(0, targetHero.health - attacker.attack);
             
+            // Přidáme efekt Mana Leech při útoku na hrdinu
+            if (attacker.name === 'Mana Leech') {
+                const damageDone = oldHealth - targetHero.health;
+                const attackerPlayer = newState.players[attackerPlayerIndex];
+                attackerPlayer.mana = Math.min(10, attackerPlayer.mana + damageDone);
+                
+                newState.notification = {
+                    message: `Mana Leech restored ${damageDone} mana!`,
+                    forPlayer: attackerPlayerIndex
+                };
+                addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Mana Leech</span> restored <span class="mana">${damageDone} mana</span>`);
+            }
+
             // Přidáme efekty pro útok na hrdinu
             if (attacker.name === 'Healing Wisp') {
                 const attackerPlayer = newState.players[attackerPlayerIndex];
