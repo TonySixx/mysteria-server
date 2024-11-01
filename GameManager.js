@@ -574,7 +574,7 @@ class GameManager {
                 // V případě remízy můžeme použít ID prvního hráče nebo speciální logiku
                 winnerId = game.players[0].socket.userId;
             } else {
-                // P��evedeme číselný index na ID
+                // Pevedeme číselný index na ID
                 winnerId = game.players[updatedState.winner].socket.userId;
             }
 
@@ -658,7 +658,6 @@ class GameManager {
         if (!game) return;
 
         try {
-            // Získáme ID hráčů ze socket objektů
             const player1Id = game.players[0].socket.userId;
             const player2Id = game.players[1].socket.userId;
 
@@ -680,14 +679,36 @@ class GameManager {
                 }
             });
 
-            // Objekt pro ukládání odměn pro oba hráče
+            // Použijeme this.supabase místo globálního supabase
+            const { data: historyData, error: historyError } = await this.supabase
+                .from('game_history')
+                .insert([{
+                    player_id: player1Id,
+                    opponent_id: player2Id,
+                    winner_id: winnerId,
+                    game_duration: `${Math.floor(gameDuration / 1000)} seconds`, // Převedeme na sekundy a formátujeme pro INTERVAL
+                    player_deck: player1Deck,
+                    opponent_deck: player2Deck,
+                    created_at: new Date().toISOString()
+                }]);
+
+            if (historyError) {
+                console.error('Chyba při ukládání historie:', historyError);
+                throw historyError;
+            }
+
+            // Aktualizujeme statistiky hráčů
+            await this.updatePlayerStats(player1Id, winnerId === player1Id);
+            await this.updatePlayerStats(player2Id, winnerId === player2Id)
+
+            // Objekt pro ukládání odměn a progressu pro oba hráče
             const rewards = {
                 [player1Id]: { gold: 0, completedChallenges: [] },
                 [player2Id]: { gold: 0, completedChallenges: [] }
             };
 
-            // Základní odměna pro vítěze
-            const baseReward = 10;
+            // Základní odměna pouze pro vítěze
+            const baseReward = 25;
             rewards[winnerId].gold = baseReward;
 
             // Aktualizace výzev pro oba hráče
@@ -728,7 +749,6 @@ class GameManager {
                                 challengeName: pc.challenge.name,
                                 reward: pc.challenge.reward_gold
                             });
-                            rewards[playerId].gold += pc.challenge.reward_gold;
                         }
 
                         // Aktualizace progressu výzvy
@@ -748,29 +768,25 @@ class GameManager {
             await updatePlayerChallenges(player1Id, player1Id === winnerId);
             await updatePlayerChallenges(player2Id, player2Id === winnerId);
 
-            // Aktualizujeme zlato pro oba hráče, pokud mají nějaké odměny
-            for (const [playerId, reward] of Object.entries(rewards)) {
-                if (reward.gold > 0) {
-                    const { data: playerCurrency } = await this.supabase
-                        .from('player_currency')
-                        .select('gold_amount')
-                        .eq('player_id', playerId)
-                        .single();
+            // Přidáme pouze základní odměnu vítězi
+            const { data: winnerCurrency } = await this.supabase
+                .from('player_currency')
+                .select('gold_amount')
+                .eq('player_id', winnerId)
+                .single();
 
-                    await this.supabase
-                        .from('player_currency')
-                        .update({
-                            gold_amount: playerCurrency.gold_amount + reward.gold
-                        })
-                        .eq('player_id', playerId);
-                }
-            }
+            await this.supabase
+                .from('player_currency')
+                .update({
+                    gold_amount: winnerCurrency.gold_amount + baseReward
+                })
+                .eq('player_id', winnerId);
 
             // Odešleme notifikace oběma hráčům
             game.players.forEach(player => {
                 const playerId = player.socket.userId;
                 const playerRewards = rewards[playerId];
-                
+
                 if (playerRewards.gold > 0 || playerRewards.completedChallenges.length > 0) {
                     player.socket.emit('rewardEarned', {
                         gold: playerRewards.gold,
