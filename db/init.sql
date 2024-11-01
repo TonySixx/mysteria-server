@@ -807,3 +807,31 @@ CREATE POLICY "Users can view and update own cards"
     ON player_cards FOR ALL
     USING (auth.uid() = player_id)
     WITH CHECK (auth.uid() = player_id);
+
+-- Přidání RLS politik pro player_challenges
+ALTER TABLE player_challenges ENABLE ROW LEVEL SECURITY;
+
+-- Politika pro čtení vlastních výzev
+CREATE POLICY "Users can view own challenges"
+    ON player_challenges FOR SELECT
+    USING (auth.uid() = player_id);
+
+-- Politika pro přidání nových výzev
+CREATE POLICY "Users can accept new challenges"
+    ON player_challenges FOR INSERT
+    WITH CHECK (auth.uid() = player_id);
+
+-- Politika pro aktualizaci vlastních výzev
+CREATE POLICY "Users can update own challenges"
+    ON player_challenges FOR UPDATE
+    USING (auth.uid() = player_id);
+
+-- Politika pro smazání vlastních výzev
+CREATE POLICY "Users can delete own challenges"
+    ON player_challenges FOR DELETE
+    USING (auth.uid() = player_id);
+
+-- Politika pro čtení dostupných výzev
+CREATE POLICY "Everyone can view challenges"
+    ON challenges FOR SELECT
+    USING (true);
