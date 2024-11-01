@@ -673,7 +673,7 @@ BEGIN
 END;
 $$;
 
--- Přidáme oprávnění pro volání funkce
+-- Přidáme oprávnění pro volán�� funkce
 GRANT EXECUTE ON FUNCTION purchase_card_pack(INTEGER, UUID) TO authenticated;
 
 -- Přidáme RLS policy pro player_currency
@@ -698,44 +698,6 @@ CREATE POLICY "Users can update own cards"
     USING (auth.uid() = player_id)
     WITH CHECK (auth.uid() = player_id);
 
--- Funkce pro kontrolu a reset výzev
-CREATE OR REPLACE FUNCTION check_and_reset_challenges(user_id UUID)
-RETURNS void LANGUAGE plpgsql AS $$
-DECLARE
-    challenge_record RECORD;
-BEGIN
-    -- Projdeme všechny výzvy hráče
-    FOR challenge_record IN 
-        SELECT pc.*, c.reset_period, c.condition_value
-        FROM player_challenges pc
-        JOIN challenges c ON pc.challenge_id = c.id
-        WHERE pc.player_id = user_id
-        AND c.reset_period IS NOT NULL
-    LOOP
-        -- Kontrola denních výzev
-        IF challenge_record.reset_period = 'daily' AND 
-           challenge_record.last_reset < CURRENT_DATE THEN
-            -- Reset denní výzvy
-            UPDATE player_challenges
-            SET progress = 0,
-                completed = false,
-                last_reset = NOW()
-            WHERE player_id = user_id
-            AND challenge_id = challenge_record.challenge_id;
-        -- Kontrola týdenních výzev
-        ELSIF challenge_record.reset_period = 'weekly' AND 
-              challenge_record.last_reset < (CURRENT_DATE - INTERVAL '7 days') THEN
-            -- Reset týdenní výzvy
-            UPDATE player_challenges
-            SET progress = 0,
-                completed = false,
-                last_reset = NOW()
-            WHERE player_id = user_id
-            AND challenge_id = challenge_record.challenge_id;
-        END IF;
-    END LOOP;
-END;
-$$;
 
 -- Funkce pro udělení odměny za splnění výzvy
 CREATE OR REPLACE FUNCTION award_challenge_completion(
@@ -835,3 +797,63 @@ CREATE POLICY "Users can delete own challenges"
 CREATE POLICY "Everyone can view challenges"
     ON challenges FOR SELECT
     USING (true);
+
+-- Upravíme funkci pro reset výzev a získání aktuálních výzev
+CREATE OR REPLACE FUNCTION get_player_challenges(p_player_id UUID)
+RETURNS TABLE (
+    challenge_id INTEGER,
+    player_id UUID,
+    progress INTEGER,
+    completed BOOLEAN,
+    last_reset TIMESTAMP WITH TIME ZONE,
+    reward_claimed BOOLEAN,
+    challenge_name TEXT,
+    challenge_description TEXT,
+    challenge_reward INTEGER,
+    challenge_condition_type TEXT,
+    challenge_condition_value INTEGER,
+    challenge_reset_period TEXT
+) 
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    -- Nejprve resetujeme prošlé výzvy
+    UPDATE player_challenges pc
+    SET progress = 0,
+        completed = false,
+        last_reset = NOW(),
+        reward_claimed = false
+    FROM challenges c
+    WHERE pc.challenge_id = c.id
+    AND pc.player_id = p_player_id
+    AND (
+        (c.reset_period = 'daily' AND pc.last_reset < NOW() - INTERVAL '1 day')
+        OR 
+        (c.reset_period = 'weekly' AND pc.last_reset < NOW() - INTERVAL '7 days')
+    );
+
+    -- Vrátíme aktuální výzvy
+    RETURN QUERY
+    SELECT 
+        c.id AS challenge_id,
+        pc.player_id,
+        pc.progress,
+        pc.completed,
+        pc.last_reset,
+        pc.reward_claimed,
+        c.name AS challenge_name,
+        c.description AS challenge_description,
+        c.reward_gold AS challenge_reward,
+        c.condition_type AS challenge_condition_type,
+        c.condition_value AS challenge_condition_value,
+        c.reset_period AS challenge_reset_period
+    FROM player_challenges pc
+    JOIN challenges c ON c.id = pc.challenge_id
+    WHERE pc.player_id = p_player_id;
+END;
+$$;
+
+-- Přidáme oprávnění pro volání funkce
+GRANT EXECUTE ON FUNCTION get_player_challenges(UUID) TO authenticated;
+

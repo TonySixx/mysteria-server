@@ -191,14 +191,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('challengeProgress', async (data) => {
-        try {
-            const { challengeId, progress } = data;
-            await gameManager.updateChallengeProgress(socket.userId, challengeId, progress);
-        } catch (error) {
-            console.error('Error updating challenge progress:', error);
-        }
-    });
 });
 
 
