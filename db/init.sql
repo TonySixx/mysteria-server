@@ -505,11 +505,11 @@ CREATE TRIGGER add_starter_cards_trigger
 
 -- Upravíme distribuci vzácností v balíčcích
 UPDATE card_packs 
-SET rarity_distribution = '{"common": 60, "uncommon": 25, "rare": 10, "epic": 4, "legendary": 1}'
+SET rarity_distribution = '{"common": 60, "uncommon": 25, "rare": 7, "epic": 5, "legendary": 3}'
 WHERE name = 'Basic Pack';
 
 UPDATE card_packs 
-SET rarity_distribution = '{"uncommon": 60, "rare": 25, "epic": 12, "legendary": 3}'
+SET rarity_distribution = '{"common": 0, "uncommon": 5, "rare": 60, "epic": 25, "legendary": 10}'
 WHERE name = 'Premium Pack';
 
 DROP FUNCTION IF EXISTS generate_pack_cards(INTEGER, UUID);
@@ -530,37 +530,65 @@ SET search_path = public
 AS $$
 DECLARE
     pack_distribution JSONB;
-    total_weight INTEGER;
-    random_num INTEGER;
+    pack_name TEXT;
     selected_rarity TEXT;
+    rarity_weight RECORD;
+    total_weight FLOAT := 0;
+    random_num FLOAT;
+    cumulative_weight FLOAT;
+    rarities TEXT[];
+    weights FLOAT[];
 BEGIN
-    -- Získáme distribuci vzácností pro daný balíček
-    SELECT cp.rarity_distribution INTO pack_distribution
+    -- Získáme distribuci vzácností a jméno balíčku
+    SELECT cp.rarity_distribution, cp.name INTO pack_distribution, pack_name
     FROM card_packs cp
     WHERE cp.id = p_pack_id;
 
-    -- Pro každou ze tří karet
-    FOR i IN 1..3 LOOP
-        -- Vybereme vzácnost
-        total_weight := (pack_distribution->>'common')::INTEGER +
-                       (pack_distribution->>'uncommon')::INTEGER +
-                       (pack_distribution->>'rare')::INTEGER +
-                       (pack_distribution->>'epic')::INTEGER +
-                       (pack_distribution->>'legendary')::INTEGER;
-        
-        random_num := floor(random() * total_weight);
-        
-        IF random_num < (pack_distribution->>'legendary')::INTEGER THEN
-            selected_rarity := 'legendary';
-        ELSIF random_num < (pack_distribution->>'epic')::INTEGER + (pack_distribution->>'legendary')::INTEGER THEN
-            selected_rarity := 'epic';
-        ELSIF random_num < (pack_distribution->>'rare')::INTEGER + (pack_distribution->>'epic')::INTEGER + (pack_distribution->>'legendary')::INTEGER THEN
-            selected_rarity := 'rare';
-        ELSIF random_num < (pack_distribution->>'uncommon')::INTEGER + (pack_distribution->>'rare')::INTEGER + (pack_distribution->>'epic')::INTEGER + (pack_distribution->>'legendary')::INTEGER THEN
-            selected_rarity := 'uncommon';
-        ELSE
-            selected_rarity := 'common';
-        END IF;
+    -- První karta je vždy garantovaná
+    IF pack_name = 'Basic Pack' THEN
+        -- Pro Basic Pack garantujeme rare kartu
+        selected_rarity := 'rare';
+    ELSE -- Premium Pack
+        -- Pro Premium Pack garantujeme epic kartu
+        selected_rarity := 'epic';
+    END IF;
+
+    -- Vrátíme garantovanou kartu
+    RETURN QUERY
+    SELECT 
+        c.id AS card_id,
+        c.name AS card_name,
+        c.rarity AS card_rarity
+    FROM cards c
+    WHERE c.rarity = selected_rarity
+    ORDER BY random()
+    LIMIT 1;
+
+    -- Připravíme pole vzácností a jejich váhy z rarity_distribution
+    rarities := ARRAY[]::TEXT[];
+    weights := ARRAY[]::FLOAT[];
+    total_weight := 0;
+
+    FOR rarity_weight IN SELECT key AS rarity, value::FLOAT AS weight FROM jsonb_each_text(pack_distribution)
+    LOOP
+        rarities := array_append(rarities, rarity_weight.rarity);
+        weights := array_append(weights, rarity_weight.weight);
+        total_weight := total_weight + rarity_weight.weight;
+    END LOOP;
+
+    -- Generujeme zbylé dvě karty podle procentuální distribuce
+    FOR i IN 1..2 LOOP
+        random_num := random() * total_weight;
+        cumulative_weight := 0;
+        selected_rarity := NULL;
+
+        FOR j IN 1..array_length(rarities, 1) LOOP
+            cumulative_weight := cumulative_weight + weights[j];
+            IF random_num <= cumulative_weight THEN
+                selected_rarity := rarities[j];
+                EXIT;
+            END IF;
+        END LOOP;
 
         -- Vrátíme náhodnou kartu dané vzácnosti
         RETURN QUERY
@@ -575,6 +603,7 @@ BEGIN
     END LOOP;
 END;
 $$;
+
 
 -- Nejprve odstraníme existující funkci
 DROP FUNCTION IF EXISTS purchase_card_pack(INTEGER, UUID);
@@ -614,14 +643,12 @@ BEGIN
     SET gold_amount = gold_amount - pack_price
     WHERE player_id = p_user_id;
 
-    -- Pro každou kartu z balíčku
-    FOR i IN 1..3 LOOP
-        -- Získáme náhodnou kartu podle distribuce vzácností
-        SELECT c.* INTO card_record
+    -- Získáme všechny tři karty najednou
+    FOR card_record IN 
+        SELECT c.* 
         FROM generate_pack_cards(p_pack_id, p_user_id) gc
         JOIN cards c ON c.id = gc.card_id
-        LIMIT 1;
-
+    LOOP
         -- Přidáme kartu do kolekce hráče
         INSERT INTO player_cards (player_id, card_id, quantity)
         VALUES (p_user_id, card_record.id, 1)
