@@ -190,7 +190,17 @@ io.on('connection', (socket) => {
             console.error('Error updating player status on game end:', error);
         }
     });
+
+    socket.on('challengeProgress', async (data) => {
+        try {
+            const { challengeId, progress } = data;
+            await gameManager.updateChallengeProgress(socket.userId, challengeId, progress);
+        } catch (error) {
+            console.error('Error updating challenge progress:', error);
+        }
+    });
 });
+
 
 // Graceful shutdown
 process.on('SIGTERM', () => {

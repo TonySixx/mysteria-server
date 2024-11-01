@@ -9,7 +9,7 @@ class GameManager {
         this.searchingPlayers = new Set(); // Nový Set pro aktivně hledající hráče
         this.playerGameMap = new Map(); // Nová mapa pro sledování, ve které hře je který hráč
         this.onlinePlayers = new Map(); // userId -> {status, socketId, ...playerData}
-        
+
         // Inicializace Supabase klienta se service_role klíčem
         this.supabase = createClient(
             process.env.SUPABASE_URL,
@@ -279,7 +279,7 @@ class GameManager {
             { id: 11, name: 'Glacial Burst', manaCost: 3, effect: 'Freeze all enemy minions', image: 'glacialBurst', rarity: 'epic' },
             { id: 13, name: 'Inferno Wave', manaCost: 7, effect: 'Deal 4 damage to all enemy minions', image: 'infernoWave', rarity: 'epic' }
         ];
-        
+
         return baseDeck.map(card => {
             const uniqueId = `default-${card.id}-${Math.random()}`;
             if (card.attack !== undefined) {
@@ -387,7 +387,7 @@ class GameManager {
         // Odešleme stav oběma hráčům
         game.players.forEach((player, index) => {
             const playerView = this.createPlayerView(game, index);
-            
+
             // Přidáme animační data, pokud existují
             if (game.animation) {
                 playerView.animation = {
@@ -397,7 +397,7 @@ class GameManager {
                     targetIndex: index === 1 ? this.invertFieldIndex(game.animation.targetIndex) : game.animation.targetIndex
                 };
             }
-            
+
             player.socket.emit('gameState', playerView);
         });
 
@@ -488,7 +488,7 @@ class GameManager {
         };
 
         const updatedState = playCardCommon(game, playerIndex, cardIndex, target, destinationIndex);
-        
+
         if (updatedState.notification) {
             game.notification = updatedState.notification;
         }
@@ -496,7 +496,7 @@ class GameManager {
         // Přidáme kontrolu konce hry a uložení výsledku
         if (updatedState.gameOver) {
             console.log('Hra skončila po zahrání karty, vítěz:', updatedState.winner);
-            
+
             // Určíme ID vítěze
             let winnerId;
             if (updatedState.winner === 'draw') {
@@ -567,7 +567,7 @@ class GameManager {
 
         if (updatedState.gameOver) {
             console.log('Hra skončila, vítěz:', updatedState.winner);
-            
+
             // Určíme ID vítěze - opravíme logiku
             let winnerId;
             if (updatedState.winner === 'draw') {
@@ -702,10 +702,115 @@ class GameManager {
             await this.updatePlayerStats(player1Id, winnerId === player1Id);
             await this.updatePlayerStats(player2Id, winnerId === player2Id);
 
+            const { data: winnerCurrency } = await this.supabase
+                .from('player_currency')
+                .select('gold_amount')
+                .eq('player_id', winnerId)
+                .single();
+
+            // Základní odměna za výhru
+            const baseReward = 10;
+            let totalReward = baseReward;
+
+            // Kontrola win streak
+            const { data: winStreak } = await this.supabase
+                .from('player_challenges')
+                .select('progress')
+                .eq('player_id', winnerId)
+                .eq('challenge_id', 1) // ID výzvy 'Win Streak'
+                .single();
+
+            // Aktualizace win streak
+            await this.supabase
+                .from('player_challenges')
+                .upsert({
+                    player_id: winnerId,
+                    challenge_id: 1,
+                    progress: (winStreak?.progress || 0) + 1
+                });
+
+            // Bonus za win streak
+            if (winStreak?.progress === 2) { // Třetí výhra v řadě
+                totalReward += 30; // Bonus za splnění výzvy
+            }
+
+            // Aktualizace denních a týdenních výzev
+            await this.updateChallenges(winnerId, 'win');
+
+            // Přidání zlata hráči
+            await this.supabase
+                .from('player_currency')
+                .update({
+                    gold_amount: winnerCurrency.gold_amount + totalReward
+                })
+                .eq('player_id', winnerId);
+
+            // Oznámení klientovi o získaných odměnách
+            const socket = this.getPlayerSocket(winnerId);
+            if (socket) {
+                socket.emit('rewardEarned', {
+                    gold: totalReward,
+                    challenges: await this.getCompletedChallenges(winnerId)
+                });
+            }
+
             console.log('Úspěšně uloženy výsledky hry a aktualizovány statistiky');
 
         } catch (error) {
             console.error('Chyba při ukládání výsledků hry:', error);
+        }
+    }
+
+    async updateChallenges(playerId, action) {
+        try {
+            const { data: challenges } = await this.supabase
+                .from('player_challenges')
+                .select('*, challenge:challenges(*)')
+                .eq('player_id', playerId);
+
+            for (const playerChallenge of challenges) {
+                const challenge = playerChallenge.challenge;
+
+                if (challenge.condition_type === action) {
+                    const newProgress = playerChallenge.progress + 1;
+                    const completed = newProgress >= challenge.condition_value;
+
+                    if (completed && !playerChallenge.completed) {
+                        // Přidání odměny za splnění výzvy
+                        await this.supabase.rpc('award_challenge_completion', {
+                            p_player_id: playerId,
+                            p_challenge_id: challenge.id
+                        });
+                    }
+
+                    await this.supabase
+                        .from('player_challenges')
+                        .update({
+                            progress: newProgress,
+                            completed
+                        })
+                        .eq('player_id', playerId)
+                        .eq('challenge_id', challenge.id);
+                }
+            }
+        } catch (error) {
+            console.error('Error updating challenges:', error);
+        }
+    }
+
+    async getCompletedChallenges(playerId) {
+        try {
+            const { data } = await this.supabase
+                .from('player_challenges')
+                .select('*, challenge:challenges(*)')
+                .eq('player_id', playerId)
+                .eq('completed', true)
+                .is('reward_claimed', false);
+
+            return data;
+        } catch (error) {
+            console.error('Error getting completed challenges:', error);
+            return [];
         }
     }
 

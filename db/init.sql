@@ -373,3 +373,410 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Mountain Giant', 7, 6, 9, 'Taunt', 'mountainGiant', 'rare', 'unit'),
     ('Ancient Guardian', 3, 4, 6, 'Taunt. Cannot attack', 'ancientGuardian', 'rare', 'unit'),
     ('Arcane Protector', 4, 2, 5, 'Taunt. Gain +1 attack when you cast a spell', 'arcaneProtector', 'rare', 'unit');
+
+-- Přidání nových tabulek pro systém karet a výzev
+
+-- Tabulka pro měnu hráče
+CREATE TABLE player_currency (
+    player_id UUID REFERENCES profiles(id) PRIMARY KEY,
+    gold_amount INTEGER DEFAULT 100 NOT NULL,
+    last_updated TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Tabulka pro vlastněné karty hráče
+CREATE TABLE player_cards (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    player_id UUID REFERENCES profiles(id) NOT NULL,
+    card_id INTEGER REFERENCES cards(id) NOT NULL,
+    quantity INTEGER DEFAULT 0 NOT NULL,
+    obtained_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    UNIQUE(player_id, card_id)
+);
+
+-- Tabulka pro balíčky karet
+CREATE TABLE card_packs (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    price INTEGER NOT NULL,
+    rarity_distribution JSONB NOT NULL,
+    image TEXT NOT NULL
+);
+
+-- Tabulka pro výzvy
+CREATE TABLE challenges (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    reward_gold INTEGER NOT NULL,
+    condition_type TEXT NOT NULL,
+    condition_value INTEGER NOT NULL,
+    reset_period TEXT CHECK (reset_period IN ('daily', 'weekly', NULL))
+);
+
+-- Tabulka pro progress hráčů ve výzvách
+CREATE TABLE player_challenges (
+    player_id UUID REFERENCES profiles(id),
+    challenge_id INTEGER REFERENCES challenges(id),
+    progress INTEGER DEFAULT 0 NOT NULL,
+    completed BOOLEAN DEFAULT false,
+    last_reset TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    PRIMARY KEY (player_id, challenge_id)
+);
+
+-- Přidání indexů
+CREATE INDEX idx_player_cards_player_id ON player_cards(player_id);
+CREATE INDEX idx_player_challenges_player_id ON player_challenges(player_id);
+
+-- Přidání RLS policies
+ALTER TABLE player_currency ENABLE ROW LEVEL SECURITY;
+ALTER TABLE player_cards ENABLE ROW LEVEL SECURITY;
+ALTER TABLE card_packs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE challenges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE player_challenges ENABLE ROW LEVEL SECURITY;
+
+-- RLS policies
+CREATE POLICY "Users can view own currency"
+    ON player_currency FOR SELECT
+    USING (auth.uid() = player_id);
+
+CREATE POLICY "Users can view own cards"
+    ON player_cards FOR SELECT
+    USING (auth.uid() = player_id);
+
+CREATE POLICY "Everyone can view card packs"
+    ON card_packs FOR SELECT
+    USING (true);
+
+CREATE POLICY "Everyone can view challenges"
+    ON challenges FOR SELECT
+    USING (true);
+
+CREATE POLICY "Users can view own challenge progress"
+    ON player_challenges FOR SELECT
+    USING (auth.uid() = player_id);
+
+-- Vložení základních balíčků karet
+INSERT INTO card_packs (name, description, price, rarity_distribution, image) VALUES
+    ('Basic Pack', 'Contains 3 cards with at least one rare', 100, 
+    '{"common": 70, "rare": 20, "epic": 9, "legendary": 1}', 'basic_pack'),
+    ('Premium Pack', 'Contains 3 cards with at least one epic', 300, 
+    '{"common": 0, "rare": 70, "epic": 25, "legendary": 5}', 'premium_pack');
+
+-- Vložení základních výzev
+INSERT INTO challenges (name, description, reward_gold, condition_type, condition_value, reset_period) VALUES
+    ('Win Streak', 'Win 3 games in a row', 300, 'win_streak', 3, NULL),
+    ('Daily Player', 'Play 5 games today', 100, 'games_played', 5, 'daily'),
+    ('Weekly Champion', 'Win 10 games this week', 500, 'games_won', 10, 'weekly');
+
+-- Trigger pro vytvoření základního měšce při registraci
+CREATE OR REPLACE FUNCTION create_player_currency()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO player_currency (player_id, gold_amount)
+    VALUES (NEW.id, 100);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER create_player_currency_trigger
+    AFTER INSERT ON profiles
+    FOR EACH ROW
+    EXECUTE FUNCTION create_player_currency();
+
+-- Trigger pro přidání základních karet novému hráči
+CREATE OR REPLACE FUNCTION add_starter_cards()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Přidání základních karet (upravte ID podle vašich základních karet)
+    INSERT INTO player_cards (player_id, card_id, quantity)
+    SELECT NEW.id, id, 2
+    FROM cards
+    WHERE id IN (1, 2, 3, 4, 5,7,8,9,10,11,15,18,32,38,37,45);  -- ID základních karet
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER add_starter_cards_trigger
+    AFTER INSERT ON profiles
+    FOR EACH ROW
+    EXECUTE FUNCTION add_starter_cards();
+
+-- Upravíme distribuci vzácností v balíčcích
+UPDATE card_packs 
+SET rarity_distribution = '{"common": 60, "uncommon": 25, "rare": 10, "epic": 4, "legendary": 1}'
+WHERE name = 'Basic Pack';
+
+UPDATE card_packs 
+SET rarity_distribution = '{"uncommon": 60, "rare": 25, "epic": 12, "legendary": 3}'
+WHERE name = 'Premium Pack';
+
+DROP FUNCTION IF EXISTS generate_pack_cards(INTEGER, UUID);
+
+-- Funkce pro generování karet z balíčku
+CREATE OR REPLACE FUNCTION generate_pack_cards(
+    p_pack_id INTEGER,
+    p_user_id UUID
+)
+RETURNS TABLE (
+    card_id INTEGER,
+    card_name TEXT,
+    card_rarity TEXT
+) 
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    pack_distribution JSONB;
+    total_weight INTEGER;
+    random_num INTEGER;
+    selected_rarity TEXT;
+BEGIN
+    -- Získáme distribuci vzácností pro daný balíček
+    SELECT cp.rarity_distribution INTO pack_distribution
+    FROM card_packs cp
+    WHERE cp.id = p_pack_id;
+
+    -- Pro každou ze tří karet
+    FOR i IN 1..3 LOOP
+        -- Vybereme vzácnost
+        total_weight := (pack_distribution->>'common')::INTEGER +
+                       (pack_distribution->>'uncommon')::INTEGER +
+                       (pack_distribution->>'rare')::INTEGER +
+                       (pack_distribution->>'epic')::INTEGER +
+                       (pack_distribution->>'legendary')::INTEGER;
+        
+        random_num := floor(random() * total_weight);
+        
+        IF random_num < (pack_distribution->>'legendary')::INTEGER THEN
+            selected_rarity := 'legendary';
+        ELSIF random_num < (pack_distribution->>'epic')::INTEGER + (pack_distribution->>'legendary')::INTEGER THEN
+            selected_rarity := 'epic';
+        ELSIF random_num < (pack_distribution->>'rare')::INTEGER + (pack_distribution->>'epic')::INTEGER + (pack_distribution->>'legendary')::INTEGER THEN
+            selected_rarity := 'rare';
+        ELSIF random_num < (pack_distribution->>'uncommon')::INTEGER + (pack_distribution->>'rare')::INTEGER + (pack_distribution->>'epic')::INTEGER + (pack_distribution->>'legendary')::INTEGER THEN
+            selected_rarity := 'uncommon';
+        ELSE
+            selected_rarity := 'common';
+        END IF;
+
+        -- Vrátíme náhodnou kartu dané vzácnosti
+        RETURN QUERY
+        SELECT 
+            c.id AS card_id,
+            c.name AS card_name,
+            c.rarity AS card_rarity
+        FROM cards c
+        WHERE c.rarity = selected_rarity
+        ORDER BY random()
+        LIMIT 1;
+    END LOOP;
+END;
+$$;
+
+-- Nejprve odstraníme existující funkci
+DROP FUNCTION IF EXISTS purchase_card_pack(INTEGER, UUID);
+
+--- Upravíme funkci purchase_card_pack
+CREATE OR REPLACE FUNCTION purchase_card_pack(
+    p_pack_id INTEGER,
+    p_user_id UUID
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    pack_price INTEGER;
+    user_gold INTEGER;
+    card_record RECORD;
+    result_cards JSONB := '[]'::JSONB;
+BEGIN
+    -- Získáme cenu balíčku a zlato hráče
+    SELECT cp.price INTO pack_price 
+    FROM card_packs cp 
+    WHERE cp.id = p_pack_id;
+
+    SELECT pc.gold_amount INTO user_gold 
+    FROM player_currency pc 
+    WHERE pc.player_id = p_user_id;
+
+    -- Kontrola dostatku zlata
+    IF user_gold < pack_price THEN
+        RAISE EXCEPTION 'Nedostatek zlata pro nákup balíčku';
+    END IF;
+
+    -- Odečteme zlato
+    UPDATE player_currency
+    SET gold_amount = gold_amount - pack_price
+    WHERE player_id = p_user_id;
+
+    -- Pro každou kartu z balíčku
+    FOR i IN 1..3 LOOP
+        -- Získáme náhodnou kartu podle distribuce vzácností
+        SELECT c.* INTO card_record
+        FROM generate_pack_cards(p_pack_id, p_user_id) gc
+        JOIN cards c ON c.id = gc.card_id
+        LIMIT 1;
+
+        -- Přidáme kartu do kolekce hráče
+        INSERT INTO player_cards (player_id, card_id, quantity)
+        VALUES (p_user_id, card_record.id, 1)
+        ON CONFLICT (player_id, card_id)
+        DO UPDATE SET quantity = player_cards.quantity + 1;
+
+        -- Přidáme kartu do výsledku
+        result_cards := result_cards || jsonb_build_object(
+            'id', card_record.id,
+            'name', card_record.name,
+            'mana_cost', card_record.mana_cost,
+            'attack', card_record.attack,
+            'health', card_record.health,
+            'effect', card_record.effect,
+            'image', card_record.image,
+            'rarity', card_record.rarity,
+            'type', card_record.type
+        );
+    END LOOP;
+
+    RETURN result_cards;
+END;
+$$;
+
+-- Přidáme oprávnění pro volání funkce
+GRANT EXECUTE ON FUNCTION purchase_card_pack(INTEGER, UUID) TO authenticated;
+
+-- Přidáme RLS policy pro player_currency
+DROP POLICY IF EXISTS "Users can update own currency" ON player_currency;
+CREATE POLICY "Users can update own currency"
+    ON player_currency
+    FOR UPDATE
+    USING (auth.uid() = player_id)
+    WITH CHECK (auth.uid() = player_id);
+
+-- Přidáme RLS policy pro player_cards
+DROP POLICY IF EXISTS "Users can insert own cards" ON player_cards;
+CREATE POLICY "Users can insert own cards"
+    ON player_cards
+    FOR INSERT
+    WITH CHECK (auth.uid() = player_id);
+
+DROP POLICY IF EXISTS "Users can update own cards" ON player_cards;
+CREATE POLICY "Users can update own cards"
+    ON player_cards
+    FOR UPDATE
+    USING (auth.uid() = player_id)
+    WITH CHECK (auth.uid() = player_id);
+
+-- Funkce pro kontrolu a reset výzev
+CREATE OR REPLACE FUNCTION check_and_reset_challenges(user_id UUID)
+RETURNS void LANGUAGE plpgsql AS $$
+DECLARE
+    challenge_record RECORD;
+BEGIN
+    -- Projdeme všechny výzvy hráče
+    FOR challenge_record IN 
+        SELECT pc.*, c.reset_period, c.condition_value
+        FROM player_challenges pc
+        JOIN challenges c ON pc.challenge_id = c.id
+        WHERE pc.player_id = user_id
+        AND c.reset_period IS NOT NULL
+    LOOP
+        -- Kontrola denních výzev
+        IF challenge_record.reset_period = 'daily' AND 
+           challenge_record.last_reset < CURRENT_DATE THEN
+            -- Reset denní výzvy
+            UPDATE player_challenges
+            SET progress = 0,
+                completed = false,
+                last_reset = NOW()
+            WHERE player_id = user_id
+            AND challenge_id = challenge_record.challenge_id;
+        -- Kontrola týdenních výzev
+        ELSIF challenge_record.reset_period = 'weekly' AND 
+              challenge_record.last_reset < (CURRENT_DATE - INTERVAL '7 days') THEN
+            -- Reset týdenní výzvy
+            UPDATE player_challenges
+            SET progress = 0,
+                completed = false,
+                last_reset = NOW()
+            WHERE player_id = user_id
+            AND challenge_id = challenge_record.challenge_id;
+        END IF;
+    END LOOP;
+END;
+$$;
+
+-- Funkce pro udělení odměny za splnění výzvy
+CREATE OR REPLACE FUNCTION award_challenge_completion(
+    p_player_id UUID,
+    p_challenge_id INTEGER
+)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_reward_gold INTEGER;
+BEGIN
+    -- Získáme odměnu za výzvu
+    SELECT reward_gold INTO v_reward_gold
+    FROM challenges
+    WHERE id = p_challenge_id;
+
+    -- Přidáme zlato hráči
+    UPDATE player_currency
+    SET gold_amount = gold_amount + v_reward_gold
+    WHERE player_id = p_player_id;
+
+    -- Označíme výzvu jako vyplacenou
+    UPDATE player_challenges
+    SET reward_claimed = true
+    WHERE player_id = p_player_id
+    AND challenge_id = p_challenge_id;
+END;
+$$;
+
+-- Přidáme sloupec pro sledování vyplacených odměn
+ALTER TABLE player_challenges
+ADD COLUMN IF NOT EXISTS reward_claimed BOOLEAN DEFAULT false;
+
+-- Přidáme oprávnění pro volání funkce
+GRANT EXECUTE ON FUNCTION purchase_card_pack(INTEGER, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION generate_pack_cards(INTEGER, UUID) TO authenticated;
+
+-- Přidáme oprávnění pro přístup k potřebným tabulkám
+GRANT SELECT ON card_packs TO authenticated;
+GRANT SELECT, UPDATE ON player_currency TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON player_cards TO authenticated;
+GRANT SELECT ON cards TO authenticated;
+
+-- Přidáme všechna potřebná oprávnění
+GRANT USAGE ON SCHEMA public TO authenticated;
+GRANT EXECUTE ON FUNCTION purchase_card_pack(INTEGER, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION generate_pack_cards(INTEGER, UUID) TO authenticated;
+
+-- Přidáme oprávnění pro všechny potřebné tabulky
+GRANT SELECT ON card_packs TO authenticated;
+GRANT SELECT, UPDATE ON player_currency TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON player_cards TO authenticated;
+GRANT SELECT ON cards TO authenticated;
+
+-- Přidáme RLS policies pro všechny tabulky
+ALTER TABLE player_currency ENABLE ROW LEVEL SECURITY;
+ALTER TABLE player_cards ENABLE ROW LEVEL SECURITY;
+ALTER TABLE card_packs ENABLE ROW LEVEL SECURITY;
+
+-- RLS policies pro player_currency
+CREATE POLICY "Users can view and update own currency"
+    ON player_currency FOR ALL
+    USING (auth.uid() = player_id)
+    WITH CHECK (auth.uid() = player_id);
+
+-- RLS policies pro player_cards
+CREATE POLICY "Users can view and update own cards"
+    ON player_cards FOR ALL
+    USING (auth.uid() = player_id)
+    WITH CHECK (auth.uid() = player_id);
