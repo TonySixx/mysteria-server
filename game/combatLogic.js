@@ -266,8 +266,8 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
 
     // Určíme, zda útočník mine svůj útok
     const attackerMissed = attacker.isBlind && Math.random() < 0.5;
-    // Určíme, zda obránce uhne útoku
-    const defenderDodged = defender.isBlind && Math.random() < 0.5;
+    const defenderMissed = defender.isBlind && Math.random() < 0.5;
+
 
     let blindnessWasLogged = false;
 
@@ -276,13 +276,9 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
         addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${state.players[attackerPlayerIndex].username}'s</span> <span class="spell-name">${attacker.name}</span> missed the attack due to blindness!`);
         blindnessWasLogged = true;
     }
-    if (defenderDodged) {
-        addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${state.players[1 - attackerPlayerIndex].username}'s</span> <span class="spell-name">${defender.name}</span> dodged the attack due to blindness!`);
-        blindnessWasLogged = true;
-    }
 
     // Zpracování útoku - pouze pokud útočník neminul a obránce neuhnul
-    if (!attackerMissed && !defenderDodged) {
+    if (!attackerMissed) {
         if (defender.hasDivineShield && attacker.attack > 0) {
             defender.hasDivineShield = false;
         } else {
@@ -290,8 +286,8 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
         }
     }
 
-    // Obránce vždy provede protiútok, pokud není slepý nebo má štěstí
-    if (!defender.isBlind || Math.random() >= 0.5) {
+    // Obránce vždy provede protiútok, pokud není slepý nebo je slepý a má štěstí
+    if (!defenderMissed) {
         if (attacker.hasDivineShield && defender.attack > 0) {
             attacker.hasDivineShield = false;
         } else {
