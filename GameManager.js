@@ -481,10 +481,10 @@ class GameManager {
         // Přidáme animační data před provedením akce
         game.animation = {
             type: 'playCard',
+            player: game.players[playerIndex].username,
+            card: card,
             sourceIndex: cardIndex,
-            targetIndex: destinationIndex,
-            cardType: card.type,
-            playerIndex: playerIndex
+            targetIndex: destinationIndex
         };
 
         const updatedState = playCardCommon(game, playerIndex, cardIndex, target, destinationIndex);
@@ -546,12 +546,25 @@ class GameManager {
         }
 
         // Přidáme animační data před provedením útoku
+        const attacker = game.players[playerIndex].field[data.attackerIndex];
+        let target;
+        if (data.isHeroTarget) {
+            target = {
+                type: 'hero',
+                name: game.players[1 - playerIndex].username
+            };
+        } else {
+            target = game.players[1 - playerIndex].field[data.targetIndex];
+        }
+
         game.animation = {
             type: 'attack',
+            player: game.players[playerIndex].username,
+            card: attacker,
+            target: target,
             sourceIndex: data.attackerIndex,
             targetIndex: data.targetIndex,
-            isHeroTarget: data.isHeroTarget,
-            playerIndex: playerIndex
+            isHeroTarget: data.isHeroTarget
         };
 
         const updatedState = attack(
@@ -610,6 +623,9 @@ class GameManager {
     handleEndTurn(gameId, playerIndex) {
         const game = this.games.get(gameId);
         if (!game || game.currentPlayer !== playerIndex) return;
+
+        // Vyčistíme animaci před změnou tahu
+        game.animation = null;
 
         const nextPlayer = (playerIndex + 1) % 2;
         const updatedState = startNextTurn(game, nextPlayer);
