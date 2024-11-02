@@ -708,7 +708,7 @@ class GameManager {
             };
 
             // Základní odměna pouze pro vítěze
-            const baseReward = 25;
+            const baseReward = 50;
             rewards[winnerId].gold = baseReward;
 
             // Aktualizace výzev pro oba hráče
@@ -723,21 +723,25 @@ class GameManager {
                     for (const pc of playerChallenges) {
                         let newProgress = pc.progress;
                         let wasCompleted = false;
+                        let progressMade = false;
 
                         switch (pc.challenge.condition_type) {
                             case 'win_streak':
                                 if (isWinner) {
                                     newProgress += 1;
+                                    progressMade = true;
                                 } else {
                                     newProgress = 0; // Reset streak on loss
                                 }
                                 break;
                             case 'games_played':
-                                newProgress += 1; // Increment for both winner and loser
+                                newProgress += 1;
+                                progressMade = true;
                                 break;
                             case 'games_won':
                                 if (isWinner) {
                                     newProgress += 1;
+                                    progressMade = true;
                                 }
                                 break;
                         }
@@ -748,6 +752,16 @@ class GameManager {
                             rewards[playerId].completedChallenges.push({
                                 challengeName: pc.challenge.name,
                                 reward: pc.challenge.reward_gold
+                            });
+                        } else if (progressMade) {
+                            // Přidáme informaci o postupu ve výzvě
+                            if (!rewards[playerId].challengeProgress) {
+                                rewards[playerId].challengeProgress = [];
+                            }
+                            rewards[playerId].challengeProgress.push({
+                                challengeName: pc.challenge.name,
+                                currentProgress: newProgress,
+                                targetProgress: pc.challenge.condition_value
                             });
                         }
 
@@ -787,11 +801,14 @@ class GameManager {
                 const playerId = player.socket.userId;
                 const playerRewards = rewards[playerId];
 
-                if (playerRewards.gold > 0 || playerRewards.completedChallenges.length > 0) {
+                if (playerRewards.gold > 0 || 
+                    playerRewards.completedChallenges.length > 0 || 
+                    (playerRewards.challengeProgress && playerRewards.challengeProgress.length > 0)) {
                     player.socket.emit('rewardEarned', {
                         gold: playerRewards.gold,
                         message: `You earned ${playerRewards.gold} gold!`,
-                        completedChallenges: playerRewards.completedChallenges
+                        completedChallenges: playerRewards.completedChallenges,
+                        challengeProgress: playerRewards.challengeProgress
                     });
                 }
             });
