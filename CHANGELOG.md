@@ -121,6 +121,10 @@
   - Mountain Giant (7 mana, 6/9) - Velká jednotka s Tauntem
   - Ancient Guardian (3 mana, 4/6) - Defenzivní jednotka s Tauntem, která nemůže útočit
   - Arcane Protector (4 mana, 2/5) - Jednotka s Tauntem, která získává +1 útok za každé seslané kouzlo
+- Implementována mechanika slepoty (blind) pro jednotky
+- Slepé jednotky mají 50% šanci minout útok
+- Slepé jednotky mohou uhnout útoku s 50% šancí
+- Přidány combat log zprávy pro minutí/uhnutí útoku kvůli slepotě
 
 ### Changed
 - Vylepšena vizuální stránka hry přidáním dynamických efektů pro lepší uživatelský zážitek.
@@ -134,7 +138,7 @@
 - Přidána plynulá animace pro objevení a zmizení notifikací.
 - Prodloužena doba zobrazení notifikací pro lepší čitelnost.
 - Vylepšena logika drag and drop pro prevenci nelegálních tahů.
-- Vylepšena umělá inteligence nepřítele pro náročněj��í a zajímavější hru
+- Vylepšena umělá inteligence nepřítele pro náročnějí a zajímavější hru
   - AI nyní lépe prioritizuje cíle při útoku
   - Implementována lepší strategie pro hraní karet
   - AI nyní efektivněji využívá manu a The Coin
@@ -709,4 +713,9 @@
 
 ### Fixed
 - Opraveno chování Ancient Guardian - nyní správně nemůže útočit ani v následujících kolech
+
+### Changed
+- Upraven popisek karty Blind Assassin pro lepší srozumitelnost efektu slepoty
+  - Nyní správně uvádí pouze 50% šanci na minutí útoku
+  - Odstraněna nesprávná informace o šanci na uhnutí útoku
 

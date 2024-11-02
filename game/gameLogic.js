@@ -84,7 +84,20 @@ function startNextTurn(state, nextPlayer) {
         }
     });
 
-    // Zpracování end-turn efektů pro předchozího hráče
+    // Přidáme efekty pro všechny Wolf Warriory na poli OBOU hráčů
+    newState.players.forEach((player, playerIndex) => {
+        player.field.forEach(card => {
+            if (card.name === 'Wolf Warrior') {
+                newState.endTurnEffects.push({
+                    type: 'wolfAttack',
+                    unitId: card.id,
+                    owner: playerIndex
+                });
+            }
+        });
+    });
+
+    // Zpracování end-turn efektů
     if (newState.endTurnEffects && newState.endTurnEffects.length > 0) {
         newState.endTurnEffects.forEach(effect => {
             if (effect.type === 'heal' && effect.owner === previousPlayer) {
@@ -98,6 +111,16 @@ function startNextTurn(state, nextPlayer) {
 
                 const effectOwnerName = effectOwner.username;
                 addCombatLogMessage(newState, `<span class="${previousPlayer === 0 ? 'player-name' : 'enemy-name'}">${effectOwnerName}'s</span> <span class="spell-name">Time Weaver</span> restored <span class="heal">${effect.amount} health</span> to all friendly characters`);
+            }
+            // Wolf Warrior efekt se nyní zpracuje pro oba hráče
+            else if (effect.type === 'wolfAttack') {
+                const effectOwner = newState.players[effect.owner];
+                const wolfWarrior = effectOwner.field.find(unit => unit && unit.id === effect.unitId);
+                if (wolfWarrior) {
+                    wolfWarrior.attack += 1;
+                    const effectOwnerName = effectOwner.username;
+                    addCombatLogMessage(newState, `<span class="${effect.owner === 0 ? 'player-name' : 'enemy-name'}">${effectOwnerName}'s</span> <span class="spell-name">Wolf Warrior</span> gained <span class="attack">+1 attack</span>`);
+                }
             }
         });
         // Vyčistíme efekty po zpracování
@@ -694,6 +717,65 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
         case 'Arcane Protector':
             // Využijeme stejnou logiku jako u Arcane Familiar
             // Efekt se zpracuje v handleSpellEffects při seslání kouzla
+            break;
+
+        case 'Freezing Dragon':
+            // Zmrazí všechny nepřátelské jednotky
+            opponent.field.forEach(unit => {
+                if (unit) {
+                    unit.frozen = true;
+                    unit.frozenLastTurn = false;
+                    unit.canAttack = false;
+                }
+            });
+            newState.notification = {
+                message: 'Freezing Dragon froze all enemy units!',
+                forPlayer: playerIndex
+            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Freezing Dragon</span> and <span class="freeze">froze all enemy units</span>`);
+            break;
+
+        case 'Elven Commander':
+            // Přidá +1/+1 všem přátelským jednotkám
+            let buffedUnits = 0;
+            player.field.forEach(unit => {
+                if (unit && unit.id !== card.id) { // Nepočítáme samotného Elven Commandera
+                    unit.attack += 1;
+                    unit.health += 1;
+                    unit.maxHealth += 1;
+                    buffedUnits++;
+                }
+            });
+            newState.notification = {
+                message: `Elven Commander buffed ${buffedUnits} friendly units!`,
+                forPlayer: playerIndex
+            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Elven Commander</span> giving <span class="buff">+1/+1</span> to ${buffedUnits} units`);
+            break;
+
+        case 'Lava Golem':
+            // Způsobí 3 poškození nepřátelskému hrdinovi
+            opponent.hero.health = Math.max(0, opponent.hero.health - 3);
+            newState.notification = {
+                message: 'Lava Golem dealt 3 damage to enemy hero!',
+                forPlayer: playerIndex
+            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Lava Golem</span> dealing <span class="damage">3 damage</span> to enemy hero`);
+            break;
+
+        case 'Wolf Warrior':
+            // Logika se zpracuje ve funkci startNextTurn
+            break;
+
+        case 'Blind Assassin':
+            // Nastavíme speciální vlastnost pro kontrolu v combat logice
+            card.isBlind = true;
+            break;
+
+        case 'Sleeping Giant':
+            // Nastavíme, že nemůže útočit v tomto kole
+            card.hasAttacked = true;
+            card.canAttack = false;
             break;
     }
 

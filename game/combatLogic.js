@@ -117,7 +117,19 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
         if (isHeroAttack) {
             const targetHero = newState.players[defenderPlayerIndex].hero;
             const oldHealth = targetHero.health;
+
+            // Upravíme log zprávu s použitím skutečných jmen
+            const attackerName = newState.players[attackerPlayerIndex].username;
+            const defenderName = newState.players[defenderPlayerIndex].username;
+            var blindnessLogged = false;
+
+            if (attacker.isBlind && Math.random() < 0.5) {
+                addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">${attacker.name}</span> missed the attack to ${defenderName}'s hero`);
+                blindnessLogged = true;
+            }
+
             targetHero.health = Math.max(0, targetHero.health - attacker.attack);
+
             
             // Přidáme efekt Mana Leech při útoku na hrdinu
             if (attacker.name === 'Mana Leech') {
@@ -175,11 +187,9 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                 attacker.canAttack = false;
             }
             
-            // Upravíme log zprávu s použitím skutečných jmen
-            const attackerName = newState.players[attackerPlayerIndex].username;
-            const defenderName = newState.players[defenderPlayerIndex].username;
-            
-            addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}</span> attacked with <span class="spell-name">${attacker.name}</span> dealing <span class="damage">${attacker.attack} damage</span> to ${defenderName}'s hero`);
+            if (!blindnessLogged) {
+                addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}</span> attacked with <span class="spell-name">${attacker.name}</span> dealing <span class="damage">${attacker.attack} damage</span> to ${defenderName}'s hero`);
+            }
 
             return checkGameOver(newState);
         } else {
@@ -202,7 +212,8 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                 }
             });
 
-            handleCombat(attacker, target, newState, attackerPlayerIndex);
+            // Uložíme si informaci o tom, zda byl útok ovlivněn slepotou
+            const wasBlindnessLogged = handleCombat(attacker, target, newState, attackerPlayerIndex);
 
             console.log('Po útoku:', {
                 targetAfter: {
@@ -222,11 +233,13 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                 player.field = player.field.filter(card => card.health > 0);
             });
 
-            // Upravíme log zprávu s použitím skutečných jmen
-            const attackerName = newState.players[attackerPlayerIndex].username;
-            const defenderName = newState.players[defenderPlayerIndex].username;
-            
-            addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}</span> attacked with <span class="spell-name">${attacker.name}</span> dealing <span class="damage">${attacker.attack} damage</span> to ${defenderName}'s <span class="spell-name">${target.name}</span>`);
+            // Vypíšeme combat log pouze pokud útok nebyl ovlivněn slepotou
+            if (!wasBlindnessLogged) {
+                const attackerName = newState.players[attackerPlayerIndex].username;
+                const defenderName = newState.players[defenderPlayerIndex].username;
+                
+                addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}</span> attacked with <span class="spell-name">${attacker.name}</span> dealing <span class="damage">${attacker.attack} damage</span> to ${defenderName}'s <span class="spell-name">${target.name}</span>`);
+            }
 
             return checkGameOver(newState);
         }
@@ -251,18 +264,41 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
 
     const defenderInitialHealth = defender.health;
 
-    // Zpracování útoku
-    if (defender.hasDivineShield) {
-        defender.hasDivineShield = false;
-    } else {
-        defender.health -= attacker.attack;
+    // Určíme, zda útočník mine svůj útok
+    const attackerMissed = attacker.isBlind && Math.random() < 0.5;
+    // Určíme, zda obránce uhne útoku
+    const defenderDodged = defender.isBlind && Math.random() < 0.5;
+
+    let blindnessWasLogged = false;
+
+    // Logování slepoty
+    if (attackerMissed) {
+        addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${state.players[attackerPlayerIndex].username}'s</span> <span class="spell-name">${attacker.name}</span> missed the attack due to blindness!`);
+        blindnessWasLogged = true;
+    }
+    if (defenderDodged) {
+        addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${state.players[1 - attackerPlayerIndex].username}'s</span> <span class="spell-name">${defender.name}</span> dodged the attack due to blindness!`);
+        blindnessWasLogged = true;
     }
 
-    // Pokud má útočník Divine Shield, zruší se mu, jinak dostane poškození
-    if (attacker.hasDivineShield) {
-        attacker.hasDivineShield = false;
+    // Zpracování útoku - pouze pokud útočník neminul a obránce neuhnul
+    if (!attackerMissed && !defenderDodged) {
+        if (defender.hasDivineShield && attacker.attack > 0) {
+            defender.hasDivineShield = false;
+        } else {
+            defender.health -= attacker.attack;
+        }
+    }
+
+    // Obránce vždy provede protiútok, pokud není slepý nebo má štěstí
+    if (!defender.isBlind || Math.random() >= 0.5) {
+        if (attacker.hasDivineShield && defender.attack > 0) {
+            attacker.hasDivineShield = false;
+        } else {
+            attacker.health -= defender.attack;
+        }
     } else {
-        attacker.health -= defender.attack;
+        addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${state.players[1 - attackerPlayerIndex].username}'s</span> <span class="spell-name">${defender.name}</span> missed their counter-attack due to blindness!`);
     }
 
     // Efekt Mana Crystal při smrti - přesunut před filtrování mrtvých jednotek
@@ -292,7 +328,7 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
                 forPlayer: attackerPlayerIndex
             };
             
-            // Přidáme zprávu do combat logu
+            // Přidáme zprvu do combat logu
             addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}</span>'s <span class="spell-name">Soul Collector</span> <span class="draw">drew a card</span> after killing an enemy`);
         }
     }
@@ -363,6 +399,7 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
         }
     }
 
+
     console.log('Konec souboje:', {
         attacker: {
             name: attacker.name,
@@ -377,6 +414,8 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
     });
 
     // addCombatLogMessage(state, /* zpráva */);
+
+    return blindnessWasLogged;
 }
 
 module.exports = {
