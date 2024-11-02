@@ -488,11 +488,25 @@ CREATE TRIGGER create_player_currency_trigger
 CREATE OR REPLACE FUNCTION add_starter_cards()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Přidání základních karet (upravte ID podle vašich základních karet)
+    -- Přidání základních karet (každá karta 2x)
     INSERT INTO player_cards (player_id, card_id, quantity)
-    SELECT NEW.id, id, 2
-    FROM cards
-    WHERE id IN (1, 2, 3, 4, 5,7,8,9,10,11,15,18,32,38,37,45);  -- ID základních karet
+    VALUES 
+        (NEW.id, 1, 2),
+        (NEW.id, 2, 2),
+        (NEW.id, 3, 2),
+        (NEW.id, 4, 2),
+        (NEW.id, 5, 2),
+        (NEW.id, 7, 2),
+        (NEW.id, 8, 2),
+        (NEW.id, 9, 2),
+        (NEW.id, 10, 2),
+        (NEW.id, 11, 2),
+        (NEW.id, 15, 2),
+        (NEW.id, 18, 2),
+        (NEW.id, 32, 2),
+        (NEW.id, 38, 2),
+        (NEW.id, 39, 2),
+        (NEW.id, 45, 2);
     
     RETURN NEW;
 END;
@@ -673,7 +687,7 @@ BEGIN
 END;
 $$;
 
--- Přidáme oprávnění pro volán�� funkce
+-- Přidáme oprávnění pro volán funkce
 GRANT EXECUTE ON FUNCTION purchase_card_pack(INTEGER, UUID) TO authenticated;
 
 -- Přidáme RLS policy pro player_currency
