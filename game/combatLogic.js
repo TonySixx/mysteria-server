@@ -130,6 +130,14 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
 
             targetHero.health = Math.max(0, targetHero.health - attacker.attack);
 
+            // V funkci attack, v části pro útok na hrdinu přidáme:
+            if (attacker.name === 'Shadow Priest' && !blindnessLogged) {
+                const damageDone = attacker.attack;
+                const attackerPlayer = newState.players[attackerPlayerIndex];
+                attackerPlayer.hero.health = Math.min(30, attackerPlayer.hero.health + damageDone);
+                addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Shadow Priest</span> restored <span class="heal">${damageDone} health</span> to their hero`);
+            }
+
             
             // Přidáme efekt Mana Leech při útoku na hrdinu
             if (attacker.name === 'Mana Leech') {
@@ -189,6 +197,14 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
             
             if (!blindnessLogged) {
                 addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}</span> attacked with <span class="spell-name">${attacker.name}</span> dealing <span class="damage">${attacker.attack} damage</span> to ${defenderName}'s hero`);
+            }
+
+            // V funkci attack, v části pro útok na hrdinu přidáme:
+            if (attacker.name === 'Mana Vampire' && !blindnessLogged) {
+                const damageDone = attacker.attack;
+                const attackerPlayer = newState.players[attackerPlayerIndex];
+                attackerPlayer.mana = Math.min(10, attackerPlayer.mana + damageDone);
+                addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Mana Vampire</span> granted <span class="mana">${damageDone} temporary mana</span>`);
             }
 
             return checkGameOver(newState);
@@ -395,6 +411,67 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
         }
     }
 
+    // Pro Crystal Guardian - upravená implementace
+    if (attacker.name === 'Crystal Guardian' && attacker.hasDivineShield === false && !attacker.divineShieldProcessed) {
+        const attackerPlayer = state.players[attackerPlayerIndex];
+        attackerPlayer.hero.health = Math.min(30, attackerPlayer.hero.health + 3);
+        attacker.divineShieldProcessed = true; // Označíme, že efekt byl již zpracován
+        addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Crystal Guardian</span> restored <span class="heal">3 health</span> to their hero`);
+    }
+
+    // Přidáme stejnou kontrolu i pro případ, kdy je Crystal Guardian obráncem
+    if (defender.name === 'Crystal Guardian' && defender.hasDivineShield === false && !defender.divineShieldProcessed) {
+        const defenderPlayer = state.players[1 - attackerPlayerIndex];
+        defenderPlayer.hero.health = Math.min(30, defenderPlayer.hero.health + 3);
+        defender.divineShieldProcessed = true; // Označíme, že efekt byl již zpracován
+        addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${defenderPlayer.username}'s</span> <span class="spell-name">Crystal Guardian</span> restored <span class="heal">3 health</span> to their hero`);
+    }
+
+    // Upravíme logiku pro Frost Giant
+    if ((attacker.name === 'Frost Giant' || defender.name === 'Frost Giant') && !attackerMissed) {
+        const attackerPlayer = state.players[attackerPlayerIndex];
+        const defenderPlayer = state.players[1 - attackerPlayerIndex];
+
+
+        if (attacker.name === 'Frost Giant' && defender.health > 0) {
+            defender.frozen = true;
+            defender.frozenLastTurn = false;
+            addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Frost Giant</span> <span class="freeze">froze</span> the enemy unit`);
+        }
+        if (defender.name === 'Frost Giant' && attacker.health > 0) {
+            attacker.frozen = true;
+            attacker.frozenLastTurn = false;
+            addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${defenderPlayer.username}'s</span> <span class="spell-name">Frost Giant</span> <span class="freeze">froze</span> the enemy unit`);
+        }
+    }
+
+    // Pro Shadow Priest
+    if (attacker.name === 'Shadow Priest' && !attackerMissed) {
+        const damageDone = Math.min(attacker.attack, defenderInitialHealth);
+        const attackerPlayer = state.players[attackerPlayerIndex];
+        attackerPlayer.hero.health = Math.min(30, attackerPlayer.hero.health + damageDone);
+        addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Shadow Priest</span> restored <span class="heal">${damageDone} health</span> to their hero`);
+    }
+
+    // Pro Mana Vampire
+    if (attacker.name === 'Mana Vampire' && !attackerMissed) {
+        const attackerPlayer = state.players[attackerPlayerIndex];
+        const damageDone = Math.min(attacker.attack, defenderInitialHealth - defender.health);
+        if (damageDone > 0) {
+            attackerPlayer.mana = Math.min(10, attackerPlayer.mana + damageDone);
+            addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Mana Vampire</span> granted <span class="mana">${damageDone} temporary mana</span>`);
+        }
+    }
+
+    // Upravíme logiku pro Cursed Warrior - aplikujeme dvojnásobné poškození vždy
+    if (attacker.isCursed) {
+        attacker.health -= defender.attack; // Druhé poškození pro útočníka
+        addCombatLogMessage(state, `<span class="spell-name">${attacker.name}</span> takes <span class="damage">double damage (${defender.attack * 2})</span> due to curse`);
+    }
+    if (defender.isCursed) {
+        defender.health -= attacker.attack; // Druhé poškození pro obránce
+        addCombatLogMessage(state, `<span class="spell-name">${defender.name}</span> takes <span class="damage">double damage (${attacker.attack * 2})</span> due to curse`);
+    }
 
     console.log('Konec souboje:', {
         attacker: {

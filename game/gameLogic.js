@@ -32,6 +32,11 @@ function startNextTurn(state, nextPlayer) {
             card.attacksThisTurn = 0;
             card.canAttack = true; // Výchozí hodnota
         }
+
+        // Přidáme reset útoku pro Battle Mage
+        if (card.name === 'Battle Mage') {
+            card.attack = card.baseAttack || 3; // Reset na základní útok (3)
+        }
     });
 
     // Rozmrazíme jednotky protivníka, které byly zmražené během jeho tahu
@@ -225,7 +230,14 @@ function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
     if (unit.hasDivineShield) {
         unit.hasDivineShield = false;
     } else {
-        unit.health -= damage;
+        // Použijeme applySpellDamage místo přímého poškození
+        if (unit.isCursed) {
+            const cursedDamage = damage * 2;
+            unit.health -= cursedDamage;
+            addCombatLogMessage(newState, `<span class="spell-name">${unit.name}</span> takes <span class="damage">double damage (${cursedDamage})</span> due to curse`);
+        } else {
+            unit.health -= damage;
+        }
     }
 
     // Kontrola pro Defensive Scout
@@ -274,6 +286,13 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
     const playerName = player.username;
     const opponentName = opponent.username;
 
+    // Přidáme efekt Battle Mage
+    player.field.forEach(unit => {
+        if (unit.name === 'Battle Mage') {
+            unit.attack += 2;
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}'s</span> <span class="spell-name">Battle Mage</span> gained <span class="attack">+2 attack</span>`);
+        }
+    });
 
     switch (card.name) {
         case 'Fireball':
@@ -741,6 +760,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
             player.field.forEach(unit => {
                 if (unit && unit.id !== card.id) { // Nepočítáme samotného Elven Commandera
                     unit.attack += 1;
+                    unit.baseAttack = unit.attack;
                     unit.health += 1;
                     unit.maxHealth += 1;
                     buffedUnits++;
@@ -776,6 +796,40 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
             // Nastavíme, že nemůže útočit v tomto kole
             card.hasAttacked = true;
             card.canAttack = false;
+            break;
+
+        case 'Battle Mage':
+            card.baseAttack = card.attack;
+            // Efekt se zpracuje v handleSpellEffects při seslání kouzla
+            break;
+
+        case 'Ancient Protector':
+            // Najdeme sousední jednotky a dáme jim Divine Shield
+            const fieldIndex = player.field.findIndex(unit => unit.id === card.id);
+            if (fieldIndex > 0 && player.field[fieldIndex - 1]) {
+                player.field[fieldIndex - 1].hasDivineShield = true;
+            }
+            if (fieldIndex < player.field.length - 1 && player.field[fieldIndex + 1]) {
+                player.field[fieldIndex + 1].hasDivineShield = true;
+            }
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Ancient Protector</span> granting <span class="buff">Divine Shield</span> to adjacent minions`);
+            break;
+
+        case 'Mana Golem Elite':
+            card.attack = player.maxMana;
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Mana Golem Elite</span> with <span class="attack">${card.attack} attack</span>`);
+            break;
+
+        case 'Crystal Guardian':
+            // Efekt se zpracuje při ztrátě Divine Shield v combat logice
+            break;
+
+        case 'Frost Giant':
+            // Efekt se zpracuje v combat logice
+            break;
+
+        case 'Cursed Warrior':
+            card.isCursed = true; // Označíme pro zpracování v combat logice
             break;
     }
 
@@ -897,6 +951,7 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
 
     return checkGameOver(newState);
 }
+
 
 module.exports = {
     startNextTurn,
