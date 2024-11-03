@@ -14,10 +14,10 @@ function addCombatLogMessage(state, message) {
 function startNextTurn(state, nextPlayer) {
     const newState = { ...state };
     newState.currentPlayer = nextPlayer;
-    
+
     // Získáme předchozího hráče (ten, kdo právě končí tah)
     const previousPlayer = 1 - nextPlayer;
-    
+
     const player = newState.players[nextPlayer];
     player.maxMana = Math.min(10, player.maxMana + 1);
     player.mana = player.maxMana;
@@ -45,6 +45,10 @@ function startNextTurn(state, nextPlayer) {
         if (card.frozen && card.frozenLastTurn) {
             card.frozen = false;
             delete card.frozenLastTurn;
+        }
+        // Přidáme reset útoku pro Battle Mage
+        if (card.name === 'Battle Mage') {
+            card.attack = card.baseAttack || 3; // Reset na základní útok (3)
         }
     });
 
@@ -180,7 +184,7 @@ function checkGameOver(state) {
     if (!state || !state.players) return state;
 
     const newState = { ...state };
-    
+
     // Kontrola životů hrdinů
     const player1Dead = newState.players[0]?.hero?.health <= 0;
     const player2Dead = newState.players[1]?.hero?.health <= 0;
@@ -192,7 +196,7 @@ function checkGameOver(state) {
         });
 
         newState.gameOver = true;
-        
+
         if (player1Dead && player2Dead) {
             newState.winner = 'draw';
         } else if (player1Dead) {
@@ -245,7 +249,7 @@ function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
         if (opponent.deck.length > 0 && opponent.hand.length < 10) {
             const drawnCard = opponent.deck.pop();
             opponent.hand.push(drawnCard);
-            
+
             newState.notification = {
                 message: 'Defensive Scout drew a card!',
                 forPlayer: 1 - playerIndex
@@ -264,7 +268,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
     });
 
     const newState = { ...state };
-    
+
     // Přidáme efekt Arcane Protector k existující kontrole
     player.field.forEach(unit => {
         if (unit.name === 'Arcane Familiar' || unit.name === 'Arcane Protector' || unit.name === 'Mana Wyrm') {
@@ -273,7 +277,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 unitName: unit.name,
                 newAttack: unit.attack
             });
-               // Přidáme notifikaci o posílení
+            // Přidáme notifikaci o posílení
             if (!newState.notification) {
                 newState.notification = {
                     message: `${unit.name} gained +1 attack!`,
@@ -323,7 +327,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             const oldHealth = player.hero.health;
             player.hero.health = Math.min(player.hero.health + 8, 30);
             const healAmount = player.hero.health - oldHealth;
-            
+
             console.log('Healing Touch vyléčil:', {
                 healAmount,
                 newHealth: player.hero.health
@@ -399,7 +403,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
 
             // Najdeme všechny dostupné nepřátelské jednotky
             const availableTargets = opponent.field.filter(unit => unit !== null);
-            
+
             if (availableTargets.length === 0) {
                 newState.notification = {
                     message: 'No enemy minions to control!',
@@ -411,15 +415,15 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             // Vybereme náhodnou jednotku
             const randomIndex = Math.floor(Math.random() * availableTargets.length);
             const targetUnit = availableTargets[randomIndex];
-            
+
             // Najdeme původní index jednotky v poli protivníka
             const originalIndex = opponent.field.indexOf(targetUnit);
             opponent.field[originalIndex] = null; // Odstraníme jednotku z původní pozice
-            
+
             // Přidáme jednotku do pole hráče
             targetUnit.hasAttacked = true; // Nemůže útočit v tomto kole
             player.field.push(targetUnit);
-            
+
             newState.notification = {
                 message: `Took control of enemy ${targetUnit.name}!`,
                 forPlayer: playerIndex
@@ -479,7 +483,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             player.mana += card.manaCost;
             // Doplníme manu na maximum dostupné v tomto kole
             player.mana = player.maxMana;
-            
+
             newState.notification = {
                 message: `Restored mana to maximum (${player.maxMana})!`,
                 forPlayer: playerIndex
@@ -501,25 +505,25 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
         case 'Arcane Storm':
             const spellsCast = (state.spellsPlayedThisGame || 0);
             const damage = spellsCast;
-            
+
             console.log('Arcane Storm damage:', {
                 spellsPlayed: spellsCast,
                 damage: damage
             });
-            
+
             // Poškození všech postav
             player.hero.health = Math.max(0, player.hero.health - damage);
             opponent.hero.health = Math.max(0, opponent.hero.health - damage);
-            
+
             // Upravené zpracování poškození jednotek
             player.field.forEach(unit => {
                 handleUnitDamage(unit, damage, player, playerIndex, newState);
             });
-            
+
             opponent.field.forEach(unit => {
                 handleUnitDamage(unit, damage, opponent, playerIndex, newState);
             });
-            
+
             newState.notification = {
                 message: `Arcane Storm dealt ${damage} damage to all characters!`,
                 forPlayer: playerIndex
@@ -536,7 +540,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 };
                 return false;
             }
-            
+
             const mirrorImages = [];
             for (let i = 0; i < maxNewImages; i++) {
                 mirrorImages.push(new UnitCard(
@@ -550,7 +554,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                     'common'
                 ));
             }
-            
+
             player.field.push(...mirrorImages);
             newState.notification = {
                 message: `Created ${mirrorImages.length} Mirror Images with Taunt!`,
@@ -692,7 +696,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
             const spellsInHand = player.hand.filter(c => c.type === 'spell').length;
             card.health += spellsInHand;
             card.maxHealth = card.health; // Aktualizujeme i maxHealth
-            
+
             newState.notification = {
                 message: `Arcane Guardian gained +${spellsInHand} health from spells in hand!`,
                 forPlayer: playerIndex
@@ -843,8 +847,8 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
     const card = player.hand[cardIndex];
 
     if (!card || player.mana < card.manaCost) {
-        return { 
-            ...newState, 
+        return {
+            ...newState,
             notification: {
                 message: 'Not enough mana!',
                 forPlayer: playerIndex
@@ -860,8 +864,8 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
     if (card instanceof UnitCard) {
         // Nejdřív zkontrolujeme, jestli je místo na poli
         if (player.field.length >= 7) {
-            return { 
-                ...newState, 
+            return {
+                ...newState,
                 notification: {
                     message: 'No space on the field!',
                     forPlayer: playerIndex
@@ -872,20 +876,20 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
         // Pokud je místo, teprve pak odečteme manu a zahrajeme kartu
         player.mana -= card.manaCost;
         player.hand.splice(cardIndex, 1);
-        
+
         card.canAttack = false;
         card.hasAttacked = false;
-        
+
         // Vložíme kartu na specifickou pozici nebo na konec
         if (typeof destinationIndex === 'number') {
             player.field.splice(destinationIndex, 0, card);
         } else {
             player.field.push(card);
         }
-        
+
         // Přidáme log zprávu o vyložení jednotky
         addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> played <span class="spell-name">${card.name}</span> (${card.attack}/${card.health})`);
-        
+
         // Aplikujeme efekty jednotky při vyložení
         const stateWithEffects = handleUnitEffects(card, player, opponent, newState, playerIndex);
         return checkGameOver(stateWithEffects);
@@ -901,7 +905,7 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
 
         // Před aplikací kouzla zkontrolujeme Spirit Healer efekt
         const spiritHealers = player.field.filter(unit => unit.name === 'Spirit Healer');
-        
+
 
         // Kontrola Spell Breaker efektuv
         var extraCost = 0;
@@ -928,12 +932,12 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
 
         // Aplikujeme efekt kouzla
         const spellResult = handleSpellEffects(card, player, opponent, newState, playerIndex);
-        
+
         // Po úspěšném seslání kouzla aplikujeme efekt Spirit Healera
         if (spellResult !== false && spiritHealers.length > 0) {
             const healAmount = 2 * spiritHealers.length;
             player.hero.health = Math.min(30, player.hero.health + healAmount);
-            
+
             addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Spirit Healer</span> restored <span class="heal">${healAmount} health</span>`);
         }
 
@@ -944,7 +948,7 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
             }
             return newState;
         }
-        
+
         player.hand.splice(cardIndex, 1);
         return spellResult;
     }
