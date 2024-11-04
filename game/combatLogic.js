@@ -128,7 +128,7 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                 blindnessLogged = true;
             }
 
-            targetHero.health = Math.max(0, targetHero.health - attacker.attack);
+            if (!blindnessLogged) targetHero.health = Math.max(0, targetHero.health - attacker.attack);
 
             // V funkci attack, v části pro útok na hrdinu přidáme:
             if (attacker.name === 'Shadow Priest' && !blindnessLogged) {
