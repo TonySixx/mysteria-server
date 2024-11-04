@@ -207,6 +207,14 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                 addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Mana Vampire</span> granted <span class="mana">${damageDone} temporary mana</span>`);
             }
 
+            // Přidáme efekt Life Drainer při útoku na hrdinu
+            if (attacker.name === 'Life Drainer' && !blindnessLogged) {
+                const healAmount = 2;
+                const attackerPlayer = newState.players[attackerPlayerIndex];
+                attackerPlayer.hero.health = Math.min(30, attackerPlayer.hero.health + healAmount);
+                addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Life Drainer</span> restored <span class="heal">${healAmount} health</span> to their hero`);
+            }
+
             return checkGameOver(newState);
         } else {
             const target = newState.players[defenderPlayerIndex].field[targetIndex];
@@ -471,6 +479,40 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
     if (defender.isCursed) {
         defender.health -= attacker.attack; // Druhé poškození pro obránce
         addCombatLogMessage(state, `<span class="spell-name">${defender.name}</span> takes <span class="damage">double damage (${attacker.attack * 2})</span> due to curse`);
+    }
+
+    // Kontrola pro Life Drainer (podobná logika jako Healing Wisp)
+    if (attacker.name === 'Life Drainer' && !attackerMissed) {
+        const attackerPlayer = state.players[attackerPlayerIndex];
+        const healAmount = 2;
+        attackerPlayer.hero.health = Math.min(30, attackerPlayer.hero.health + healAmount);
+        addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Life Drainer</span> restored <span class="heal">${healAmount} health</span> to their hero`);
+    }
+
+    // Kontrola pro Ice Revenant
+    if (attacker.name === 'Ice Revenant' && attacker.health <= 0) {
+        const opponent = state.players[1 - attackerPlayerIndex];
+        const availableTargets = opponent.field.filter(unit => unit && unit.health > 0);
+        
+        if (availableTargets.length > 0) {
+            const randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
+            randomTarget.frozen = true;
+            randomTarget.frozenLastTurn = false;
+            addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${state.players[attackerPlayerIndex].username}'s</span> <span class="spell-name">Ice Revenant</span> <span class="freeze">froze</span> enemy <span class="spell-name">${randomTarget.name}</span>`);
+        }
+    }
+
+    // Stejná úprava pro obránce - odstraníme podmínku attacker.health > 0
+    if (defender.name === 'Ice Revenant' && defender.health <= 0) {
+        const opponent = state.players[attackerPlayerIndex];
+        const availableTargets = opponent.field.filter(unit => unit && unit.health > 0);
+        
+        if (availableTargets.length > 0) {
+            const randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
+            randomTarget.frozen = true;
+            randomTarget.frozenLastTurn = false;
+            addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${state.players[1 - attackerPlayerIndex].username}'s</span> <span class="spell-name">Ice Revenant</span> <span class="freeze">froze</span> enemy <span class="spell-name">${randomTarget.name}</span>`);
+        }
     }
 
     console.log('Konec souboje:', {

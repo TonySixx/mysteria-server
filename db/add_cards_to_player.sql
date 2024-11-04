@@ -4,18 +4,19 @@ RETURNS void AS $$
 DECLARE
     card_id INTEGER;
 BEGIN
-    -- Pro každou novou kartu přidáme 2 kopie hráči
+    -- Pro každou novou kartu přidáme 2 kopie hráči (nebo 1 pro legendární)
     FOR card_id IN (
         SELECT id FROM cards 
         WHERE name IN (
-            'Mana Vampire',
-            'Crystal Guardian',
-            'Frost Giant',
-            'Shadow Priest',
-            'Mana Golem Elite',
-            'Cursed Warrior',
-            'Ancient Protector',
-            'Battle Mage'
+            -- Nově přidané karty
+            'Stone Guardian',
+            'Holy Defender',
+            'Spell Weaver',
+            'Ice Revenant',
+            'Light Champion',
+            'Life Drainer',
+            'Twilight Guardian',
+            'Unity Warrior'
         )
     )
     LOOP
@@ -34,5 +35,5 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Použití funkce pro konkrétního hr��če (nahraďte YOUR_PLAYER_UUID skutečným UUID):
+-- Použití funkce pro konkrétního hráče (nahraďte YOUR_PLAYER_UUID skutečným UUID):
 -- SELECT add_new_cards_to_player('YOUR_PLAYER_UUID'); 

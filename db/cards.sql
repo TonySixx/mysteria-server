@@ -76,9 +76,38 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Mana Golem Elite', 6, 0, 7, 'Attack equals your maximum mana crystals. Taunt', 'manaGolemElite', 'epic', 'unit'),
     ('Cursed Warrior', 2, 4, 3, 'Takes double damage from all sources', 'cursedWarrior', 'common', 'unit'),
     ('Ancient Protector', 8, 5, 9, 'Divine Shield, Taunt. Adjacent minions also gain Divine Shield', 'ancientProtector', 'legendary', 'unit'),
-    ('Battle Mage', 4, 3, 5, 'When you cast a spell, this minion gains +2 attack this turn', 'battleMage', 'rare', 'unit');
+    ('Battle Mage', 4, 3, 5, 'When you cast a spell, this minion gains +2 attack this turn', 'battleMage', 'rare', 'unit'),
+
+    -- Přidání nových karet na konec souboru
+    ('Stone Guardian', 3, 2, 5, 'Taunt', 'stoneGuardian', 'common', 'unit'),
+    
+    -- Silná jednotka s Divine Shield a Taunt
+    ('Holy Defender', 5, 3, 6, 'Divine Shield, Taunt', 'holyDefender', 'rare', 'unit'),
+    
+    -- Jednotka co získává +1/+1 za každé kouzlo v ruce
+    ('Spell Weaver', 4, 2, 3, 'Gain +1/+1 for each spell in your hand when played', 'spellWeaver', 'epic', 'unit'),
+    
+    -- Jednotka co při smrti zmrazí nepřátelskou jednotku
+    ('Ice Revenant', 4, 3, 3, 'Freeze a random enemy minion when this dies', 'iceRevenant', 'rare', 'unit'),
+    
+    -- Silná jednotka s Divine Shield
+    ('Light Champion', 6, 5, 5, 'Divine Shield', 'lightChampion', 'uncommon', 'unit'),
+    
+    -- Jednotka co léčí hrdinu při útoku
+    ('Life Drainer', 5, 4, 4, 'When this minion attacks, restore 2 health to your hero', 'lifeDrainer', 'rare', 'unit'),
+    
+    -- Legendární jednotka co dává Divine Shield sousedům
+    ('Twilight Guardian', 7, 4, 7, 'Taunt. At the end of your turn, give a random friendly minion Divine Shield', 'twilightGuardian', 'legendary', 'unit'),
+    
+    -- Jednotka co při vyložení získá +1/+1 za každou přátelskou jednotku
+    ('Unity Warrior', 4, 3, 3, 'Gain +1/+1 for each other friendly minion when played', 'unityWarrior', 'epic', 'unit');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 
 SET description = 'This unit has 50% chance to miss its attacks.' 
 WHERE name = 'Blind Assassin';
+
+-- Upravíme popisek pro Spell Weaver
+UPDATE cards 
+SET effect = 'Gain +1/+1 for each spell in your hand when played' 
+WHERE name = 'Spell Weaver';

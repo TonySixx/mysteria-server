@@ -91,6 +91,13 @@ function startNextTurn(state, nextPlayer) {
                 owner: previousPlayer
             });
         }
+        else if (card.name === 'Twilight Guardian') {
+            newState.endTurnEffects.push({
+                type: 'twilightGuardian',
+                owner: previousPlayer,
+                unitId: card.id
+            });
+        }
     });
 
     // Přidáme efekty pro všechny Wolf Warriory na poli OBOU hráčů
@@ -129,6 +136,19 @@ function startNextTurn(state, nextPlayer) {
                     wolfWarrior.attack += 1;
                     const effectOwnerName = effectOwner.username;
                     addCombatLogMessage(newState, `<span class="${effect.owner === 0 ? 'player-name' : 'enemy-name'}">${effectOwnerName}'s</span> <span class="spell-name">Wolf Warrior</span> gained <span class="attack">+1 attack</span>`);
+                }
+            }
+
+            if (effect.type === 'twilightGuardian' && effect.owner === previousPlayer) {
+                const owner = newState.players[previousPlayer];
+                const availableTargets = owner.field.filter(unit => 
+                    unit && !unit.hasDivineShield && unit.id !== effect.unitId
+                );
+                
+                if (availableTargets.length > 0) {
+                    const randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
+                    randomTarget.hasDivineShield = true;
+                    addCombatLogMessage(newState, `<span class="${previousPlayer === 0 ? 'player-name' : 'enemy-name'}">${owner.username}'s</span> <span class="spell-name">Twilight Guardian</span> gave <span class="buff">Divine Shield</span> to <span class="spell-name">${randomTarget.name}</span>`);
                 }
             }
         });
@@ -693,7 +713,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
 
         case 'Arcane Guardian':
             // Spočítáme počet kouzel v ruce
-            const spellsInHand = player.hand.filter(c => c.type === 'spell').length;
+            var spellsInHand = player.hand.filter(c => c.type === 'spell').length;
             card.health += spellsInHand;
             card.maxHealth = card.health; // Aktualizujeme i maxHealth
 
@@ -834,6 +854,30 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
 
         case 'Cursed Warrior':
             card.isCursed = true; // Označíme pro zpracování v combat logice
+            break;
+
+        case 'Spell Weaver':
+            var spellsInHand = player.hand.filter(c => c.type === 'spell').length;
+            card.attack += spellsInHand;
+            card.health += spellsInHand;
+            card.maxHealth = card.health;
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Spell Weaver</span> gaining <span class="buff">+${spellsInHand}/+${spellsInHand}</span>`);
+            break;
+
+        case 'Unity Warrior':
+            const friendlyMinions = player.field.length-1;
+            if (friendlyMinions > 0) {
+                const bonus = friendlyMinions;
+                card.attack += bonus;
+                card.health += bonus;
+                card.maxHealth = card.health;
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Unity Warrior</span> gaining <span class="buff">+${bonus}/+${bonus}</span>`);
+            }
+            break;
+
+        case 'Twilight Guardian':
+            card.hasDivineShield = false;
+            // logika se zpracuje v startNextTurn
             break;
     }
 
