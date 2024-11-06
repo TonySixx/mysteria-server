@@ -719,3 +719,12 @@
   - Nyní správně uvádí pouze 50% šanci na minutí útoku
   - Odstraněna nesprávná informace o šanci na uhnutí útoku
 
+### Added
+- Nové karty:
+  - Blood Cultist (3 mana Legendary) - Silná jednotka s nevýhodou poškození vlastního hrdiny
+  - Guardian Totem (4 mana Rare) - Jednotka poskytující Taunt sousedním jednotkám
+  - Soul Harvester (5 mana Epic) - Jednotka získávající sílu ze smrti ostatních jednotek
+  - Sacrifice Pact (2 mana Uncommon) - Kouzlo pro obětování životů za karty
+  - Mass Fortification (4 mana Rare) - Kouzlo pro posílení obrany týmu
+  - Death Prophet (1 mana Common) - Levná jednotka poskytující kartu při smrti
+

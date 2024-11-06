@@ -515,6 +515,57 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
         }
     }
 
+    // V handleCombat funkci přidáme zpracování efektů při smrti jednotek
+    if (attacker.health <= 0) {
+        // Death Prophet efekt
+        if (attacker.name === 'Death Prophet') {
+            const attackerPlayer = state.players[attackerPlayerIndex];
+            if (attackerPlayer.deck.length > 0 && attackerPlayer.hand.length < 10) {
+                const drawnCard = attackerPlayer.deck.pop();
+                attackerPlayer.hand.push(drawnCard);
+                addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Death Prophet</span> <span class="draw">drew a card</span> on death`);
+            }
+        }
+    }
+
+    if (defender.health <= 0) {
+        // Death Prophet efekt pro obránce
+        if (defender.name === 'Death Prophet') {
+            const defenderPlayer = state.players[1 - attackerPlayerIndex];
+            if (defenderPlayer.deck.length > 0 && defenderPlayer.hand.length < 10) {
+                const drawnCard = defenderPlayer.deck.pop();
+                defenderPlayer.hand.push(drawnCard);
+                addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${defenderPlayer.username}'s</span> <span class="spell-name">Death Prophet</span> <span class="draw">drew a card</span> on death`);
+            }
+        }
+    }
+
+    // Efekt gainAttackOnDeath pro Blood Cultist a Soul Harvester
+    // Přidáme na začátek funkce handleCombat
+    if (defender.health <= 0) {
+        // Projdeme všechny jednotky na poli a aplikujeme efekt
+        state.players.forEach((player, playerIndex) => {
+            player.field.forEach(unit => {
+                if (unit && unit.gainAttackOnDeath) {
+                    unit.attack += 1;
+                    addCombatLogMessage(state, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">${unit.name}</span> gained <span class="attack">+1 attack</span>`);
+                }
+            });
+        });
+    }
+
+    if (attacker.health <= 0) {
+        // Stejný efekt aplikujeme i při smrti útočníka
+        state.players.forEach((player, playerIndex) => {
+            player.field.forEach(unit => {
+                if (unit && unit.gainAttackOnDeath) {
+                    unit.attack += 1;
+                    addCombatLogMessage(state, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">${unit.name}</span> gained <span class="attack">+1 attack</span>`);
+                }
+            });
+        });
+    }
+
     console.log('Konec souboje:', {
         attacker: {
             name: attacker.name,

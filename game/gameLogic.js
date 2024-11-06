@@ -277,6 +277,41 @@ function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
             addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">Defensive Scout</span> <span class="draw">drew a card</span>`);
         }
     }
+
+    // Kontrola death efektů pokud jednotka zemřela
+    if (unit.health <= 0) {
+        // Death Prophet efekt
+        if (unit.name === 'Death Prophet') {
+            if (opponent.deck.length > 0 && opponent.hand.length < 10) {
+                const drawnCard = opponent.deck.pop();
+                opponent.hand.push(drawnCard);
+                addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">Death Prophet</span> <span class="draw">drew a card</span> on death`);
+            }
+        }
+
+        // Ice Revenant efekt
+        if (unit.name === 'Ice Revenant') {
+            const enemyPlayer = newState.players[playerIndex];
+            const availableTargets = enemyPlayer.field.filter(unit => unit && unit.health > 0);
+            
+            if (availableTargets.length > 0) {
+                const randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
+                randomTarget.frozen = true;
+                randomTarget.frozenLastTurn = false;
+                addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">Ice Revenant</span> <span class="freeze">froze</span> enemy <span class="spell-name">${randomTarget.name}</span>`);
+            }
+        }
+
+        // Efekt gainAttackOnDeath pro Blood Cultist a Soul Harvester
+        newState.players.forEach((player, pIndex) => {
+            player.field.forEach(unit => {
+                if (unit && unit.gainAttackOnDeath) {
+                    unit.attack += 1;
+                    addCombatLogMessage(newState, `<span class="${pIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">${unit.name}</span> gained <span class="attack">+1 attack</span>`);
+                }
+            });
+        });
+    }
 }
 
 function handleSpellEffects(card, player, opponent, state, playerIndex) {
@@ -582,6 +617,32 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             };
             addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mirror Image</span> and summoned ${mirrorImages.length} Mirror Images`);
             break;
+
+        case 'Sacrifice Pact':
+            // Způsobí 3 poškození vlastnímu hrdinovi
+            player.hero.health = Math.max(0, player.hero.health - 3);
+            // Lízneme 2 karty
+            for (let i = 0; i < 2; i++) {
+                if (player.deck.length > 0 && player.hand.length < 10) {
+                    const drawnCard = player.deck.pop();
+                    player.hand.push(drawnCard);
+                }
+            }
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Sacrifice Pact</span> taking <span class="damage">3 damage</span> and drawing cards`);
+            break;
+
+        case 'Mass Fortification':
+            let buffedCount = 0;
+            player.field.forEach(unit => {
+                if (unit) {
+                    unit.hasTaunt = true;
+                    unit.health += 2;
+                    unit.maxHealth += 2;
+                    buffedCount++;
+                }
+            });
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mass Fortification</span> buffing ${buffedCount} minions`);
+            break;
     }
 
     // Odstranění mrtvých jednotek
@@ -829,7 +890,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
 
         case 'Ancient Protector':
             // Najdeme sousední jednotky a dáme jim Divine Shield
-            const fieldIndex = player.field.findIndex(unit => unit.id === card.id);
+            var fieldIndex = player.field.findIndex(unit => unit.id === card.id);
             if (fieldIndex > 0 && player.field[fieldIndex - 1]) {
                 player.field[fieldIndex - 1].hasDivineShield = true;
             }
@@ -878,6 +939,35 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
         case 'Twilight Guardian':
             card.hasDivineShield = false;
             // logika se zpracuje v startNextTurn
+            break;
+
+        case 'Blood Cultist':
+            // Způsobí 5 poškození vlastnímu hrdinovi při vyložení
+            player.hero.health = Math.max(0, player.hero.health - 5);
+            // Nastavíme vlastnost pro sledování úmrtí jednotek
+            card.gainAttackOnDeath = true;
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Blood Cultist</span> dealing <span class="damage">5 damage</span> to their hero`);
+            break;
+
+        case 'Guardian Totem':
+            // Najdeme sousední jednotky a dáme jim Taunt
+            var fieldIndex = player.field.findIndex(unit => unit.id === card.id);
+            if (fieldIndex > 0 && player.field[fieldIndex - 1]) {
+                player.field[fieldIndex - 1].hasTaunt = true;
+            }
+            if (fieldIndex < player.field.length - 1 && player.field[fieldIndex + 1]) {
+                player.field[fieldIndex + 1].hasTaunt = true;
+            }
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Guardian Totem</span> granting <span class="buff">Taunt</span> to adjacent minions`);
+            break;
+
+        case 'Soul Harvester':
+            // Nastavíme vlastnost pro sledování úmrtí jednotek
+            card.gainAttackOnDeath = true;
+            break;
+
+        case 'Death Prophet':
+            // Efekt se zpracuje při smrti jednotky v handleCombat
             break;
     }
 
