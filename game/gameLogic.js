@@ -22,6 +22,9 @@ function startNextTurn(state, nextPlayer) {
     player.maxMana = Math.min(10, player.maxMana + 1);
     player.mana = player.maxMana;
 
+    // Reset schopnosti hrdinů
+    newState.players.forEach(p => p.hero.hasUsedAbility = false);
+
     // Reset útoků jednotek a kontrola zmražení
     player.field.forEach(card => {
         if (card.name === 'Ancient Guardian') {
@@ -1090,12 +1093,81 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
     return checkGameOver(newState);
 }
 
+// Přidáme novou funkci pro použití hrdinské schopnosti
+function useHeroAbility(state, playerIndex) {
+    console.log('Začátek useHeroAbility:', {
+        playerIndex,
+        currentMana: state.players[playerIndex].mana,
+        heroType: state.players[playerIndex].hero.id,
+        hasUsedAbility: state.players[playerIndex].hero.hasUsedAbility
+    });
 
+    const newState = { ...state };
+    const player = newState.players[playerIndex];
+    const opponent = newState.players[1 - playerIndex];
+
+    console.log('Kontrola podmínek:', {
+        hasHero: !!player.hero,
+        hasUsedAbility: player.hero?.hasUsedAbility,
+        currentMana: player.mana,
+        abilityCost: player.hero?.abilityCost,
+        heroId: player.hero?.id
+    });
+
+    // Kontroly
+    if (!player.hero || player.hero.hasUsedAbility) {
+        console.log('Schopnost nelze použít - již byla použita nebo chybí hrdina');
+        return {
+            ...newState,
+            notification: {
+                message: 'Hero ability already used this turn!',
+                forPlayer: playerIndex
+            }
+        };
+    }
+
+    if (player.mana < player.hero.abilityCost) {
+        console.log('Schopnost nelze použít - nedostatek many');
+        return {
+            ...newState,
+            notification: {
+                message: 'Not enough mana!',
+                forPlayer: playerIndex
+            }
+        };
+    }
+
+
+    // Použití schopnosti podle ID hrdiny (1 = Mage, 2 = Priest)
+    switch (player.hero.id) {
+        case 1: // Mage
+            opponent.hero.health = Math.max(0, opponent.hero.health - 2);
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> used <span class="spell-name">Fireblast</span> dealing <span class="damage">2 damage</span> to enemy hero`);
+            break;
+        case 2: // Priest
+            player.hero.health = Math.min(30, player.hero.health + 2);
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> used <span class="spell-name">Lesser Heal</span> restoring <span class="heal">2 health</span>`);
+            break;
+        default:
+            console.log('Neznámý hrdina ID:', player.hero.id);
+            return newState;
+    }
+
+    // Aktualizace stavu
+    player.mana -= player.hero.abilityCost;
+    player.hero.hasUsedAbility = true;
+
+    // Kontrola konce hry
+    return checkGameOver(newState);
+}
+
+// Exportujeme novou funkci
 module.exports = {
     startNextTurn,
     checkGameOver,
     playCardCommon,
     handleSpellEffects,
     handleUnitEffects,
-    addCombatLogMessage
+    addCombatLogMessage,
+    useHeroAbility  // Přidáme export
 };

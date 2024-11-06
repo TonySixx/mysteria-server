@@ -34,10 +34,19 @@ class SpellCard extends Card {
 }
 
 class Hero {
-    constructor(name, health) {
+    constructor(name, health, heroData = null) {
         this.name = name;
         this.health = health;
         this.maxHealth = health;
+        this.hasUsedAbility = false;
+        
+        if (heroData) {
+            this.id = heroData.id;
+            this.abilityName = heroData.ability_name;
+            this.abilityDescription = heroData.ability_description;
+            this.abilityCost = heroData.ability_cost;
+            this.image = heroData.image;
+        }
     }
 }
 

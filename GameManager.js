@@ -1,5 +1,5 @@
 const { Card, UnitCard, SpellCard, Hero } = require('./game/CardClasses');
-const { startNextTurn, checkGameOver, playCardCommon, handleUnitEffects } = require('./game/gameLogic');
+const { startNextTurn, checkGameOver, playCardCommon, handleUnitEffects, useHeroAbility } = require('./game/gameLogic');
 const { attack } = require('./game/combatLogic');
 const { createClient } = require('@supabase/supabase-js');
 
@@ -130,6 +130,12 @@ class GameManager {
     async createGame(player1Socket, player2Socket) {
         const gameId = this.generateGameId();
 
+        // Načteme data hrdinů pro oba hráče
+        const [player1Hero, player2Hero] = await Promise.all([
+            this.loadHeroData(player1Socket.userId),
+            this.loadHeroData(player2Socket.userId)
+        ]);
+
         // Inicializace balíčků pro oba hráče
         const [player1Deck, player2Deck] = await this.initializeDecks(
             player1Socket.userId,
@@ -141,7 +147,7 @@ class GameManager {
                 {
                     socket: player1Socket,
                     username: player1Socket.username,
-                    hero: new Hero(player1Socket.username, 30),
+                    hero: new Hero(player1Socket.username, 30, player1Hero),
                     deck: player1Deck,
                     hand: player1Deck.splice(0, 3),
                     field: [],
@@ -152,7 +158,7 @@ class GameManager {
                 {
                     socket: player2Socket,
                     username: player2Socket.username,
-                    hero: new Hero(player2Socket.username, 30),
+                    hero: new Hero(player2Socket.username, 30, player2Hero),
                     deck: player2Deck,
                     hand: [...player2Deck.splice(0, 3), new SpellCard('coin', 'The Coin', 0, 'Gain 1 Mana Crystal', 'coinImage')],
                     field: [],
@@ -347,6 +353,38 @@ class GameManager {
             }
 
             this.handleAttack(gameId, playerIndex, data);
+        });
+
+        // Přidáme listener pro použití hrdinské schopnosti
+        socket.on('useHeroAbility', () => {
+            console.log(`Hráč ${socket.id} používá hrdinskou schopnost`);
+            const game = this.games.get(gameId);
+
+            if (!game) {
+                console.log('Hra neexistuje');
+                return;
+            }
+
+            if (game.currentPlayer !== playerIndex) {
+                console.log('Hráč není na tahu');
+                socket.emit('error', 'Not your turn!');
+                return;
+            }
+
+            const player = game.players[playerIndex];
+            if (player.hero.hasUsedAbility) {
+                console.log('Hrdinská schopnost již byla použita v tomto tahu');
+                socket.emit('error', 'Hero ability already used this turn!');
+                return;
+            }
+
+            if (player.mana < player.hero.abilityCost) {
+                console.log('Nedostatek many pro použití schopnosti');
+                socket.emit('error', 'Not enough mana!');
+                return;
+            }
+
+            this.handleHeroAbility(gameId, playerIndex);
         });
 
         socket.on('endTurn', () => {
@@ -953,6 +991,88 @@ class GameManager {
     invertFieldIndex(index) {
         if (index === null || index === undefined) return index;
         return 6 - index; // Pro pole velikosti 7 (0-6)
+    }
+
+    // Přidáme novou metodu pro načtení dat hrdiny
+    async loadHeroData(userId) {
+        try {
+            const { data: profile, error: profileError } = await this.supabase
+                .from('profiles')
+                .select(`
+                    hero_id,
+                    heroes (*)
+                `)
+                .eq('id', userId)
+                .single();
+
+            if (profileError) throw profileError;
+            return profile.heroes;
+        } catch (error) {
+            console.error('Error loading hero data:', error);
+            // Vrátíme výchozího hrdinu (Mage)
+            return {
+                id: 1,
+                name: 'Mage',
+                ability_name: 'Fireblast',
+                ability_description: 'Deal 2 damage to enemy hero',
+                ability_cost: 2,
+                image: 'mage'
+            };
+        }
+    }
+
+    // Přidáme novou metodu pro zpracování hrdinské schopnosti
+    async handleHeroAbility(gameId, playerIndex) {
+        console.log('Zpracování použití hrdinské schopnosti:', { gameId, playerIndex });
+        
+        const game = this.games.get(gameId);
+        if (!game) {
+            console.log('Hra neexistuje');
+            return;
+        }
+
+        // Vytvoříme nový stav pomocí funkce useHeroAbility
+        const newState = useHeroAbility(game, playerIndex);
+        
+        // Pokud funkce vrátila false nebo undefined, něco se nepovedlo
+        if (!newState) {
+            console.log('Použití schopnosti se nezdařilo');
+            return;
+        }
+
+
+        // Kontrola konce hry
+        if (newState.gameOver) {
+            console.log('Hra skončila po použití hrdinské schopnosti');
+            const winnerId = newState.winner === 'draw' 
+                ? game.players[0].socket.userId 
+                : game.players[newState.winner].socket.userId;
+
+            await this.handleGameEnd(gameId, winnerId);
+
+            // Informujeme oba hráče o konci hry
+            game.players.forEach((player, index) => {
+                const playerView = this.createPlayerView(newState, index);
+                player.socket.emit('gameState', playerView);
+            });
+
+            // Ukončíme hru a vyčistíme
+            setTimeout(() => {
+                this.games.delete(gameId);
+                game.players.forEach(player => {
+                    this.playerGameMap.delete(player.socket.id);
+                });
+            }, 5000);
+        } else {
+            // Aktualizujeme stav hry a odešleme ho hráčům
+            this.games.set(gameId, newState);
+            
+            // Broadcast nového stavu oběma hráčům
+            game.players.forEach((player, index) => {
+                const playerView = this.createPlayerView(newState, index);
+                player.socket.emit('gameState', playerView);
+            });
+        }
     }
 }
 

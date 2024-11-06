@@ -259,3 +259,35 @@ app.post('/api/decks', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+// Přidáme nové endpointy pro hrdiny
+app.get('/api/heroes', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('heroes')
+            .select('*');
+
+        if (error) throw error;
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.patch('/api/profiles/hero', async (req, res) => {
+    try {
+        const { user_id, hero_id } = req.body;
+        
+        const { data, error } = await supabase
+            .from('profiles')
+            .update({ hero_id })
+            .eq('id', user_id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});

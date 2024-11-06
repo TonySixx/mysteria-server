@@ -7,7 +7,8 @@ CREATE TABLE profiles (
     rank INTEGER DEFAULT 1000 NOT NULL,
     total_games INTEGER DEFAULT 0 NOT NULL,
     wins INTEGER DEFAULT 0 NOT NULL,
-    losses INTEGER DEFAULT 0 NOT NULL
+    losses INTEGER DEFAULT 0 NOT NULL,
+    hero_id INTEGER REFERENCES heroes(id) DEFAULT 1
 );
 
 -- Vytvoření tabulky game_history
@@ -786,4 +787,22 @@ $$;
 
 -- Přidáme oprávnění pro volání funkce
 GRANT EXECUTE ON FUNCTION get_player_challenges(UUID) TO authenticated;
+
+-- Přidáme tabulku pro hrdiny
+CREATE TABLE heroes (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    ability_name TEXT NOT NULL,
+    ability_description TEXT NOT NULL,
+    ability_cost INTEGER DEFAULT 2,
+    image TEXT NOT NULL
+);
+
+-- Přidáme sloupec hero_id do profiles
+ALTER TABLE profiles ADD COLUMN hero_id INTEGER REFERENCES heroes(id) DEFAULT 1;
+
+-- Vložíme základní hrdiny
+INSERT INTO heroes (name, ability_name, ability_description, ability_cost, image) VALUES
+    ('Mage', 'Fireblast', 'Deal 2 damage to enemy hero', 2, 'mage'),
+    ('Priest', 'Lesser Heal', 'Restore 2 health to your hero', 2, 'priest');
 
