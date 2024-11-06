@@ -961,7 +961,7 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
                 extraCost,
                 totalCost
             });
-            if (player.mana < totalCost) {
+            if (player.mana < extraCost) {
                 return {
                     ...newState,
                     notification: {
