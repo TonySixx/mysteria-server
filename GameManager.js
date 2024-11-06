@@ -1031,6 +1031,15 @@ class GameManager {
             return;
         }
 
+        // Přidáme animační data před provedením akce
+        game.animation = {
+            type: 'heroAbility',
+            player: game.players[playerIndex].username,
+            hero: game.players[playerIndex].hero,
+            target: game.players[1 - playerIndex].hero, // Pro Mage
+            isHealing: game.players[playerIndex].hero.id === 2 // Pro Priest
+        };
+
         // Vytvoříme nový stav pomocí funkce useHeroAbility
         const newState = useHeroAbility(game, playerIndex);
         
@@ -1039,7 +1048,6 @@ class GameManager {
             console.log('Použití schopnosti se nezdařilo');
             return;
         }
-
 
         // Kontrola konce hry
         if (newState.gameOver) {
@@ -1065,13 +1073,8 @@ class GameManager {
             }, 5000);
         } else {
             // Aktualizujeme stav hry a odešleme ho hráčům
-            this.games.set(gameId, newState);
-            
-            // Broadcast nového stavu oběma hráčům
-            game.players.forEach((player, index) => {
-                const playerView = this.createPlayerView(newState, index);
-                player.socket.emit('gameState', playerView);
-            });
+            this.games.set(gameId, newState);           
+            this.broadcastGameState(gameId);
         }
     }
 }
