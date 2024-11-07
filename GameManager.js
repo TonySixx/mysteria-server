@@ -684,9 +684,33 @@ class GameManager {
         // Nastavíme status hráče na "disconnected"
         game.players[playerIndex].isDisconnected = true;
 
-        // Informujeme protihráče
+        // Kontrola, zda jsou odpojeni oba hráči
+        const bothPlayersDisconnected = game.players.every(player => player.isDisconnected);
+        
+        if (bothPlayersDisconnected) {
+            console.log('Oba hráči jsou odpojeni, ruším hru:', gameId);
+            
+            // Zrušíme všechny časovače odpojení
+            game.players.forEach(player => {
+                const timer = this.disconnectTimers.get(player.socket.userId);
+                if (timer) {
+                    clearTimeout(timer);
+                    this.disconnectTimers.delete(player.socket.userId);
+                }
+            });
+
+            // Ukončíme hru okamžitě
+            this.games.delete(gameId);
+            game.players.forEach(player => {
+                this.playerGameMap.delete(player.socket.id);
+            });
+
+            return;
+        }
+
+        // Pokračujeme s normální logikou pro jednoho odpojeného hráče
         const opponent = game.players[1 - playerIndex];
-        if (opponent && opponent.socket) {
+        if (opponent && opponent.socket && !opponent.isDisconnected) {
             opponent.socket.emit('opponentDisconnected', {
                 message: 'Opponent disconnected. Waiting for reconnection...',
                 timeout: this.RECONNECT_TIMEOUT / 1000
@@ -695,12 +719,13 @@ class GameManager {
 
         // Nastavíme časovač pro ukončení hry
         const timer = setTimeout(() => {
-            if (game.players[playerIndex].isDisconnected) {
+            const currentGame = this.games.get(gameId);
+            if (currentGame && currentGame.players[playerIndex].isDisconnected) {
                 // Ukončíme hru a určíme vítěze
-                game.gameOver = true;
-                game.winner = 1 - playerIndex;
+                currentGame.gameOver = true;
+                currentGame.winner = 1 - playerIndex;
                 
-                if (opponent && opponent.socket) {
+                if (opponent && opponent.socket && !opponent.isDisconnected) {
                     opponent.socket.emit('gameOver', {
                         reason: 'opponent_disconnected',
                         winner: opponent.socket.userId
