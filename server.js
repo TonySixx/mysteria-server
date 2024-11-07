@@ -191,6 +191,19 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Přidáme handler pro reconnect
+    socket.on('attemptReconnect', async () => {
+        try {
+            const reconnected = await gameManager.handleReconnect(socket, socket.userId);
+            if (!reconnected) {
+                socket.emit('reconnectFailed');
+            }
+        } catch (error) {
+            console.error('Error during reconnect:', error);
+            socket.emit('reconnectFailed');
+        }
+    });
+
 });
 
 

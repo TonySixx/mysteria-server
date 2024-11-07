@@ -9,6 +9,8 @@ class GameManager {
         this.searchingPlayers = new Set(); // Nový Set pro aktivně hledající hráče
         this.playerGameMap = new Map(); // Nová mapa pro sledování, ve které hře je který hráč
         this.onlinePlayers = new Map(); // userId -> {status, socketId, ...playerData}
+        this.disconnectedPlayers = new Map(); // userId -> {gameId, disconnectTime}
+        this.RECONNECT_TIMEOUT = 30000; // 30 sekund v milisekundách
 
         // Inicializace Supabase klienta se service_role klíčem
         this.supabase = createClient(
@@ -673,24 +675,111 @@ class GameManager {
     }
 
     handleDisconnect(gameId, playerIndex) {
+        console.log(`Hráč se odpojil: GameID ${gameId}, PlayerIndex ${playerIndex}`);
         const game = this.games.get(gameId);
         if (!game) return;
 
-        const disconnectedSocket = game.players[playerIndex].socket;
+        const player = game.players[playerIndex];
+        const userId = player.socket.userId;
 
-        // Vyčistíme všechny reference na hráče
-        this.searchingPlayers.delete(disconnectedSocket.id);
-        this.playerGameMap.delete(disconnectedSocket.id);
+        // Uložíme informace o odpojeném hráči
+        this.disconnectedPlayers.set(userId, {
+            gameId,
+            playerIndex,
+            disconnectTime: Date.now()
+        });
 
         // Informujeme protihráče
         const opponent = game.players[1 - playerIndex];
         if (opponent && opponent.socket) {
-            opponent.socket.emit('opponentDisconnected');
-            this.playerGameMap.delete(opponent.socket.id);
+            opponent.socket.emit('opponentDisconnected', {
+                message: 'Opponent disconnected. Waiting for reconnect...',
+                remainingTime: this.RECONNECT_TIMEOUT / 1000
+            });
         }
 
-        // Ukončíme hru
+        // Nastavíme časovač pro ukončení hry
+        setTimeout(() => {
+            const disconnectInfo = this.disconnectedPlayers.get(userId);
+            if (disconnectInfo) {
+                // Hráč se nevrátil včas
+                this.handleGameTimeout(gameId, playerIndex);
+                this.disconnectedPlayers.delete(userId);
+            }
+        }, this.RECONNECT_TIMEOUT);
+    }
+
+    // Přidáme metodu pro zpracování timeoutu hry
+    handleGameTimeout(gameId, playerIndex) {
+        const game = this.games.get(gameId);
+        if (!game) return;
+
+        // Zkontrolujeme, zda jsou oba hráči odpojeni
+        const bothDisconnected = game.players.every(player => 
+            this.disconnectedPlayers.has(player.socket.userId)
+        );
+
+        if (bothDisconnected) {
+            // Uklidíme hru
+            this.cleanupGame(gameId);
+        } else {
+            // Ukončíme hru ve prospěch připojeného hráče
+            const winner = 1 - playerIndex;
+            this.handleGameEnd(gameId, game.players[winner].socket.userId);
+            
+            // Informujeme připojeného hráče
+            const opponent = game.players[winner];
+            if (opponent && opponent.socket) {
+                opponent.socket.emit('gameOver', {
+                    winner: winner,
+                    reason: 'opponent_disconnected'
+                });
+            }
+        }
+    }
+
+    // Přidáme metodu pro úklid hry
+    cleanupGame(gameId) {
+        const game = this.games.get(gameId);
+        if (!game) return;
+
+        // Odstraníme všechny reference na hru
+        game.players.forEach(player => {
+            this.playerGameMap.delete(player.socket.id);
+            this.disconnectedPlayers.delete(player.socket.userId);
+        });
+
         this.games.delete(gameId);
+    }
+
+    // Přidáme metodu pro reconnect
+    async handleReconnect(socket, userId) {
+        const disconnectInfo = this.disconnectedPlayers.get(userId);
+        if (!disconnectInfo) return false;
+
+        const { gameId, playerIndex } = disconnectInfo;
+        const game = this.games.get(gameId);
+        if (!game) return false;
+
+        // Aktualizujeme socket v game state
+        game.players[playerIndex].socket = socket;
+        this.playerGameMap.set(socket.id, gameId);
+        this.disconnectedPlayers.delete(userId);
+
+        // Nastavíme event listenery pro nový socket
+        this.setupGameListeners(gameId, socket, playerIndex);
+
+        // Informujeme oba hráče
+        const opponent = game.players[1 - playerIndex];
+        if (opponent && opponent.socket) {
+            opponent.socket.emit('opponentReconnected');
+        }
+        socket.emit('reconnectedToGame', {
+            gameId,
+            gameState: this.createPlayerView(game, playerIndex)
+        });
+
+        return true;
     }
 
     // Přidat do třídy GameManager

@@ -125,6 +125,12 @@
 - Slepé jednotky mají 50% šanci minout útok
 - Slepé jednotky mohou uhnout útoku s 50% šancí
 - Přidány combat log zprávy pro minutí/uhnutí útoku kvůli slepotě
+- Implementován systém reconnectu pro odpojené hráče
+  - Časový limit 30 sekund pro návrat do hry
+  - Informační zprávy pro oba hráče
+  - Automatické ukončení hry po timeoutu
+- Přidány testovací nástroje pro simulaci odpojení v development módu
+- Implementován systém úklidu neaktivních her
 
 ### Changed
 - Vylepšena vizuální stránka hry přidáním dynamických efektů pro lepší uživatelský zážitek.
@@ -727,4 +733,12 @@
   - Sacrifice Pact (2 mana Uncommon) - Kouzlo pro obětování životů za karty
   - Mass Fortification (4 mana Rare) - Kouzlo pro posílení obrany týmu
   - Death Prophet (1 mana Common) - Levná jednotka poskytující kartu při smrti
+
+### Added
+- Implementován systém reconnectu pro odpojené hráče
+  - Časový limit 30 sekund pro návrat do hry
+  - Informační zprávy pro oba hráče
+  - Automatické ukončení hry po timeoutu
+- Přidány testovací nástroje pro simulaci odpojení v development módu
+- Implementován systém úklidu neaktivních her
 
