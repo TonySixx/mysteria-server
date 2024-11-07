@@ -119,7 +119,7 @@ io.on('connection', (socket) => {
             if (userId !== socket.userId) {
                 throw new Error('Unauthorized');
             }
-            // Aktualizujeme status hráče na "searching"
+            // Aktualizujeme status hr��če na "searching"
             gameManager.updatePlayerStatus(userId, 'searching');
             gameManager.handlePlayerJoin(socket, { userId, username });
         } catch (error) {
@@ -191,6 +191,16 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Pokus o reconnect do existující hry
+    gameManager.handleReconnect(socket).then(reconnected => {
+        if (!reconnected) {
+            // Pokud se nepodařilo reconnect, pokračujeme normálně
+            console.log(`New player connected (ID: ${socket.id}, User: ${socket.username})`);
+            gameManager.handlePlayerConnect(socket, socket.userId);
+        } else {
+            console.log(`Player reconnected to existing game (ID: ${socket.id}, User: ${socket.username})`);
+        }
+    });
 });
 
 
