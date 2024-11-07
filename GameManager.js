@@ -32,7 +32,7 @@ class GameManager {
 
         // Kontrola, zda hráč již není v nějaké hře
         if (this.playerGameMap.has(socket.id)) {
-            console.log(`Hráč ${socket.id} je již ve hře`);
+            console.log(`Hráč ${socket.id} je již ve hře:`, this.playerGameMap.get(socket.id));
             return { status: 'already_in_game' };
         }
 
@@ -42,7 +42,7 @@ class GameManager {
             return { status: 'already_searching' };
         }
 
-        // Přidáme hráče mezi hledajcí
+        // Přidáme hráče mezi hledající
         this.searchingPlayers.add(socket.id);
         console.log(`Hráč ${socket.id} začal hledat hru. Počet hledajících: ${this.searchingPlayers.size}`);
         console.log('Aktuální hledající hráči:', Array.from(this.searchingPlayers));
@@ -52,6 +52,12 @@ class GameManager {
             const players = Array.from(this.searchingPlayers);
             const player1Id = players[0];
             const player2Id = players[1];
+
+            // Přidáme kontrolu, že ani jeden z hráčů není v žádné hře
+            if (this.playerGameMap.has(player1Id) || this.playerGameMap.has(player2Id)) {
+                console.log('Jeden z hráčů je stále ve hře, čekám na další hráče');
+                return { status: 'waiting' };
+            }
 
             console.log(`Pokus o vytvoření hry mezi hráči ${player1Id} a ${player2Id}`);
 
@@ -697,12 +703,22 @@ class GameManager {
                     clearTimeout(timer);
                     this.disconnectTimers.delete(player.socket.userId);
                 }
+                
+                // Důležité: Vyčistíme všechny reference na hru pro oba hráče
+                this.playerGameMap.delete(player.socket.id);
+                
+                // Nastavíme status hráče zpět na "online" pokud je stále připojen
+                if (this.onlinePlayers.has(player.socket.userId)) {
+                    this.updatePlayerStatus(player.socket.userId, 'online');
+                }
             });
 
             // Ukončíme hru okamžitě
             this.games.delete(gameId);
+            
+            // Vyčistíme searchingPlayers pro oba hráče
             game.players.forEach(player => {
-                this.playerGameMap.delete(player.socket.id);
+                this.searchingPlayers.delete(player.socket.id);
             });
 
             return;
