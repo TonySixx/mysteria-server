@@ -276,7 +276,7 @@
 - Přidána mapa obrázků karet pro správné přiřazení obrázků ke kartám
 
 ### Changed
-- Upravena funkce getPlayerView pro posílání informací o kartách v ruce protihráče
+- Upravena funkce getPlayerView pro posílání informac�� o kartách v ruce protihráče
 - Implementováno bezpečné sdílení informací - protihráčovy karty v ruce jsou skryté
 
 ### Security
@@ -703,4 +703,9 @@
   - Automatické ukončení hry po timeoutu
 - Přidány testovací nástroje pro simulaci odpojení v development módu
 - Implementován systém úklidu neaktivních her
+
+### Changed
+- Upraveno CORS nastavení pro podporu více origins oddělených čárkou
+- Přidána lepší kontrola CORS origins včetně podpory vývoje
+- Přidána podpora pro PATCH metodu v CORS nastaveních
 

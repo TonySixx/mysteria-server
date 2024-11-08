@@ -217,8 +217,21 @@ process.on('SIGTERM', () => {
 });
 
 const PORT = process.env.PORT || 3001;
+
+// Upravíme CORS nastavení pro podporu více origins
+const corsOrigins = (process.env.CORS_ORIGIN || "http://localhost:3000").split(',').map(origin => origin.trim());
+
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+    origin: (origin, callback) => {
+        // Povolíme požadavky bez origin (např. z Postman nebo při lokálním vývoji)
+        if (!origin) return callback(null, true);
+        
+        if (corsOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     methods: ["GET", "POST"],
     credentials: true
 }));
