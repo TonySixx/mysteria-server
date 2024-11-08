@@ -806,3 +806,8 @@ INSERT INTO heroes (name, ability_name, ability_description, ability_cost, image
     ('Mage', 'Fireblast', 'Deal 2 damage to enemy hero', 2, 'mage'),
     ('Priest', 'Lesser Heal', 'Restore 2 health to your hero', 2, 'priest');
 
+-- Přidáme nové hrdiny do tabulky heroes
+INSERT INTO heroes (name, ability_name, ability_description, ability_cost, image) VALUES
+    ('Seer', 'Fortune Draw', 'Draw a random card from your deck', 2, 'seer'),
+    ('Defender', 'Protect', 'Give a random friendly minion Taunt', 2, 'defender');
+

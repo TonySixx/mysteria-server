@@ -1148,6 +1148,29 @@ function useHeroAbility(state, playerIndex) {
             player.hero.health = Math.min(30, player.hero.health + 2);
             addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> used <span class="spell-name">Lesser Heal</span> restoring <span class="heal">2 health</span>`);
             break;
+        case 3: // Seer
+            if (player.deck.length > 0) {
+                const drawnCard = player.deck.pop();
+                if (player.hand.length < 10) {
+                    player.hand.push(drawnCard);
+                    addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> used <span class="spell-name">Fortune Draw</span> and <span class="draw">drew a card</span>`);
+                } else {
+                    addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> used <span class="spell-name">Fortune Draw</span> but their hand was full`);
+                }
+            } else {
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> used <span class="spell-name">Fortune Draw</span> but their deck was empty`);
+            }
+            break;
+        case 4: // Defender
+            const availableMinions = player.field.filter(unit => unit && !unit.hasTaunt);
+            if (availableMinions.length > 0) {
+                const randomMinion = availableMinions[Math.floor(Math.random() * availableMinions.length)];
+                randomMinion.hasTaunt = true;
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> used <span class="spell-name">Protect</span> giving <span class="buff">Taunt</span> to <span class="spell-name">${randomMinion.name}</span>`);
+            } else {
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> used <span class="spell-name">Protect</span> but had no valid targets`);
+            }
+            break;
         default:
             console.log('Neznámý hrdina ID:', player.hero.id);
             return newState;

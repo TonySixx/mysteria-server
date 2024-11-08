@@ -2,90 +2,52 @@
 
 ## [Unreleased]
 ### Added
-- Přidána vizuální zpětná vazba pro poškození a léčení pomocí animovaných textů.
-- Implementována vizuální zpětná vazba pro tahy AI.
-- Přidána vizuální zpětná vazba pro efekty kouzel a tažení karet.
-- Přidány notifikace pro informování hráče o herních událostech.
-- Přidána notifikace při pokusu o útok kartou, která není vyložena na herním poli.
-- Zobrazení karet protivníka jako rubové strany
-- Nová oblast pro zobrazení karet protivníka nad herní plochou
-- Přidána podpora pro online multiplayer
-- Implementován systém matchmakingu pro hledání protihráčů
-- Přidána synchronizace herního stavu mezi hráči
-- Implementována správa připojení a odpojení hráčů
-- Přidáno čekání na protihráče
-- Implementováno herní lobby pro matchmaking
-- Přidána vizuální indikace při hledán protihráče
-- Implementována synchronizace herního stavu mezi hráči
-- Přidáno skrývání karet protihráče
-- Přidána podpora pro více současně běžících her
-- Implementována základní ochrana proti podvádění
-- Implementována podpora pro online multiplayer
-- Přidána socketov komunikace mezi klientem a serverem
-- Přidána synchronizace herního stavu mezi hráči
-- Přidány kontroly pro validní tahy v online hře
-- Přidány konstanty pro herní události a stavy
-- Implementován SocketProvider pro správu socketové komunikace
-- Přidána podpora pro reconnect při výpadku spojení
-- Vylepšena struktura aplikace pro lepší správu socketové komunikace
-- Přidána podpora pro socket.io-style event handling v SocketService
-- Implementována správa event listenerů pro lepší cleanup
-- Přidána nová oblast pro zobrazení karet v ruce protivníka nad jeho hrdinou
-- Implementováno správné zobrazení rubových stran karet protivníka
-- Implementována funkce checkGameOver pro detekci konce hry
-  - Kontrola životů hrdinů
-  - Určení vítěze nebo remízy
-  - Deaktivace všech karet při konci hry
-- Přidán modal pro zobrazení konce hry
-- Implementováno zobrazení výsledku hry (výhra/prohra/remíza)
-- Přidány notifikace pro Taunt efekt
-  - Upozornění při pokusu o útok na jednotku bez Taunt
-  - Upozornění při pokusu o útok na hrdinu přes Taunt
-- Přidána konfigurace pro deployment na Render.com
-- Přidána podpora pro CORS v produkčním prostředí
-- Implementováno prostředí pro produkční nasazení
-- Přidáno podrobné logování pro debugování notifikací
-  - Logování příchozích notifikací ze serveru
-  - Sledování zpracování notifikací v komponentě
-  - Logování drag & drop operací a útoků
-  - Přidáno logování kontroly cílového hráče pro notifikace
-- Přidány tooltips v angličtině pro balíček karet a mana krystaly
-  - Tooltip pro balíček: "Remaining cards in deck"
-  - Tooltip pro manu: "Current/Maximum mana crystals - Used to play cards"
-- Implementován Combat Log systém
-  - Přidáno logování všech herních akcí
-  - Formátované zprávy s barevným rozlišením
-  - Logování útoků, kouzel a efektů jednotek
-  - Časové značky pro všechny akce
-  - Přenos combat log zpráv ze serveru na klienta
-- Rozšířen Combat Log systém
-  - Přidány detailní zprávy pro všechna kouzla a jejich efekty
-  - Přidány zprávy pro efekty jednotek při vyložení
-  - Vylepšeno formátování zpráv s barevným rozlišením různých typů efektů
-  - Změněno označení "AI" na "Enemy" pro multiplayer režim
-- Přidáno logování vyložení jednotek na stůl
-  - Zobrazení jména jednotky
-  - Zobrazení útoku a zdraví jednotky
-  - Zachování konzistentního formátování s ostatními logy
-- Implementován systém uživatelských účtů
-  - Přihlašování a registrace uživatelů
-  - Profily hráčů s historií her
-  - Žebříček nejlepších hráčů
-  - Statistiky výher a proher
-  - Systém hodnocení (rank)
-- Přidáno zobrazení žebříčku do hlavního menu
-- Implementována perzistence herních výsledků
-- Přidána autentizace pro Socket.IO spojení
-- Implementována podpora pro vlastní balíčky karet
-- Přidána databázová struktura pro ukládání balíčků
-- Přidány API endpointy pro správu balíčků
-- Implementováno načítání balíčků z databáze při startu hry
-- Přidána podpora pro omezení počtu kopií karet v balíčku
-- Implementována kontrola velikosti balíčku
-- Přidána podpora pro legendary karty (max 1 kopie)
-- Přidána nová sekce "Decks" do hlavního menu
-- Implementováno rozhraní pro správu balíčků karet
-- Přidána kontrola existence aktivního balíčku před zahájením hry
+- Přidáni dva noví hrdinové:
+  - Seer - schopnost Fortune Draw (líz karty za 2 manu)
+  - Defender - schopnost Protect (dává Taunt náhodné vlastní jednotce za 2 manu)
+- Implementována nová hrdinská schopnost Fortune Draw
+- Implementována nová hrdinská schopnost Protect
+- Přidána vizuální zpětná vazba pro nové hrdinské schopnosti
+
+### Changed
+- Vylepšena vizuální stránka hry přidáním dynamických efektů pro lepší uživatelský zážitek.
+- Upraveno zobrazování poškození, nyní se zobrazuje přesněji u místa útoku pro obě jednotky.
+- Prodloužena doba zobrazení vizuální zpětné vazby z 1,5 na 2,5 sekundy.
+- Zvýšena výraznost vizuální zpětné vazby zvětšením písma a zesílením stínu.
+- Přidáno zpoždění pro zobrazení poškození u útočící jednotky pro správné umístění textu.
+- Vylepšena zpětná vazba pro hráče při nelegálních tazích.
+- Vylešen design notifikací - nyní se zobrazují uprostřed obrazovky s černým poloprůhledným pozadím.
+- Změněno písmo notifikací na Arial.
+- Přidána plynulá animace pro objevení a zmizení notifikací.
+- Prodloužena doba zobrazení notifikací pro lepší čitelnost.
+- Vylepšena logika drag and drop pro prevenci nelegálních tahů.
+- Vylepšena umělá inteligence nepřítele pro náročnějí a zajímavější hru
+  - AI nyní lépe prioritizuje cíle při útoku
+  - Implementována lepší strategie pro hraní karet
+  - AI nyní efektivněji využívá manu a The Coin
+- Upravena komponenta CardDisplay pro zobrazení rubové strany karet protivníka
+- Upraveno zobrazení karet protivníka - nyní se zobrazuje pouze rubová strana karty bez dalších informací
+- Upravena herní logika pro podporu více hráčů
+- Vylepšena stabilita síťové komunikace
+- Optimalizována synchronizace herního stavu
+- Upravena struktura aplikace pro podporu online hraní
+- Vylepšeno UI pro lepší uživatelský zážitek při čekání na protihráče
+- Optimalizována síťová komunikace mezi klientem a serverem
+- Upravena logika tahů pro podporu online hry
+- Vylepšena vizuální zpětná vazba pro online interakce
+- Upraveno zobrazování UI elementů podle stavu hry
+- Upravena architektura aplikace pro lepší oddělení socketové logiky
+- Přesunuty hern konstanty do sdíleného modulu
+- Upraveno pozicování herních elementů pro lepší přehlednost
+- Vylepšeno zobrazení karet v ruce protivníka - nyní jsou viditelné nad jeho hrdinou
+- Upravena konfigurace socketů pro produkční prostředí
+- Přidány environment variables pro různá prostředí
+- Upravena struktura hlavního menu pro podporu uživatelských účtů
+- Vylepšeno UI pro lepší uživatelskou přívětivost
+- Optimalizováno načítání dat ze Supabase
+- Upraveno UI hlavního menu pro lepší integraci správy balíčků
+- Vylepšena vizuální hierarchie menu pomocí nového uspořádání tabů
+- Přidána kontrola existence aktivního balíčku před spuštěním hry
 - Implementován tooltip pro informaci o nutnosti vybrat aktivní balíček
 - Přidáno tlačítko pro vytvoření nového balíčku
 - Implementováno zobrazení seznamu balíčků s počtem karet
