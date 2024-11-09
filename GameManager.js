@@ -498,6 +498,7 @@ class GameManager {
             },
             notification: notification,
             combatLogMessages: game.combatLogMessages || [],
+            animation: game.animation
         };
     }
 
@@ -536,6 +537,9 @@ class GameManager {
         // Přidáme kontrolu konce hry a uložení výsledku
         if (updatedState.gameOver) {
             console.log('Hra skončila po zahrání karty, vítěz:', updatedState.winner);
+
+            // Zachováme poslední animaci
+            updatedState.animation = game.animation;
 
             // Určíme ID vítěze
             let winnerId;
@@ -621,16 +625,17 @@ class GameManager {
         if (updatedState.gameOver) {
             console.log('Hra skončila, vítěz:', updatedState.winner);
 
-            // Určíme ID vítěze - opravíme logiku
+            // Zachováme poslední animaci
+            updatedState.animation = game.animation;
+
             let winnerId;
             if (updatedState.winner === 'draw') {
-                // V případě remízy můžeme použít ID prvního hráče nebo speciální logiku
+                  // V případě remízy můžeme použít ID prvního hráče nebo speciální logiku
                 winnerId = game.players[0].socket.userId;
             } else {
-                // Pevedeme číselný index na ID
+                // Převedeme číselný index na ID
                 winnerId = game.players[updatedState.winner].socket.userId;
             }
-
             console.log('Určen vítěz:', {
                 winnerIndex: updatedState.winner,
                 winnerId: winnerId,
