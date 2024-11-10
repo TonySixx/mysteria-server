@@ -266,7 +266,7 @@ class GameManager {
     }
 
     createDefaultDeck() {
-        // Přesuneme původní logiku vytváření balíčku sem
+        // Přesuneme původní logiku vytv��ření balíčku sem
         const baseDeck = [
             // Základní jednotky (2 kopie každé)
             ...Array(2).fill({ id: 1, name: 'Fire Elemental', manaCost: 4, attack: 5, health: 6, effect: 'Deals 2 damage to enemy hero when played', image: 'fireElemental', rarity: 'rare' }),
@@ -821,166 +821,182 @@ class GameManager {
         if (!game) return;
 
         try {
-            const player1Id = game.players[0].socket.userId;
-            const player2Id = game.players[1].socket.userId;
-
-            // Uložíme originální balíčky (pokud existují, jinak prázdné pole)
-            const player1Deck = game.players[0].originalDeck || [];
-            const player2Deck = game.players[1].originalDeck || [];
-
-            // Vypočítáme délku hry
-            const gameDuration = game.startTime ? new Date() - game.startTime : 0;
-
-            console.log('Ukládám výsledky hry:', {
-                player1Id,
-                player2Id,
-                winnerId,
-                gameDuration,
-                deckSizes: {
-                    player1: player1Deck.length,
-                    player2: player2Deck.length
-                }
-            });
-
-            // Použijeme this.supabase místo globálního supabase
-            const { data: historyData, error: historyError } = await this.supabase
-                .from('game_history')
-                .insert([{
-                    player_id: player1Id,
-                    opponent_id: player2Id,
-                    winner_id: winnerId,
-                    game_duration: `${Math.floor(gameDuration / 1000)} seconds`, // Převedeme na sekundy a formátujeme pro INTERVAL
-                    player_deck: player1Deck,
-                    opponent_deck: player2Deck,
-                    created_at: new Date().toISOString()
-                }]);
-
-            if (historyError) {
-                console.error('Chyba při ukládání historie:', historyError);
-                throw historyError;
+            // Rozdělíme logiku pro PvP a AI hry
+            if (game.isAIGame) {
+                await this.handleAIGameEnd(game, winnerId);
+            } else {
+                await this.handlePvPGameEnd(game, winnerId);
             }
 
-            // Aktualizujeme statistiky hráčů
-            await this.updatePlayerStats(player1Id, winnerId === player1Id);
-            await this.updatePlayerStats(player2Id, winnerId === player2Id)
+            console.log('Úspěšně zpracován konec hry');
 
-            // Objekt pro ukládání odměn a progressu pro oba hráče
-            const rewards = {
-                [player1Id]: { gold: 0, completedChallenges: [] },
-                [player2Id]: { gold: 0, completedChallenges: [] }
-            };
+        } catch (error) {
+            console.error('Error handling game end:', error);
+        }
+    }
 
-            // Základní odměna pouze pro vítěze
-            const baseReward = 50;
-            rewards[winnerId].gold = baseReward;
+    // Nová metoda pro zpracování odměn a výzev
+    async processRewardsAndChallenges(playerId, isWinner, isAIGame) {
+        // Objekt pro ukládání odměn a progressu
+        const rewards = {
+            gold: 0,
+            completedChallenges: [],
+            challengeProgress: []
+        };
 
-            // Aktualizace výzev pro oba hráče
-            const updatePlayerChallenges = async (playerId, isWinner) => {
-                const { data: playerChallenges } = await this.supabase
-                    .from('player_challenges')
-                    .select('*, challenge:challenges(*)')
-                    .eq('player_id', playerId)
-                    .eq('completed', false);
+        // Základní odměna za hru (menší pro AI hry)
+        const baseReward = isAIGame ? 25 : 50;
+        if (isWinner) {
+            rewards.gold = baseReward;
+        }
 
-                if (playerChallenges) {
-                    for (const pc of playerChallenges) {
-                        let newProgress = pc.progress;
-                        let wasCompleted = false;
-                        let progressMade = false;
+        // Aktualizace výzev
+        const { data: playerChallenges } = await this.supabase
+            .from('player_challenges')
+            .select('*, challenge:challenges(*)')
+            .eq('player_id', playerId)
+            .eq('completed', false);
 
-                        switch (pc.challenge.condition_type) {
-                            case 'win_streak':
-                                if (isWinner) {
-                                    newProgress += 1;
-                                    progressMade = true;
-                                } else {
-                                    newProgress = 0; // Reset streak on loss
-                                }
-                                break;
-                            case 'games_played':
-                                newProgress += 1;
-                                progressMade = true;
-                                break;
-                            case 'games_won':
-                                if (isWinner) {
-                                    newProgress += 1;
-                                    progressMade = true;
-                                }
-                                break;
-                        }
+        if (playerChallenges) {
+            for (const pc of playerChallenges) {
+                let newProgress = pc.progress;
+                let wasCompleted = false;
+                let progressMade = false;
 
-                        // Kontrola dokončení výzvy
-                        if (newProgress >= pc.challenge.condition_value) {
-                            wasCompleted = true;
-                            rewards[playerId].completedChallenges.push({
-                                challengeName: pc.challenge.name,
-                                reward: pc.challenge.reward_gold
-                            });
-                        } else if (progressMade) {
-                            // Přidáme informaci o postupu ve výzvě
-                            if (!rewards[playerId].challengeProgress) {
-                                rewards[playerId].challengeProgress = [];
-                            }
-                            rewards[playerId].challengeProgress.push({
-                                challengeName: pc.challenge.name,
-                                currentProgress: newProgress,
-                                targetProgress: pc.challenge.condition_value
-                            });
-                        }
-
-                        // Aktualizace progressu výzvy
-                        await this.supabase
-                            .from('player_challenges')
-                            .update({
-                                progress: newProgress,
-                                completed: wasCompleted
-                            })
-                            .eq('player_id', playerId)
-                            .eq('challenge_id', pc.challenge.id);
-                    }
+                // Některé výzvy nezapočítáváme pro AI hry
+                if (isAIGame && pc.challenge.condition_type === 'win_streak') {
+                    continue;
                 }
-            };
 
-            // Aktualizujeme výzvy pro oba hráče
-            await updatePlayerChallenges(player1Id, player1Id === winnerId);
-            await updatePlayerChallenges(player2Id, player2Id === winnerId);
+                switch (pc.challenge.condition_type) {
+                    case 'win_streak':
+                        if (isWinner) {
+                            newProgress += 1;
+                            progressMade = true;
+                        } else {
+                            newProgress = 0;
+                        }
+                        break;
+                    case 'games_played':
+                        newProgress += 1;
+                        progressMade = true;
+                        break;
+                    case 'games_won':
+                        if (isWinner) {
+                            newProgress += 1;
+                            progressMade = true;
+                        }
+                        break;
+                }
 
-            // Přidáme pouze základní odměnu vítězi
-            const { data: winnerCurrency } = await this.supabase
+                if (newProgress >= pc.challenge.condition_value) {
+                    wasCompleted = true;
+                    rewards.completedChallenges.push({
+                        challengeName: pc.challenge.name,
+                        reward: pc.challenge.reward_gold
+                    });
+                    rewards.gold += pc.challenge.reward_gold;
+                } else if (progressMade) {
+                    rewards.challengeProgress.push({
+                        challengeName: pc.challenge.name,
+                        currentProgress: newProgress,
+                        targetProgress: pc.challenge.condition_value
+                    });
+                }
+
+                // Aktualizace progressu výzvy
+                await this.supabase
+                    .from('player_challenges')
+                    .update({
+                        progress: newProgress,
+                        completed: wasCompleted
+                    })
+                    .eq('player_id', playerId)
+                    .eq('challenge_id', pc.challenge.id);
+            }
+        }
+
+        // Aktualizace měny hráče
+        if (rewards.gold > 0) {
+            const { data: currency } = await this.supabase
                 .from('player_currency')
                 .select('gold_amount')
-                .eq('player_id', winnerId)
+                .eq('player_id', playerId)
                 .single();
 
             await this.supabase
                 .from('player_currency')
                 .update({
-                    gold_amount: winnerCurrency.gold_amount + baseReward
+                    gold_amount: currency.gold_amount + rewards.gold
                 })
-                .eq('player_id', winnerId);
-
-            // Odešleme notifikace oběma hráčům
-            game.players.forEach(player => {
-                const playerId = player.socket.userId;
-                const playerRewards = rewards[playerId];
-
-                if (playerRewards.gold > 0 || 
-                    playerRewards.completedChallenges.length > 0 || 
-                    (playerRewards.challengeProgress && playerRewards.challengeProgress.length > 0)) {
-                    player.socket.emit('rewardEarned', {
-                        gold: playerRewards.gold,
-                        message: `You earned ${playerRewards.gold} gold!`,
-                        completedChallenges: playerRewards.completedChallenges,
-                        challengeProgress: playerRewards.challengeProgress
-                    });
-                }
-            });
-
-            console.log('Úspěšně uloženy výsledky hry a aktualizovány statistiky');
-
-        } catch (error) {
-            console.error('Error handling game end:', error);
+                .eq('player_id', playerId);
         }
+
+        return rewards;
+    }
+
+    async handleAIGameEnd(game, winnerId) {
+        const playerId = game.players[0].socket.userId; // Vždy hráč na indexu 0
+        const isWinner = winnerId === playerId;
+
+        // Zpracujeme odměny a výzvy
+        const rewards = await this.processRewardsAndChallenges(playerId, isWinner, true);
+
+        // Odešleme notifikaci o odměnách
+        if (rewards.gold > 0 || rewards.completedChallenges.length > 0 || rewards.challengeProgress.length > 0) {
+            game.players[0].socket.emit('rewardEarned', {
+                gold: rewards.gold,
+                message: `You earned ${rewards.gold} gold!`,
+                completedChallenges: rewards.completedChallenges,
+                challengeProgress: rewards.challengeProgress
+            });
+        }
+    }
+
+    async handlePvPGameEnd(game, winnerId) {
+        const player1Id = game.players[0].socket.userId;
+        const player2Id = game.players[1].socket.userId;
+
+        // Uložíme originální balíčky
+        const player1Deck = game.players[0].originalDeck || [];
+        const player2Deck = game.players[1].originalDeck || [];
+
+        // Vypočítáme délku hry
+        const gameDuration = game.startTime ? new Date() - game.startTime : 0;
+
+        // Uložíme historii hry
+        await this.supabase
+            .from('game_history')
+            .insert([{
+                player_id: player1Id,
+                opponent_id: player2Id,
+                winner_id: winnerId,
+                game_duration: `${Math.floor(gameDuration / 1000)} seconds`,
+                player_deck: player1Deck,
+                opponent_deck: player2Deck,
+                created_at: new Date().toISOString()
+            }]);
+
+        // Aktualizujeme statistiky hráčů
+        await this.updatePlayerStats(player1Id, winnerId === player1Id);
+        await this.updatePlayerStats(player2Id, winnerId === player2Id);
+
+        // Zpracujeme odměny a výzvy pro oba hráče
+        const player1Rewards = await this.processRewardsAndChallenges(player1Id, winnerId === player1Id, false);
+        const player2Rewards = await this.processRewardsAndChallenges(player2Id, winnerId === player2Id, false);
+
+        // Odešleme notifikace oběma hráčům
+        game.players.forEach((player, index) => {
+            const rewards = index === 0 ? player1Rewards : player2Rewards;
+            if (rewards.gold > 0 || rewards.completedChallenges.length > 0 || rewards.challengeProgress.length > 0) {
+                player.socket.emit('rewardEarned', {
+                    gold: rewards.gold,
+                    message: `You earned ${rewards.gold} gold!`,
+                    completedChallenges: rewards.completedChallenges,
+                    challengeProgress: rewards.challengeProgress
+                });
+            }
+        });
     }
 
     async updatePlayerStats(userId, isWinner) {
