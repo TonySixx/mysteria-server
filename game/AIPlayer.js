@@ -63,22 +63,54 @@ class AIPlayer {
             return null;
         }
 
-        // Seřadíme karty podle priority
+        // Seřadíme karty podle priority a many
         const playableCards = player.hand
             .filter(card => card.manaCost <= player.mana)
-            .sort((a, b) => this.evaluateCard(b) - this.evaluateCard(a));
+            .sort((a, b) => {
+                const valueA = this.evaluateCard(a);
+                const valueB = this.evaluateCard(b);
+                
+                // Pokud je jedna z karet The Coin, dáme jí nižší prioritu
+                if (a.name === 'The Coin' && b.name !== 'The Coin') {
+                    return 1;
+                }
+                if (b.name === 'The Coin' && a.name !== 'The Coin') {
+                    return -1;
+                }
+                
+                return valueB - valueA;
+            });
 
         if (playableCards.length === 0) {
             return null;
         }
 
-        const cardToPlay = playableCards[0];
-        const cardIndex = player.hand.indexOf(cardToPlay);
+        // Pro The Coin zkontrolujeme, zda máme smysluplné využití extra many
+        const bestCard = playableCards[0];
+        if (bestCard.name === 'The Coin') {
+            const potentialPlays = player.hand.filter(card => 
+                card.name !== 'The Coin' && 
+                card.manaCost <= player.mana + 1
+            );
+            
+            if (potentialPlays.length === 0) {
+                // Pokud nemáme co zahrát s extra manou, přeskočíme The Coin
+                if (playableCards.length > 1) {
+                    return {
+                        type: 'playCard',
+                        cardIndex: player.hand.indexOf(playableCards[1]),
+                        destinationIndex: this.findBestPosition(player, playableCards[1])
+                    };
+                }
+                return null;
+            }
+        }
 
+        const cardIndex = player.hand.indexOf(bestCard);
         return {
             type: 'playCard',
             cardIndex: cardIndex,
-            destinationIndex: this.findBestPosition(player, cardToPlay)
+            destinationIndex: this.findBestPosition(player, bestCard)
         };
     }
 
@@ -230,20 +262,72 @@ class AIPlayer {
                 value += opponent.hero.health <= 6 ? 10 : 4;
                 break;
             case 'Healing Touch':
-                value += (30 - player.hero.health) / 2;
+                // Snížíme hodnotu léčení pokud máme hodně životů
+                const missingHealth = 30 - player.hero.health;
+                if (missingHealth < 5) {
+                    value = 0; // Téměř žádná hodnota pokud máme skoro plné životy
+                } else {
+                    value += missingHealth / 2;
+                    
+                    // Zvýšíme hodnotu pokud máme na stole jednotky co se posilují kouzly
+                    const spellSynergy = player.field.some(unit => 
+                        unit && (
+                            unit.name === 'Arcane Familiar' ||
+                            unit.name === 'Mana Wyrm' ||
+                            unit.name === 'Battle Mage' ||
+                            unit.name === 'Arcane Protector'
+                        )
+                    );
+                    if (spellSynergy) value += 2;
+                }
                 break;
             case 'Arcane Intellect':
                 value += player.hand.length < 3 ? 6 : 3;
                 break;
             case 'The Coin':
-                value += player.hand.some(c => c.manaCost === player.mana + 1) ? 5 : 1;
+                // Vyhodnotíme, zda má smysl použít The Coin
+                const nextTurnCards = player.hand.filter(c => 
+                    c.name !== 'The Coin' && 
+                    c.manaCost === player.mana + 1
+                );
+                
+                // Přidáme kontrolu pro karty s manaCost o 2 vyšší
+                const twoMoreManaCards = player.hand.filter(c => 
+                    c.name !== 'The Coin' && 
+                    c.manaCost === player.mana + 2
+                );
+                
+                if (nextTurnCards.length > 0) {
+                    // Máme kartu kterou můžeme hned zahrát
+                    value += 5;
+                } else if (twoMoreManaCards.length >= 2) {
+                    // Máme dvě karty které můžeme zahrát s extra manou
+                    value += 4;
+                } else if (player.hand.length <= 2) {
+                    // Nemá smysl plýtvat The Coin když máme málo karet
+                    value = 0;
+                } else {
+                    value = 1; // Nízká hodnota pokud nemáme dobré využití
+                }
                 break;
             case 'Glacial Burst':
                 value += opponent.field.length * 2;
                 break;
             case 'Inferno Wave':
-                value += opponent.field.filter(unit => unit.health <= 4).length * 3;
+                value += opponent.field.filter(unit => unit && unit.health <= 4).length * 3;
                 break;
+            case 'Lightning Bolt':
+                if (opponent.hero.health <= 3) {
+                    value += 8; // Vysoká priorita pokud můžeme zabít
+                } else {
+                    value += 3;
+                }
+                break;
+        }
+
+        // Snížíme hodnotu pokud nemáme další karty k zahrání
+        if (player.hand.length <= 1 && card.name === 'The Coin') {
+            value = 0;
         }
 
         return value;
