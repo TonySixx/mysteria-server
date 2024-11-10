@@ -266,7 +266,7 @@ class GameManager {
     }
 
     createDefaultDeck() {
-        // Přesuneme původní logiku vytv��ření balíčku sem
+        // Přesuneme původní logiku vytvření balíčku sem
         const baseDeck = [
             // Základní jednotky (2 kopie každé)
             ...Array(2).fill({ id: 1, name: 'Fire Elemental', manaCost: 4, attack: 5, health: 6, effect: 'Deals 2 damage to enemy hero when played', image: 'fireElemental', rarity: 'rare' }),
@@ -275,7 +275,7 @@ class GameManager {
             ...Array(2).fill({ id: 6, name: 'Earth Golem', manaCost: 5, attack: 4, health: 8, effect: 'Taunt', image: 'earthGolem', rarity: 'uncommon' }),
             ...Array(2).fill({ id: 9, name: 'Nimble Sprite', manaCost: 1, attack: 1, health: 2, effect: 'Draw a card when played', image: 'nimbleSprite', rarity: 'common' }),
             ...Array(2).fill({ id: 10, name: 'Arcane Familiar', manaCost: 1, attack: 1, health: 3, effect: 'Gain +1 attack when you cast a spell', image: 'arcaneFamiliar', rarity: 'epic' }),
-            ...Array(2).fill({ id: 15, name: 'Mana Wyrm', manaCost: 2, attack: 2, health: 2, effect: 'Gain +1 attack when you cast a spell', image: 'manaWyrm', rarity: 'rare' }),
+            ...Array(2).fill({ id: 15, name: 'Mana Wyrm', manaCost: 2, attack: 2, health: 3, effect: 'Gain +1 attack when you cast a spell', image: 'manaWyrm', rarity: 'rare' }),
             ...Array(2).fill({ id: 16, name: 'Shadow Assassin', manaCost: 3, attack: 4, health: 2, effect: 'Deal 2 damage to enemy hero when played', image: 'shadowAssassin', rarity: 'rare' }),
             ...Array(2).fill({ id: 43, name: 'Mountain Giant', manaCost: 7, attack: 6, health: 9, effect: 'Taunt', image: 'mountainGiant', rarity: 'rare' }),
             ...Array(2).fill({ id: 44, name: 'Light Champion', manaCost: 6, attack: 5, health: 5, effect: 'Divine Shield', image: 'lightChampion', rarity: 'uncommon' }),
@@ -821,13 +821,29 @@ class GameManager {
         if (!game) return;
 
         try {
+            // Nastavíme gameOver před zpracováním konce hry
+            game.gameOver = true;
+            game.winner = game.players.findIndex(p => p.socket.userId === winnerId);
+
             // Rozdělíme logiku pro PvP a AI hry
             if (game.isAIGame) {
                 await this.handleAIGameEnd(game, winnerId);
+                
+                // Pro AI hry počkáme 5 sekund a pak vyčistíme hru
+                setTimeout(() => {
+                    this.games.delete(gameId);
+                    // Vyčistíme také playerGameMap pro lidského hráče
+                    const humanPlayer = game.players.find(p => !p.socket.isAI);
+                    if (humanPlayer) {
+                        this.playerGameMap.delete(humanPlayer.socket.id);
+                    }
+                }, 5000);
             } else {
                 await this.handlePvPGameEnd(game, winnerId);
             }
 
+            // Odešleme finální stav hry
+            this.broadcastGameState(gameId);
             console.log('Úspěšně zpracován konec hry');
 
         } catch (error) {
@@ -895,7 +911,6 @@ class GameManager {
                         challengeName: pc.challenge.name,
                         reward: pc.challenge.reward_gold
                     });
-                    rewards.gold += pc.challenge.reward_gold;
                 } else if (progressMade) {
                     rewards.challengeProgress.push({
                         challengeName: pc.challenge.name,
@@ -1303,7 +1318,10 @@ class GameManager {
     async makeAIMove(gameId) {
         try {
             const game = this.games.get(gameId);
-            if (!game || !game.isAIGame || game.currentPlayer !== 1) return;
+            // Přidáme kontrolu na gameOver hned na začátku
+            if (!game || !game.isAIGame || game.currentPlayer !== 1 || game.gameOver) {
+                return;
+            }
 
             const ai = new AIPlayer(game, 1);
             
@@ -1311,6 +1329,7 @@ class GameManager {
                 try {
                     // Získáme aktuální stav hry před každým tahem
                     const currentGame = this.games.get(gameId);
+                    // Rozšíříme podmínku o kontrolu gameOver
                     if (!currentGame || currentGame.gameOver || currentGame.currentPlayer !== 1) {
                         return;
                     }
@@ -1329,6 +1348,7 @@ class GameManager {
 
                     // Znovu zkontrolujeme stav hry před provedením tahu
                     const gameBeforeMove = this.games.get(gameId);
+                    // Přidáme kontrolu gameOver i zde
                     if (!gameBeforeMove || gameBeforeMove.gameOver || gameBeforeMove.currentPlayer !== 1) {
                         return;
                     }

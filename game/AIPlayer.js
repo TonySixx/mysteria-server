@@ -8,11 +8,23 @@ class AIPlayer {
     }
 
     async makeMove() {
+        // Přidáme kontrolu na gameOver hned na začátku
+        if (this.gameState.gameOver) {
+            console.log('Hra je ukončena, AI již neprovádí žádné tahy');
+            return null;
+        }
+
         // Simulujeme "přemýšlení" AI
         await new Promise(resolve => setTimeout(resolve, this.thinkingTime));
 
         const player = this.gameState.players[this.playerIndex];
         const opponent = this.gameState.players[1 - this.playerIndex];
+
+        // Znovu kontrola gameOver po "přemýšlení"
+        if (this.gameState.gameOver) {
+            console.log('Hra byla ukončena během přemýšlení AI');
+            return null;
+        }
 
         // 1. Použít hrdinskou schopnost, pokud je to výhodné
         if (this.shouldUseHeroAbility(player, opponent)) {
