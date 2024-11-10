@@ -204,6 +204,43 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('startAIGame', async () => {
+        try {
+            console.log('Received startAIGame request from:', socket.id);
+            
+            // Kontrola, zda je uživatel přihlášen
+            if (!socket.userId) {
+                throw new Error('User not authenticated');
+            }
+
+            // Kontrola, zda uživatel již není ve hře
+            if (gameManager.playerGameMap.has(socket.id)) {
+                throw new Error('Player already in game');
+            }
+
+            // Vytvoření AI hry
+            const gameId = await gameManager.createAIGame(socket);
+            console.log('Created AI game with ID:', gameId);
+
+            // Aktualizace statusu hráče
+            gameManager.updatePlayerStatus(socket.userId, 'in_game');
+
+            // Odeslání odpovědi klientovi
+            socket.emit('joinGameResponse', { 
+                status: 'joined', 
+                gameId,
+                isAIGame: true
+            });
+
+        } catch (error) {
+            console.error('Error starting AI game:', error);
+            socket.emit('error', {
+                message: 'Failed to start AI game',
+                details: error.message
+            });
+        }
+    });
+
 });
 
 

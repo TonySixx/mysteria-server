@@ -2,6 +2,7 @@ const { Card, UnitCard, SpellCard, Hero } = require('./game/CardClasses');
 const { startNextTurn, checkGameOver, playCardCommon, handleUnitEffects, useHeroAbility } = require('./game/gameLogic');
 const { attack } = require('./game/combatLogic');
 const { createClient } = require('@supabase/supabase-js');
+const AIPlayer = require('./game/AIPlayer');
 
 class GameManager {
     constructor(io) {  // Přidáme io parametr do konstruktoru
@@ -267,17 +268,23 @@ class GameManager {
     createDefaultDeck() {
         // Přesuneme původní logiku vytváření balíčku sem
         const baseDeck = [
-            // Základní jednotky (3 kopie každé)
-            ...Array(3).fill({ id: 1, name: 'Fire Elemental', manaCost: 4, attack: 5, health: 6, effect: 'Deals 2 damage when played', image: 'fireElemental', rarity: 'rare' }),
-            ...Array(3).fill({ id: 2, name: 'Shield Bearer', manaCost: 2, attack: 1, health: 7, effect: 'Taunt', image: 'shieldBearer', rarity: 'common' }),
-            ...Array(3).fill({ id: 5, name: 'Water Elemental', manaCost: 3, attack: 3, health: 5, effect: 'Freeze enemy when played', image: 'waterElemental', rarity: 'rare' }),
-            ...Array(3).fill({ id: 6, name: 'Earth Golem', manaCost: 5, attack: 4, health: 8, effect: 'Taunt', image: 'earthGolem', rarity: 'uncommon' }),
-            ...Array(3).fill({ id: 9, name: 'Nimble Sprite', manaCost: 1, attack: 1, health: 2, effect: 'Draw a card when played', image: 'nimbleSprite', rarity: 'common' }),
-            ...Array(3).fill({ id: 10, name: 'Arcane Familiar', manaCost: 1, attack: 1, health: 3, effect: 'Gain +1 attack for each spell cast', image: 'arcaneFamiliar', rarity: 'epic' }),
+            // Základní jednotky (2 kopie každé)
+            ...Array(2).fill({ id: 1, name: 'Fire Elemental', manaCost: 4, attack: 5, health: 6, effect: 'Deals 2 damage to enemy hero when played', image: 'fireElemental', rarity: 'rare' }),
+            ...Array(2).fill({ id: 2, name: 'Shield Bearer', manaCost: 2, attack: 1, health: 7, effect: 'Taunt', image: 'shieldBearer', rarity: 'common' }),
+            ...Array(2).fill({ id: 5, name: 'Water Elemental', manaCost: 3, attack: 3, health: 5, effect: 'Freeze ramdom enemy minion when played', image: 'waterElemental', rarity: 'rare' }),
+            ...Array(2).fill({ id: 6, name: 'Earth Golem', manaCost: 5, attack: 4, health: 8, effect: 'Taunt', image: 'earthGolem', rarity: 'uncommon' }),
+            ...Array(2).fill({ id: 9, name: 'Nimble Sprite', manaCost: 1, attack: 1, health: 2, effect: 'Draw a card when played', image: 'nimbleSprite', rarity: 'common' }),
+            ...Array(2).fill({ id: 10, name: 'Arcane Familiar', manaCost: 1, attack: 1, health: 3, effect: 'Gain +1 attack when you cast a spell', image: 'arcaneFamiliar', rarity: 'epic' }),
+            ...Array(2).fill({ id: 15, name: 'Mana Wyrm', manaCost: 2, attack: 2, health: 2, effect: 'Gain +1 attack when you cast a spell', image: 'manaWyrm', rarity: 'rare' }),
+            ...Array(2).fill({ id: 16, name: 'Shadow Assassin', manaCost: 3, attack: 4, health: 2, effect: 'Deal 2 damage to enemy hero when played', image: 'shadowAssassin', rarity: 'rare' }),
+            ...Array(2).fill({ id: 43, name: 'Mountain Giant', manaCost: 7, attack: 6, health: 9, effect: 'Taunt', image: 'mountainGiant', rarity: 'rare' }),
+            ...Array(2).fill({ id: 44, name: 'Light Champion', manaCost: 6, attack: 5, health: 5, effect: 'Divine Shield', image: 'lightChampion', rarity: 'uncommon' }),
 
-            // Běžná kouzla (3 kopie každého)
-            ...Array(3).fill({ id: 3, name: 'Fireball', manaCost: 4, effect: 'Deal 6 damage', image: 'fireball', rarity: 'uncommon' }),
-            ...Array(3).fill({ id: 7, name: 'Lightning Bolt', manaCost: 2, effect: 'Deal 3 damage', image: 'lightningBolt', rarity: 'common' }),
+
+
+            // Běžná kouzla (2 kopie každého)
+            ...Array(2).fill({ id: 3, name: 'Fireball', manaCost: 4, effect: 'Deal 6 damage to enemy hero', image: 'fireball', rarity: 'uncommon' }),
+            ...Array(2).fill({ id: 7, name: 'Lightning Bolt', manaCost: 2, effect: 'Deal 3 damage to enemy hero', image: 'lightningBolt', rarity: 'common' }),
 
             // Vzácná kouzla (2 kopie každého)
             ...Array(2).fill({ id: 4, name: 'Healing Touch', manaCost: 3, effect: 'Restore 8 health', image: 'healingTouch', rarity: 'common' }),
@@ -426,6 +433,9 @@ class GameManager {
 
         // Odešleme stav oběma hráčům
         game.players.forEach((player, index) => {
+            // Přeskočíme odesílání pro AI hráče
+            if (player.socket.isAI) return;
+
             const playerView = this.createPlayerView(game, index);
 
             // Přidáme animační data, pokud existují
@@ -677,6 +687,11 @@ class GameManager {
 
         this.games.set(gameId, updatedState);
         this.broadcastGameState(gameId);
+
+        // Pokud je další hráč AI, spustíme jeho tah
+        if (updatedState.isAIGame && nextPlayer === 1) {
+            setTimeout(() => this.makeAIMove(gameId), 1000);
+        }
     }
 
     handleDisconnect(gameId, playerIndex) {
@@ -1170,6 +1185,222 @@ class GameManager {
             this.games.set(gameId, newState);           
             this.broadcastGameState(gameId);
         }
+    }
+
+    // Přidáme novou metodu pro vytvoření AI hry
+    async createAIGame(playerSocket) {
+        try {
+            console.log('Creating AI game for player:', playerSocket.id);
+            
+            const gameId = this.generateGameId();
+            console.log('Generated game ID:', gameId);
+
+            // Vytvoříme mock socket pro AI s metodou emit
+            const aiSocket = {
+                id: 'ai-bot',
+                isAI: true,
+                emit: () => {}, // Prázdná funkce, protože AI nepotřebuje dostávat události
+                join: () => {}, // Prázdná funkce pro kompatibilitu s Socket.IO
+                on: () => {}    // Prázdná funkce pro kompatibilitu s Socket.IO
+            };
+
+            // Načteme data hrdiny pro hráče
+            const playerHero = await this.loadHeroData(playerSocket.userId);
+            if (!playerHero) {
+                throw new Error('Failed to load player hero data');
+            }
+
+            // Inicializace balíčků
+            const playerDeck = await this.loadPlayerDeck(playerSocket.userId);
+            if (!playerDeck || playerDeck.length === 0) {
+                throw new Error('Failed to load player deck');
+            }
+
+            const aiDeck = this.createDefaultDeck();
+            console.log('Decks initialized:', {
+                playerDeckSize: playerDeck.length,
+                aiDeckSize: aiDeck.length
+            });
+
+            const gameState = {
+                players: [
+                    {
+                        socket: playerSocket,
+                        username: playerSocket.username,
+                        hero: new Hero(playerSocket.username, 30, playerHero),
+                        deck: playerDeck,
+                        hand: playerDeck.splice(0, 3),
+                        field: [],
+                        mana: 1,
+                        maxMana: 1,
+                        originalDeck: [...playerDeck]
+                    },
+                    {
+                        socket: aiSocket, // Použijeme náš mock socket
+                        username: 'AI Opponent',
+                        hero: new Hero('AI Opponent', 30, {
+                            id: 1,
+                            ability_name: 'Fireblast',
+                            ability_description: 'Deal 2 damage',
+                            ability_cost: 2,
+                            image: 'mage'
+                        }),
+                        deck: aiDeck,
+                        hand: [...aiDeck.splice(0, 3), new SpellCard('coin', 'The Coin', 0, 'Gain 1 Mana Crystal', 'coinImage')],
+                        field: [],
+                        mana: 0,
+                        maxMana: 0,
+                        originalDeck: [...aiDeck]
+                    }
+                ],
+                currentPlayer: 0,
+                turn: 1,
+                gameOver: false,
+                winner: null,
+                startTime: new Date(),
+                spellsPlayedThisGame: 0,
+                endTurnEffects: [],
+                startTurnEffects: [],
+                combatLogMessages: [],
+                isAIGame: true
+            };
+
+            console.log('Game state initialized');
+
+            this.games.set(gameId, gameState);
+            this.setupGameListeners(gameId, playerSocket, 0);
+            this.playerGameMap.set(playerSocket.id, gameId);
+
+            console.log('Game setup completed, emitting initial state');
+
+            // Odešleme počáteční stav hry
+            this.broadcastGameState(gameId);
+
+            return gameId;
+        } catch (error) {
+            console.error('Error in createAIGame:', error);
+            throw error;
+        }
+    }
+
+    // Přidáme metodu pro provedení AI tahu
+    async makeAIMove(gameId) {
+        try {
+            const game = this.games.get(gameId);
+            if (!game || !game.isAIGame || game.currentPlayer !== 1) return;
+
+            const ai = new AIPlayer(game, 1);
+            
+            while (true) {
+                try {
+                    // Získáme aktuální stav hry před každým tahem
+                    const currentGame = this.games.get(gameId);
+                    if (!currentGame || currentGame.gameOver || currentGame.currentPlayer !== 1) {
+                        return;
+                    }
+
+                    // Vytvoříme novou instanci AI s aktuálním stavem
+                    const ai = new AIPlayer(currentGame, 1);
+                    const move = await ai.makeMove();
+
+                    if (!move) {
+                        console.log('AI nemá žádný validní tah, končí tah');
+                        this.handleEndTurn(gameId, 1);
+                        return;
+                    }
+                    
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+
+                    // Znovu zkontrolujeme stav hry před provedením tahu
+                    const gameBeforeMove = this.games.get(gameId);
+                    if (!gameBeforeMove || gameBeforeMove.gameOver || gameBeforeMove.currentPlayer !== 1) {
+                        return;
+                    }
+
+                    let success = false;
+                    switch (move.type) {
+                        case 'playCard':
+                            success = await this.handlePlayCard(gameId, 1, move);
+                            break;
+                        case 'attack':
+                            // Dodatečná validace před útokem
+                            if (this.validateAttack(gameBeforeMove, 1, move)) {
+                                success = await this.handleAttack(gameId, 1, move);
+                            }
+                            break;
+                        case 'heroAbility':
+                            success = await this.handleHeroAbility(gameId, 1);
+                            break;
+                        case 'endTurn':
+                            this.handleEndTurn(gameId, 1);
+                            return;
+                    }
+
+                    if (!success) {
+                        console.log('AI tah selhal, zkouší další tah');
+                        continue;
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                } catch (error) {
+                    console.error('Chyba během AI tahu:', error);
+                    this.handleEndTurn(gameId, 1);
+                    return;
+                }
+            }
+        } catch (error) {
+            console.error('Kritická chyba v makeAIMove:', error);
+            const game = this.games.get(gameId);
+            if (game) {
+                game.gameOver = true;
+                game.winner = 0;
+                this.broadcastGameState(gameId);
+            }
+        }
+    }
+
+    // Přidáme pomocnou metodu pro validaci útoku
+    validateAttack(game, playerIndex, move) {
+        const player = game.players[playerIndex];
+        const opponent = game.players[1 - playerIndex];
+
+        // Kontrola existence útočníka
+        if (!player.field[move.attackerIndex]) {
+            console.log('Útočník neexistuje');
+            return false;
+        }
+
+        // Kontrola, zda útočník může útočit
+        const attacker = player.field[move.attackerIndex];
+        if (attacker.hasAttacked || attacker.frozen) {
+            console.log('Útočník nemůže útočit');
+            return false;
+        }
+
+        // Pro útok na hrdinu
+        if (move.isHeroTarget) {
+            // Kontrola Taunt
+            if (opponent.field.some(unit => unit && unit.hasTaunt)) {
+                console.log('Nelze útočit na hrdinu přes Taunt');
+                return false;
+            }
+            return true;
+        }
+
+        // Pro útok na jednotku
+        if (!opponent.field[move.targetIndex]) {
+            console.log('Cíl útoku neexistuje');
+            return false;
+        }
+
+        // Kontrola Taunt pro útok na jednotku
+        const hasTaunt = opponent.field.some(unit => unit && unit.hasTaunt);
+        if (hasTaunt && !opponent.field[move.targetIndex].hasTaunt) {
+            console.log('Musí nejdřív zaútočit na Taunt');
+            return false;
+        }
+
+        return true;
     }
 }
 
