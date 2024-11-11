@@ -4,7 +4,15 @@ class AIPlayer {
     constructor(gameState, playerIndex) {
         this.gameState = gameState;
         this.playerIndex = playerIndex;
-        this.thinkingTime = 1500; // 1.5 sekundy "přemýšlení"
+        this.thinkingTime = 1500;
+        
+        // Určíme typ balíčku podle hrdiny
+        this.deckType = this.determineDeckType();
+    }
+
+    determineDeckType() {
+        const hero = this.gameState.players[this.playerIndex].hero;
+        return hero.id; // 1 = Mage, 2 = Priest, 3 = Seer
     }
 
     async makeMove() {
@@ -234,29 +242,55 @@ class AIPlayer {
         }
 
         let value = card.attack + card.health;
+        const player = this.gameState.players[this.playerIndex];
+        const opponent = this.gameState.players[1 - this.playerIndex];
 
-        // Bonus pro karty s efekty
+        // Základní hodnota podle efektů
         if (card.hasTaunt) value += 2;
         if (card.hasDivineShield) value += 3;
         if (card.effect.includes('Draw')) value += 2;
         if (card.effect.includes('Freeze')) value += 2;
         if (card.effect.includes('Deal damage')) value += 2;
 
-        // Přizpůsobení hodnoty podle stavu hry
-        const player = this.gameState.players[this.playerIndex];
-        const opponent = this.gameState.players[1 - this.playerIndex];
+        // Speciální hodnocení podle typu balíčku
+        switch (this.deckType) {
+            case 2: // Priest
+                // Vyšší hodnota pro obranné karty
+                if (card.hasTaunt) value += 2;
+                if (card.effect.includes('restore') || card.effect.includes('heal')) value += 3;
+                if (card.health > 5) value += 2;
+                
+                // Speciální karty
+                if (card.name === 'Crystal Guardian') value += 4;
+                if (card.name === 'Spirit Healer') value += 3;
+                if (card.name === 'Ancient Protector') value += 5;
+                break;
 
-        // Preferujeme Taunt jednotky když máme málo životů
-        if (card.hasTaunt && player.hero.health < 15) {
-            value += 3;
+            case 3: // Seer
+                // Vyšší hodnota pro karty se synergií s kouzly
+                if (card.effect.includes('cast a spell')) value += 3;
+                if (card.effect.includes('mana')) value += 2;
+                
+                // Speciální karty
+                if (card.name === 'Arcane Familiar') value += 3;
+                if (card.name === 'Mana Wyrm') value += 3;
+                if (card.name === 'Battle Mage') value += 4;
+                if (card.name === 'Mana Collector') value += 4;
+                break;
+
+            default: // Mage
+                // Vyšší hodnota pro agresivní karty
+                if (card.attack > card.health) value += 1;
+                if (card.effect.includes('damage')) value += 2;
+                break;
         }
 
-        // Preferujeme léčivé efekty když máme málo životů
-        if (card.effect.includes('Restore') && player.hero.health < 15) {
-            value += 3;
+        // Situační hodnota
+        if (player.hero.health < 15) {
+            if (card.hasTaunt) value += 3;
+            if (card.effect.includes('heal') || card.effect.includes('restore')) value += 3;
         }
 
-        // Preferujeme silnější jednotky když prohráváme na poli
         if (opponent.field.length > player.field.length) {
             value += card.attack;
         }
@@ -269,78 +303,115 @@ class AIPlayer {
         const player = this.gameState.players[this.playerIndex];
         const opponent = this.gameState.players[1 - this.playerIndex];
 
+        // Nejdřív zkontrolujeme, zda má kouzlo vůbec smysl použít
         switch (card.name) {
-            case 'Fireball':
-                value += opponent.hero.health <= 6 ? 10 : 4;
-                break;
-            case 'Healing Touch':
-                // Snížíme hodnotu léčení pokud máme hodně životů
-                const missingHealth = 30 - player.hero.health;
-                if (missingHealth < 5) {
-                    value = 0; // Téměř žádná hodnota pokud máme skoro plné životy
-                } else {
-                    value += missingHealth / 2;
-                    
-                    // Zvýšíme hodnotu pokud máme na stole jednotky co se posilují kouzly
-                    const spellSynergy = player.field.some(unit => 
-                        unit && (
-                            unit.name === 'Arcane Familiar' ||
-                            unit.name === 'Mana Wyrm' ||
-                            unit.name === 'Battle Mage' ||
-                            unit.name === 'Arcane Protector'
-                        )
-                    );
-                    if (spellSynergy) value += 2;
-                }
-                break;
-            case 'Arcane Intellect':
-                value += player.hand.length < 3 ? 6 : 3;
-                break;
-            case 'The Coin':
-                // Vyhodnotíme, zda má smysl použít The Coin
-                const nextTurnCards = player.hand.filter(c => 
-                    c.name !== 'The Coin' && 
-                    c.manaCost === player.mana + 1
-                );
-                
-                // Přidáme kontrolu pro karty s manaCost o 2 vyšší
-                const twoMoreManaCards = player.hand.filter(c => 
-                    c.name !== 'The Coin' && 
-                    c.manaCost === player.mana + 2
-                );
-                
-                if (nextTurnCards.length > 0) {
-                    // Máme kartu kterou můžeme hned zahrát
-                    value += 5;
-                } else if (twoMoreManaCards.length >= 2) {
-                    // Máme dvě karty které můžeme zahrát s extra manou
-                    value += 4;
-                } else if (player.hand.length <= 2) {
-                    // Nemá smysl plýtvat The Coin když máme málo karet
-                    value = 0;
-                } else {
-                    value = 1; // Nízká hodnota pokud nemáme dobré využití
-                }
-                break;
-            case 'Glacial Burst':
-                value += opponent.field.length * 2;
-                break;
             case 'Inferno Wave':
-                value += opponent.field.filter(unit => unit && unit.health <= 4).length * 3;
+                // Nepoužívat AoE pokud není na co
+                if (opponent.field.length === 0) return -1;
+                // Spočítáme kolik jednotek by zemřelo
+                const killedUnits = opponent.field.filter(unit => unit && unit.health <= 4).length;
+                value = killedUnits * 3;
+                // Přidáme bonus pokud zabijeme něco důležitého
+                if (opponent.field.some(unit => unit && 
+                    (unit.attack >= 5 || unit.effect.includes('at the end of') || unit.hasTaunt))) {
+                    value += 4;
+                }
                 break;
-            case 'Lightning Bolt':
-                if (opponent.hero.health <= 3) {
-                    value += 8; // Vysoká priorita pokud můžeme zabít
-                } else {
+
+            case 'Arcane Explosion':
+                if (opponent.field.length === 0) return -1;
+                // Hodnotnější pokud zabije nějaké 1 HP jednotky
+                const weakUnits = opponent.field.filter(unit => unit && unit.health === 1).length;
+                value = weakUnits * 3;
+                break;
+
+            case 'Glacial Burst':
+                if (opponent.field.length === 0) return -1;
+                // Hodnotnější pokud zmrazí silné útočící jednotky
+                const strongAttackers = opponent.field.filter(unit => unit && unit.attack >= 4).length;
+                value = strongAttackers * 3;
+                break;
+
+            case 'Healing Touch':
+                const missingHealth = 30 - player.hero.health;
+                if (missingHealth < 5) return -1; // Neléčit pokud není potřeba
+                value = missingHealth / 2;
+                // Extra hodnota pokud jsme v ohrožení života
+                if (player.hero.health < 10) value += 5;
+                break;
+
+            case 'Holy Nova':
+                if (opponent.field.length === 0 && player.hero.health > 25) return -1;
+                value = opponent.field.length * 2; // Hodnota za poškození
+                // Přidáme hodnotu za léčení pokud je potřeba
+                if (player.hero.health < 25) value += 2;
+                if (player.field.some(unit => unit && unit.health < unit.maxHealth)) {
                     value += 3;
                 }
                 break;
+
+            case 'Mass Fortification':
+                const buffableUnits = player.field.filter(unit => !unit.hasTaunt).length;
+                if (buffableUnits === 0) return -1;
+                value = buffableUnits * 2;
+                // Extra hodnota pokud máme málo životů a potřebujeme obranu
+                if (player.hero.health < 15) value += 3;
+                break;
+
+            case 'Arcane Storm':
+                const spellDamage = this.gameState.spellsPlayedThisGame || 0;
+                if (spellDamage < 3) return -1; // Nepoužívat s malým poškozením
+                // Hodnotit podle toho, kolik důležitých věcí zabije
+                const totalKills = [...player.field, ...opponent.field].filter(
+                    unit => unit && unit.health <= spellDamage
+                ).length;
+                value = totalKills * 2;
+                // Přidat hodnotu pokud zabije protivníka
+                if (opponent.hero.health <= spellDamage) value += 10;
+                break;
+
+            case 'Mirror Image':
+                // Hodnotnější pokud potřebujeme obranu
+                if (player.field.length >= 6) return -1; // Není místo
+                if (opponent.field.some(unit => unit && unit.attack >= 4)) {
+                    value += 4;
+                }
+                if (player.hero.health < 15) value += 3;
+                break;
+
+            case 'Arcane Intellect':
+                // Hodnotnější s prázdnou rukou
+                if (player.hand.length >= 8) return -1; // Neriskovat přeplnění ruky
+                value = 7 - player.hand.length; // Čím méně karet, tím lepší
+                break;
+
+            case 'The Coin':
+                // Zkontrolujeme, zda máme kartu, kterou díky coinu můžeme zahrát
+                const playableWithCoin = player.hand.some(c => 
+                    c.name !== 'The Coin' && 
+                    c.manaCost === player.mana + 1 &&
+                    this.evaluateCard(c) > 5 // Jen pro dobré karty
+                );
+                return playableWithCoin ? 5 : -1;
+                break;
+
+            case 'Mana Surge':
+                const potentialMana = player.maxMana - player.mana;
+                if (potentialMana < 3) return -1; // Nepoužívat pro málo many
+                // Zkontrolujeme, zda máme v ruce drahé karty
+                const hasExpensiveCards = player.hand.some(c => 
+                    c.manaCost > player.mana && 
+                    c.manaCost <= player.maxMana
+                );
+                value = hasExpensiveCards ? potentialMana * 2 : -1;
+                break;
         }
 
-        // Snížíme hodnotu pokud nemáme další karty k zahrání
-        if (player.hand.length <= 1 && card.name === 'The Coin') {
-            value = 0;
-        }
+        // Obecné modifikátory
+        if (player.hand.length <= 1) value -= 2;
+        if (player.field.some(unit => unit && unit.name === 'Arcane Familiar')) value += 2;
+        if (player.field.some(unit => unit && unit.name === 'Mana Wyrm')) value += 2;
+        if (player.field.some(unit => unit && unit.name === 'Battle Mage')) value += 2;
 
         return value;
     }
@@ -464,17 +535,36 @@ class AIPlayer {
     }
 
     findBestPosition(player, card) {
-        if (card instanceof SpellCard) {
-            return null;
+        if (card instanceof SpellCard) return null;
+
+        const field = player.field;
+        
+        // Speciální umístění pro karty s efekty na sousední jednotky
+        if (card.name === 'Ancient Protector' || card.name === 'Guardian Totem') {
+            // Najdeme pozici, kde bude nejvíce sousedních jednotek
+            let bestPosition = field.length;
+            let maxNeighbors = 0;
+            
+            for (let i = 0; i <= field.length; i++) {
+                let neighbors = 0;
+                if (i > 0 && field[i-1]) neighbors++;
+                if (i < field.length && field[i]) neighbors++;
+                
+                if (neighbors > maxNeighbors) {
+                    maxNeighbors = neighbors;
+                    bestPosition = i;
+                }
+            }
+            return bestPosition;
         }
 
-        // Pro jednotky s Taunt preferujeme prostřední pozice
+        // Pro Taunt jednotky preferujeme prostřední pozice
         if (card.hasTaunt) {
-            return Math.floor(player.field.length / 2);
+            return Math.floor(field.length / 2);
         }
 
         // Pro ostatní jednotky přidáváme na konec
-        return player.field.length;
+        return field.length;
     }
 
     // Přidáme novou metodu pro výběr nejlepšího útočníka

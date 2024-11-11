@@ -1226,7 +1226,48 @@ class GameManager {
             const gameId = this.generateGameId();
             console.log('Generated game ID:', gameId);
 
-            // Vytvoříme mock socket pro AI s metodou emit
+            // Náhodně vybereme AI hrdinu a odpovídající balíček
+            const aiHeroChoice = Math.floor(Math.random() * 3) + 1; // 1 = Mage, 2 = Priest, 3 = Seer
+            let aiDeck;
+            let aiHero;
+
+            switch (aiHeroChoice) {
+                case 1:
+                    aiDeck = this.createMageDeck();
+                    aiHero = {
+                        id: 1,
+                        name: 'Mage',
+                        ability_name: 'Fireblast',
+                        ability_description: 'Deal 2 damage to enemy hero',
+                        ability_cost: 2,
+                        image: 'mage'
+                    };
+                    break;
+                case 2:
+                    aiDeck = this.createPriestDeck();
+                    aiHero = {
+                        id: 2,
+                        name: 'Priest',
+                        ability_name: 'Lesser Heal',
+                        ability_description: 'Restore 2 health to your hero',
+                        ability_cost: 2,
+                        image: 'priest'
+                    };
+                    break;
+                case 3:
+                    aiDeck = this.createSeerDeck();
+                    aiHero = {
+                        id: 3,
+                        name: 'Seer',
+                        ability_name: 'Fortune Draw',
+                        ability_description: 'Draw a random card from your deck',
+                        ability_cost: 2,
+                        image: 'seer'
+                    };
+                    break;
+            }
+
+            // Vytvoříme mock socket pro AI
             const aiSocket = {
                 id: 'ai-bot',
                 isAI: true,
@@ -1241,17 +1282,11 @@ class GameManager {
                 throw new Error('Failed to load player hero data');
             }
 
-            // Inicializace balíčků
+            // Inicializace balíčku pro hráče
             const playerDeck = await this.loadPlayerDeck(playerSocket.userId);
             if (!playerDeck || playerDeck.length === 0) {
                 throw new Error('Failed to load player deck');
             }
-
-            const aiDeck = this.createDefaultDeck();
-            console.log('Decks initialized:', {
-                playerDeckSize: playerDeck.length,
-                aiDeckSize: aiDeck.length
-            });
 
             const gameState = {
                 players: [
@@ -1269,13 +1304,7 @@ class GameManager {
                     {
                         socket: aiSocket, // Použijeme náš mock socket
                         username: 'AI Opponent',
-                        hero: new Hero('AI Opponent', 30, {
-                            id: 1,
-                            ability_name: 'Fireblast',
-                            ability_description: 'Deal 2 damage',
-                            ability_cost: 2,
-                            image: 'mage'
-                        }),
+                        hero: new Hero('AI Opponent', 30, aiHero),
                         deck: aiDeck,
                         hand: [...aiDeck.splice(0, 3), new SpellCard('coin', 'The Coin', 0, 'Gain 1 Mana Crystal', 'coinImage')],
                         field: [],
@@ -1438,6 +1467,108 @@ class GameManager {
 
         return true;
     }
+
+    // Přidáme nové metody pro AI balíčky
+    createMageDeck() {
+        // Původní agresivní balíček zůstává pro mága
+        return this.createDefaultDeck();
+    }
+
+    createPriestDeck() {
+        const baseDeck = [
+            // Defenzivní jednotky s Taunt (2 kopie každé)
+            ...Array(2).fill({ id: 2, name: 'Shield Bearer', manaCost: 2, attack: 1, health: 7, effect: 'Taunt', image: 'shieldBearer', rarity: 'common' }),
+            ...Array(2).fill({ id: 6, name: 'Earth Golem', manaCost: 5, attack: 4, health: 8, effect: 'Taunt', image: 'earthGolem', rarity: 'uncommon' }),
+            ...Array(2).fill({ id: 43, name: 'Mountain Giant', manaCost: 7, attack: 6, health: 9, effect: 'Taunt', image: 'mountainGiant', rarity: 'rare' }),
+            ...Array(2).fill({ id: 44, name: 'Light Champion', manaCost: 6, attack: 5, health: 5, effect: 'Divine Shield', image: 'lightChampion', rarity: 'uncommon' }),
+            
+            // Léčivé a kontrolní jednotky
+            ...Array(2).fill({ id: 9, name: 'Nimble Sprite', manaCost: 1, attack: 1, health: 2, effect: 'Draw a card when played', image: 'nimbleSprite', rarity: 'common' }),
+            ...Array(2).fill({ id: 5, name: 'Water Elemental', manaCost: 3, attack: 3, health: 5, effect: 'Freeze random enemy minion when played', image: 'waterElemental', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Crystal Guardian', manaCost: 5, attack: 3, health: 6, effect: 'Divine Shield, Taunt. When Divine Shield is broken, restore 3 health to your hero', image: 'crystalGuardian', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Spirit Healer', manaCost: 5, attack: 4, health: 4, effect: 'When you cast a spell, restore 2 health to your hero', image: 'spiritHealer', rarity: 'rare' }),
+            
+            // Léčivá kouzla
+            ...Array(2).fill({ id: 4, name: 'Healing Touch', manaCost: 3, effect: 'Restore 8 health', image: 'healingTouch', rarity: 'common' }),
+            ...Array(2).fill({ name: 'Holy Nova', manaCost: 5, effect: 'Deal 2 damage to all enemies and restore 2 health to all friendly characters', image: 'holyNova', rarity: 'rare' }),
+            
+            // Kontrolní kouzla
+            ...Array(2).fill({ name: 'Mass Fortification', manaCost: 4, effect: 'Give all friendly minions Taunt and +0/+2', image: 'massFortification', rarity: 'rare' }),
+            ...Array(2).fill({ id: 11, name: 'Glacial Burst', manaCost: 3, effect: 'Freeze all enemy minions', image: 'glacialBurst', rarity: 'epic' }),
+            
+            // Legendární karta
+            { name: 'Ancient Protector', manaCost: 8, attack: 5, health: 9, effect: 'Divine Shield, Taunt. Adjacent minions also gain Divine Shield', image: 'ancientProtector', rarity: 'legendary' },
+            
+            // Doplnění do 30 karet
+            ...Array(2).fill({ name: 'Guardian Totem', manaCost: 4, attack: 2, health: 5, effect: 'Taunt. Adjacent minions gain Taunt', image: 'guardianTotem', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Stone Guardian', manaCost: 3, attack: 2, health: 5, effect: 'Taunt', image: 'stoneGuardian', rarity: 'common' })
+        ];
+
+        return this.createDeckFromTemplate(baseDeck);
+    }
+
+    createSeerDeck() {
+        const baseDeck = [
+            // Karty s efekty při seslání kouzel (2 kopie každé)
+            ...Array(2).fill({ id: 10, name: 'Arcane Familiar', manaCost: 1, attack: 1, health: 3, effect: 'Gain +1 attack when you cast a spell', image: 'arcaneFamiliar', rarity: 'epic' }),
+            ...Array(2).fill({ id: 15, name: 'Mana Wyrm', manaCost: 2, attack: 2, health: 3, effect: 'Gain +1 attack when you cast a spell', image: 'manaWyrm', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Battle Mage', manaCost: 4, attack: 3, health: 5, effect: 'When you cast a spell, this minion gains +2 attack this turn', image: 'battleMage', rarity: 'rare' }),
+            
+            // Karty pro manipulaci s manou
+            ...Array(2).fill({ name: 'Mana Crystal', manaCost: 1, attack: 1, health: 3, effect: 'When this minion dies, gain 1 mana crystal', image: 'manaCrystal', rarity: 'common' }),
+            ...Array(2).fill({ name: 'Mana Collector', manaCost: 5, attack: 3, health: 6, effect: 'At the start of your turn, gain mana equal to this minions attack', image: 'manaCollector', rarity: 'uncommon' }),
+            
+            // Kouzla pro lízání karet
+            ...Array(2).fill({ id: 8, name: 'Arcane Intellect', manaCost: 3, effect: 'Draw 2 cards', image: 'arcaneIntellect', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Spell Seeker', manaCost: 2, attack: 2, health: 3, effect: 'Draw a random spell from your deck when played', image: 'spellSeeker', rarity: 'rare' }),
+            
+            // Kontrolní kouzla
+            ...Array(2).fill({ name: 'Mirror Image', manaCost: 2, effect: 'Create two 0/2 Mirror Images with Taunt', image: 'mirrorImage', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Arcane Explosion', manaCost: 2, effect: 'Deal 1 damage to all enemy minions', image: 'arcaneExplosion', rarity: 'common' }),
+            
+            // Silná kouzla
+            ...Array(2).fill({ name: 'Mana Surge', manaCost: 3, effect: 'Restore your mana crystals to maximum available this turn', image: 'manaSurge', rarity: 'epic' }),
+            ...Array(2).fill({ name: 'Arcane Storm', manaCost: 7, effect: 'Deal 1 damage to all characters for each spell cast this game', image: 'arcaneStorm', rarity: 'epic' }),
+            
+            // Legendární karta
+            { name: 'Time Weaver', manaCost: 8, attack: 6, health: 8, effect: 'At the end of your turn, restore 2 health to all friendly characters', image: 'timeWeaver', rarity: 'legendary' },
+            
+            // Doplnění do 30 karet
+            ...Array(2).fill({ name: 'Spell Weaver', manaCost: 4, attack: 2, health: 3, effect: 'Gain +1/+1 for each spell in your hand when played', image: 'spellWeaver', rarity: 'epic' }),
+            ...Array(2).fill({ name: 'Arcane Guardian', manaCost: 3, attack: 2, health: 4, effect: 'Has +1 health for each spell in your hand', image: 'arcaneGuardian', rarity: 'common' })
+        ];
+
+        return this.createDeckFromTemplate(baseDeck);
+    }
+
+    // Pomocná funkce pro vytvoření balíčku z šablony
+    createDeckFromTemplate(template) {
+        return template.map(card => {
+            const uniqueId = `ai-${card.id || Math.random()}-${Math.random()}`;
+            if (card.attack !== undefined) {
+                return new UnitCard(
+                    uniqueId,
+                    card.name,
+                    card.manaCost,
+                    card.attack,
+                    card.health,
+                    card.effect,
+                    card.image,
+                    card.rarity
+                );
+            } else {
+                return new SpellCard(
+                    uniqueId,
+                    card.name,
+                    card.manaCost,
+                    card.effect,
+                    card.image,
+                    card.rarity
+                );
+            }
+        }).sort(() => Math.random() - 0.5);
+    }
+
 }
 
 module.exports = GameManager;
