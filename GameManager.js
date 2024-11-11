@@ -743,9 +743,9 @@ class GameManager {
             // Uklidíme hru
             this.cleanupGame(gameId);
         } else {
-            // Ukončíme hru ve prospěch připojeného hráče
             const winner = 1 - playerIndex;
-            this.handleGameEnd(gameId, game.players[winner].socket.userId);
+            // Ukončíme hru ve prospěch připojeného hráče
+            this.handleGameEnd(gameId, game.players[winner].socket.userId,true);
             
             // Informujeme připojeného hráče
             const opponent = game.players[winner];
@@ -816,7 +816,7 @@ class GameManager {
         console.log(`Hráč ${socket.id} zrušil hledání. Počet hledajících: ${this.searchingPlayers.size}`);
     }
 
-    async handleGameEnd(gameId, winnerId) {
+    async handleGameEnd(gameId, winnerId,endedByDisconnect) {
         const game = this.games.get(gameId);
         if (!game) return;
 
@@ -839,7 +839,7 @@ class GameManager {
                     }
                 }, 5000);
             } else {
-                await this.handlePvPGameEnd(game, winnerId);
+                await this.handlePvPGameEnd(game, winnerId,endedByDisconnect);
             }
 
             // Odešleme finální stav hry
@@ -968,7 +968,10 @@ class GameManager {
         }
     }
 
-    async handlePvPGameEnd(game, winnerId) {
+    async handlePvPGameEnd(game, winnerId,endedByDisconnect) {
+        if (endedByDisconnect) {
+            return;
+        }
         const player1Id = game.players[0].socket.userId;
         const player2Id = game.players[1].socket.userId;
 
