@@ -483,21 +483,49 @@ class AIPlayer {
     }
 
     isGoodTrade(attacker, target) {
+        // Přidáme kontrolu na Mirror Image a podobné čistě obranné jednotky
+        if (attacker.attack === 0 || (attacker.hasTaunt && attacker.attack <= 1)) {
+            // Neútočit s obrannými jednotkami, pokud nemáme speciální efekty
+            const hasDeathEffectSynergy = this.gameState.players[this.playerIndex].field.some(unit => 
+                unit && unit.effect && (
+                    unit.effect.includes('any minion dies') ||
+                    unit.name === 'Soul Harvester'
+                )
+            );
+
+            if (!hasDeathEffectSynergy) {
+                return false;
+            }
+        }
+
         // Výměna je dobrá pokud:
         // 1. Zabijeme jednotku a přežijeme
         if (attacker.attack >= target.health && attacker.health > target.attack) {
             return true;
         }
 
-        // 2. Zabijeme silnější jednotku
+        // 2. Zabijeme silnější nebo stejně silnou jednotku
         if (attacker.attack >= target.health && 
-            (target.attack + target.health > attacker.attack + attacker.health)) {
+            (target.attack + target.health >= attacker.attack + attacker.health)) {
             return true;
         }
 
         // 3. Zabijeme jednotku s důležitým efektem
-        if (attacker.attack >= target.health && 
-            (target.hasTaunt || target.effect.includes('at the end of your turn'))) {
+        if (attacker.attack >= target.health && (
+            target.hasTaunt || 
+            target.effect.includes('at the end of your turn') ||
+            target.effect.includes('when you cast a spell') ||
+            target.attack >= 4 ||
+            target.effect.includes('Divine Shield')
+        )) {
+            return true;
+        }
+
+        // 4. Máme Divine Shield a je výhodné ho použít
+        if (attacker.hasDivineShield && (
+            target.attack >= 2 || // Stojí za to použít Divine Shield
+            target.health <= attacker.attack // Můžeme zabít cíl
+        )) {
             return true;
         }
 
@@ -511,22 +539,43 @@ class AIPlayer {
                 return null;
             }
 
+            // Seřadíme cíle podle priority
             return targets.reduce((best, current) => {
                 if (!best) return current;
                 if (!current) return best;
-                
-                // Preferujeme cíle, které můžeme zničit
-                if (attacker.attack >= current.health && 
-                    (best.health > current.health || attacker.attack < best.health)) {
-                    return current;
+
+                // Pokud je útočník obranná jednotka, vracíme null
+                if (attacker.attack === 0 || (attacker.hasTaunt && attacker.attack <= 1)) {
+                    const hasDeathEffectSynergy = this.gameState.players[this.playerIndex].field.some(unit => 
+                        unit && unit.effect && (
+                            unit.effect.includes('any minion dies') ||
+                            unit.name === 'Soul Harvester'
+                        )
+                    );
+                    
+                    if (!hasDeathEffectSynergy) {
+                        return null;
+                    }
                 }
                 
-                // Jinak preferujeme nebezpečnější jednotky
-                if (current.attack > best.attack) {
-                    return current;
+                // Prioritizujeme cíle, které můžeme zabít
+                const canKillCurrent = attacker.attack >= current.health;
+                const canKillBest = attacker.attack >= best.health;
+                
+                if (canKillCurrent !== canKillBest) {
+                    return canKillCurrent ? current : best;
+                }
+                
+                // Prioritizujeme nebezpečnější jednotky
+                const currentThreat = this.evaluateUnitThreat(current);
+                const bestThreat = this.evaluateUnitThreat(best);
+                
+                if (currentThreat !== bestThreat) {
+                    return currentThreat > bestThreat ? current : best;
                 }
 
-                return best;
+                // Při stejné hodnotě hrozby preferujeme slabší jednotky
+                return current.health < best.health ? current : best;
             }, null);
         } catch (error) {
             console.error('Chyba při hledání nejlepšího cíle:', error);
@@ -577,6 +626,20 @@ class AIPlayer {
 
             return currentValue > bestValue ? current : best;
         }, null);
+    }
+
+    // Přidáme novou metodu pro hodnocení hrozby jednotky
+    evaluateUnitThreat(unit) {
+        let threat = unit.attack;
+        
+        // Přidáme hodnotu za speciální efekty
+        if (unit.effect.includes('at the end of your turn')) threat += 3;
+        if (unit.effect.includes('when you cast a spell')) threat += 2;
+        if (unit.hasDivineShield) threat += 2;
+        if (unit.hasTaunt) threat += 1;
+        if (unit.effect.includes('Draw')) threat += 2;
+        
+        return threat;
     }
 }
 
