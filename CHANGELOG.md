@@ -8,6 +8,7 @@
 - Implementována nová hrdinská schopnost Fortune Draw
 - Implementována nová hrdinská schopnost Protect
 - Přidána vizuální zpětná vazba pro nové hrdinské schopnosti
+- New hero: Warrior with hero power "Battle Command" that gives +1 Attack to a random friendly minion
 
 ### Changed
 - Vylepšena vizuální stránka hry přidáním dynamických efektů pro lepší uživatelský zážitek.
@@ -276,7 +277,7 @@
 - Přidána mapa obrázků karet pro správné přiřazení obrázků ke kartám
 
 ### Changed
-- Upravena funkce getPlayerView pro posílání informac�� o kartách v ruce protihráče
+- Upravena funkce getPlayerView pro posílání informac o kartách v ruce protihráče
 - Implementováno bezpečné sdílení informací - protihráčovy karty v ruce jsou skryté
 
 ### Security

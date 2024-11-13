@@ -254,8 +254,18 @@ function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
     if (!unit) return;
 
     const oldHealth = unit.health;
+    const hadDivineShield = unit.hasDivineShield;  // Uložíme si informaci o Divine Shield před poškozením
+
     if (unit.hasDivineShield) {
         unit.hasDivineShield = false;
+        
+        // Přidáme efekt Crystal Guardian při ztrátě Divine Shield
+        if (unit.name === 'Crystal Guardian' && !unit.divineShieldProcessed) {
+            const player = newState.players[1 - playerIndex]; // Získáme vlastníka jednotky
+            player.hero.health = Math.min(30, player.hero.health + 3);
+            unit.divineShieldProcessed = true;
+            addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Crystal Guardian</span> restored <span class="heal">3 health</span> to their hero`);
+        }
     } else {
         // Použijeme applySpellDamage místo přímého poškození
         if (unit.isCursed) {
@@ -1169,6 +1179,19 @@ function useHeroAbility(state, playerIndex) {
                 addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> used <span class="spell-name">Protect</span> giving <span class="buff">Taunt</span> to <span class="spell-name">${randomMinion.name}</span>`);
             } else {
                 addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> used <span class="spell-name">Protect</span> but had no valid targets`);
+            }
+            break;
+        case 5: // Warrior
+            const availableMinionsBuff = player.field.filter(unit => unit);
+            if (availableMinionsBuff.length > 0) {
+                const randomMinion = availableMinionsBuff[Math.floor(Math.random() * availableMinionsBuff.length)];
+                randomMinion.attack += 1;
+                if (randomMinion.baseAttack !== undefined) {
+                    randomMinion.baseAttack += 1;
+                }
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> used <span class="spell-name">Battle Command</span> giving <span class="buff">+1 Attack</span> to <span class="spell-name">${randomMinion.name}</span>`);
+            } else {
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> used <span class="spell-name">Battle Command</span> but had no valid targets`);
             }
             break;
         default:
