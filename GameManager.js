@@ -146,6 +146,7 @@ class GameManager {
         );
 
         const gameState = {
+            gameId,
             players: [
                 {
                     socket: player1Socket,
@@ -423,7 +424,9 @@ class GameManager {
 
     // Generování unikátního ID hry
     generateGameId() {
-        return Math.random().toString(36).substring(2, 15);
+        const timestamp = Date.now().toString(36); // Převedeme aktuální čas na base36
+        const randomPart = Math.random().toString(36).substring(2, 8); // Náhodná část
+        return `${timestamp}-${randomPart}`; // Kombinace času a náhodného řetězce
     }
 
     // Broadcast aktuálního stavu hry oběma hráčům
@@ -1292,6 +1295,7 @@ class GameManager {
             }
 
             const gameState = {
+                gameId,
                 players: [
                     {
                         socket: playerSocket,
@@ -1305,7 +1309,7 @@ class GameManager {
                         originalDeck: [...playerDeck]
                     },
                     {
-                        socket: aiSocket, // Použijeme náš mock socket
+                        socket: aiSocket, // Použijeme ná mock socket
                         username: 'AI Opponent',
                         hero: new Hero('AI Opponent', 30, aiHero),
                         deck: aiDeck,
