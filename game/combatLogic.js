@@ -1,4 +1,5 @@
 const { checkGameOver, addCombatLogMessage } = require("./gameLogic");
+const { UnitCard } = require('./CardClasses');
 
 // Helper funkce pro bezpečnou kopii herního stavu
 function cloneGameState(state) {
@@ -526,6 +527,34 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
                 addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Death Prophet</span> <span class="draw">drew a card</span> on death`);
             }
         }
+
+        // Přidáme efekt pro Phoenix
+        if (attacker.name === 'Phoenix') {
+            const player = state.players[attackerPlayerIndex];
+            const fieldIndex = player.field.findIndex(card => card && card.id === attacker.id);
+            if (fieldIndex !== -1) {
+                // Vytvoříme Phoenix Hatchling
+                const hatchling = new UnitCard(
+                    `hatchling-${Date.now()}`,
+                    'Phoenix Hatchling',
+                    2,
+                    2,
+                    2,
+                    '',
+                    'phoenixHatchling',
+                    'legendary'
+                );
+                player.field[fieldIndex] = hatchling;
+                addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Phoenix</span> was reborn as a Phoenix Hatchling`);
+            }
+        }
+
+        // Přidáme efekt pro Cursed Imp
+        if (attacker.name === 'Cursed Imp') {
+            const player = state.players[attackerPlayerIndex];
+            player.hero.health = Math.max(0, player.hero.health - 3);
+            addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Cursed Imp</span> dealt <span class="damage">3 damage</span> to their hero`);
+        }
     }
 
     if (defender.health <= 0) {
@@ -537,6 +566,34 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
                 defenderPlayer.hand.push(drawnCard);
                 addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${defenderPlayer.username}'s</span> <span class="spell-name">Death Prophet</span> <span class="draw">drew a card</span> on death`);
             }
+        }
+
+        // Přidáme efekt pro Phoenix
+        if (defender.name === 'Phoenix') {
+            const player = state.players[1 - attackerPlayerIndex];
+            const fieldIndex = player.field.findIndex(card => card && card.id === defender.id);
+            if (fieldIndex !== -1) {
+                // Vytvoříme Phoenix Hatchling
+                const hatchling = new UnitCard(
+                    `hatchling-${Date.now()}`,
+                    'Phoenix Hatchling',
+                    2,
+                    2,
+                    2,
+                    '',
+                    'phoenixHatchling',
+                    'legendary'
+                );
+                player.field[fieldIndex] = hatchling;
+                addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Phoenix</span> was reborn as a Phoenix Hatchling`);
+            }
+        }
+
+        // Přidáme efekt pro Cursed Imp
+        if (defender.name === 'Cursed Imp') {
+            const player = state.players[1 - attackerPlayerIndex];
+            player.hero.health = Math.max(0, player.hero.health - 3);
+            addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Cursed Imp</span> dealt <span class="damage">3 damage</span> to their hero`);
         }
     }
 

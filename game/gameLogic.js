@@ -195,6 +195,16 @@ function startNextTurn(state, nextPlayer) {
         newState.startTurnEffects = [];
     }
 
+    // Přidáme efekt pro Raging Berserker
+    newState.players.forEach((player, playerIndex) => {
+        player.field.forEach(card => {
+            if (card && card.name === 'Raging Berserker' && card.attack > 1) {
+                card.attack -= 1;
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Raging Berserker</span> lost <span class="attack">1 attack</span>`);
+            }
+        });
+    });
+
     return newState;
 }
 
@@ -324,6 +334,34 @@ function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
                 }
             });
         });
+
+        // Přidáme efekt pro Phoenix
+        if (unit.name === 'Phoenix') {
+            const player = newState.players[1 - playerIndex];
+            const fieldIndex = player.field.findIndex(card => card && card.id === unit.id);
+            if (fieldIndex !== -1) {
+                // Vytvoříme Phoenix Hatchling
+                const hatchling = new UnitCard(
+                    `hatchling-${Date.now()}`,
+                    'Phoenix Hatchling',
+                    2,
+                    2,
+                    2,
+                    '',
+                    'phoenixHatchling',
+                    'legendary'
+                );
+                player.field[fieldIndex] = hatchling;
+                addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Phoenix</span> was reborn as a Phoenix Hatchling`);
+            }
+        }
+
+        // Přidáme efekt pro Cursed Imp
+        if (unit.name === 'Cursed Imp') {
+            const player = newState.players[1 - playerIndex];
+            player.hero.health = Math.max(0, player.hero.health - 3);
+            addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Cursed Imp</span> dealt <span class="damage">3 damage</span> to their hero`);
+        }
     }
 }
 

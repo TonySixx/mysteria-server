@@ -118,7 +118,16 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Mass Fortification', 4, NULL, NULL, 'Give all friendly minions Taunt and +0/+2', 'massFortification', 'rare', 'spell'),
 
     -- Death Prophet (1 mana - common jednotka)
-    ('Death Prophet', 1, 1, 1, 'When this minion dies, draw a card', 'deathProphet', 'common', 'unit');
+    ('Death Prophet', 1, 1, 1, 'When this minion dies, draw a card', 'deathProphet', 'common', 'unit'),
+
+    -- Fénix - legendární karta s efektem znovuzrození
+    ('Phoenix', 4, 4, 3, 'When this minion dies, summon a 2/2 Phoenix Hatchling', 'phoenix', 'legendary', 'unit'),
+    
+    -- Berserker - karta ztrácející útok
+    ('Raging Berserker', 3, 5, 3, 'At the end of each turn, this minion loses 1 attack until it reaches 1', 'ragingBerserker', 'rare', 'unit'),
+    
+    -- Cursed Imp - silná karta s nevýhodou
+    ('Cursed Imp', 1, 3, 3, 'When this minion dies, deal 3 damage to your hero', 'cursedImp', 'legendary', 'unit');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 
