@@ -274,7 +274,7 @@
 - Opraveno zobrazení rubu karet pouze pro karty v ruce protivníka
 
 ### Added
-- Přidána mapa obrázků karet pro správné přiřazení obrázků ke kartám
+- Přidána mapa obrázků karet pro správné piřazení obrázků ke kartám
 
 ### Changed
 - Upravena funkce getPlayerView pro posílání informac o kartách v ruce protihráče
@@ -295,7 +295,7 @@
 ### Changed
 - Vylepšen design matchmaking obrazovky
   - Přidáno elegantní gradientové pozadí
-  - Přidány animované efekty pro lepší vizuální dojem
+  - Přidány animované efekty pro lepší vizuáln�� dojem
   - Implementován světelný efekt ve středu obrazovky
 
 ### Fixed
@@ -416,7 +416,7 @@
 
 ### Added
 - Přidáno podrobné logování na serveru
-  - Logování průběhu útoku a soubojů
+  - Logován�� průběhu útoku a soubojů
   - Sledování změn zdraví jednotek a hrdinů
   - Logování kontrol Taunt efektu
 
@@ -709,4 +709,20 @@
 - Upraveno CORS nastavení pro podporu více origins oddělených čárkou
 - Přidána lepší kontrola CORS origins včetně podpory vývoje
 - Přidána podpora pro PATCH metodu v CORS nastaveních
+
+### Added
+- New legendary card: Spirit Guardian (2 mana 1/3 with Divine Shield and unique effect)
+- New uncommon card: Flame Warrior (4 mana 6/8 with self-damage effect)
+- New uncommon card: Arcane Wisp (1 mana 1/1 that gives The Coin on death)
+
+### Balance
+- Added new defensive option with Spirit Guardian for control decks
+- Added new aggressive option with Flame Warrior as an alternative to Fire Elemental
+- Added new economy card with Arcane Wisp for combo decks
+
+### Balance Changes
+- Upravena karta Flame Warrior (4 mana, 6/8):
+  - Změněn efekt na "Takes 2 damage whenever this minion attacks"
+  - Zvýšeno základní zdraví pro lepší využitelnost efektu
+  - Nyní nabízí zajímavější strategické rozhodování při útocích
 

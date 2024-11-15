@@ -127,7 +127,12 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Raging Berserker', 3, 5, 3, 'At the end of each turn, this minion loses 1 attack until it reaches 1', 'ragingBerserker', 'rare', 'unit'),
     
     -- Cursed Imp - silná karta s nevýhodou
-    ('Cursed Imp', 1, 3, 3, 'When this minion dies, deal 3 damage to your hero', 'cursedImp', 'legendary', 'unit');
+    ('Cursed Imp', 1, 3, 3, 'When this minion dies, deal 3 damage to your hero', 'cursedImp', 'legendary', 'unit'),
+
+    -- Přidáme nové karty
+    ('Spirit Guardian', 2, 1, 3, 'Divine Shield. When Divine Shield is broken, give a random friendly minion Divine Shield', 'spiritGuardian', 'legendary', 'unit'),
+    ('Flame Warrior', 4, 6, 6, 'Takes 2 damage whenever this minion attacks', 'flameWarrior', 'uncommon', 'unit'),
+    ('Arcane Wisp', 1, 1, 1, 'When this minion dies, add a copy of The Coin to your hand', 'arcaneWisp', 'uncommon', 'unit');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 

@@ -264,17 +264,32 @@ function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
     if (!unit) return;
 
     const oldHealth = unit.health;
-    const hadDivineShield = unit.hasDivineShield;  // Uložíme si informaci o Divine Shield před poškozením
+    const hadDivineShield = unit.hasDivineShield;
 
     if (unit.hasDivineShield) {
         unit.hasDivineShield = false;
         
-        // Přidáme efekt Crystal Guardian při ztrátě Divine Shield
+        // Efekt Crystal Guardian při ztrátě Divine Shield
         if (unit.name === 'Crystal Guardian' && !unit.divineShieldProcessed) {
-            const player = newState.players[1 - playerIndex]; // Získáme vlastníka jednotky
+            const player = newState.players[1 - playerIndex];
             player.hero.health = Math.min(30, player.hero.health + 3);
             unit.divineShieldProcessed = true;
             addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Crystal Guardian</span> restored <span class="heal">3 health</span> to their hero`);
+        }
+
+        // Efekt Spirit Guardian při ztrátě Divine Shield
+        if (unit.name === 'Spirit Guardian' && !unit.divineShieldProcessed) {
+            const player = newState.players[1 - playerIndex];
+            const availableTargets = player.field.filter(target => 
+                target && !target.hasDivineShield && target.id !== unit.id
+            );
+            
+            if (availableTargets.length > 0) {
+                const randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
+                randomTarget.hasDivineShield = true;
+                unit.divineShieldProcessed = true;
+                addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Spirit Guardian</span> gave <span class="buff">Divine Shield</span> to <span class="spell-name">${randomTarget.name}</span>`);
+            }
         }
     } else {
         // Použijeme applySpellDamage místo přímého poškození
@@ -284,6 +299,16 @@ function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
             addCombatLogMessage(newState, `<span class="spell-name">${unit.name}</span> takes <span class="damage">double damage (${cursedDamage})</span> due to curse`);
         } else {
             unit.health -= damage;
+        }
+    }
+
+    // Kontrola pro Arcane Wisp při smrti od poškození kouzlem
+    if (unit.name === 'Arcane Wisp' && unit.health <= 0) {
+        const player = newState.players[1 - playerIndex];
+        if (player.hand.length < 10) {
+            const coin = new SpellCard('coin', 'The Coin', 0, 'Gain 1 Mana Crystal', 'coinImage');
+            player.hand.push(coin);
+            addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Arcane Wisp</span> added <span class="spell-name">The Coin</span> to their hand`);
         }
     }
 

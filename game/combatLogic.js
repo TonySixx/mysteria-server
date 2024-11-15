@@ -1,5 +1,5 @@
 const { checkGameOver, addCombatLogMessage } = require("./gameLogic");
-const { UnitCard } = require('./CardClasses');
+const { UnitCard, SpellCard } = require('./CardClasses');
 
 // Helper funkce pro bezpečnou kopii herního stavu
 function cloneGameState(state) {
@@ -214,6 +214,12 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                 const attackerPlayer = newState.players[attackerPlayerIndex];
                 attackerPlayer.hero.health = Math.min(30, attackerPlayer.hero.health + healAmount);
                 addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Life Drainer</span> restored <span class="heal">${healAmount} health</span> to their hero`);
+            }
+
+            // V attack funkci, v části pro útok na hrdinu přidáme:
+            if (attacker.name === 'Flame Warrior' && !blindnessLogged) {
+                attacker.health = Math.max(1, attacker.health - 2);
+                addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Flame Warrior</span> took <span class="damage">2 damage</span> from attacking`);
             }
 
             return checkGameOver(newState);
@@ -621,6 +627,61 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
                 }
             });
         });
+    }
+
+    // Pro Spirit Guardian
+    if (attacker.name === 'Spirit Guardian' && attacker.hasDivineShield === false && !attacker.divineShieldProcessed) {
+        const attackerPlayer = state.players[attackerPlayerIndex];
+        const availableTargets = attackerPlayer.field.filter(unit => 
+            unit && !unit.hasDivineShield && unit.id !== attacker.id
+        );
+        
+        if (availableTargets.length > 0) {
+            const randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
+            randomTarget.hasDivineShield = true;
+            attacker.divineShieldProcessed = true;
+            addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Spirit Guardian</span> gave <span class="buff">Divine Shield</span> to <span class="spell-name">${randomTarget.name}</span>`);
+        }
+    }
+
+    // Stejná kontrola pro obránce
+    if (defender.name === 'Spirit Guardian' && defender.hasDivineShield === false && !defender.divineShieldProcessed) {
+        const defenderPlayer = state.players[1 - attackerPlayerIndex];
+        const availableTargets = defenderPlayer.field.filter(unit => 
+            unit && !unit.hasDivineShield && unit.id !== defender.id
+        );
+        
+        if (availableTargets.length > 0) {
+            const randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
+            randomTarget.hasDivineShield = true;
+            defender.divineShieldProcessed = true;
+            addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${defenderPlayer.username}'s</span> <span class="spell-name">Spirit Guardian</span> gave <span class="buff">Divine Shield</span> to <span class="spell-name">${randomTarget.name}</span>`);
+        }
+    }
+
+    // Pro Arcane Wisp
+    if (attacker.name === 'Arcane Wisp' && attacker.health <= 0) {
+        const attackerPlayer = state.players[attackerPlayerIndex];
+        if (attackerPlayer.hand.length < 10) {
+            const coin = new SpellCard('coin', 'The Coin', 0, 'Gain 1 Mana Crystal', 'coinImage');
+            attackerPlayer.hand.push(coin);
+            addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Arcane Wisp</span> added <span class="spell-name">The Coin</span> to their hand`);
+        }
+    }
+
+    if (defender.name === 'Arcane Wisp' && defender.health <= 0) {
+        const defenderPlayer = state.players[1 - attackerPlayerIndex];
+        if (defenderPlayer.hand.length < 10) {
+            const coin = new SpellCard('coin', 'The Coin', 0, 'Gain 1 Mana Crystal', 'coinImage');
+            defenderPlayer.hand.push(coin);
+            addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${defenderPlayer.username}'s</span> <span class="spell-name">Arcane Wisp</span> added <span class="spell-name">The Coin</span> to their hand`);
+        }
+    }
+
+    // V handleCombat funkci přidáme efekt pro Flame Warrior
+    if (attacker.name === 'Flame Warrior' && !attackerMissed) {
+        attacker.health = attacker.health - 2;
+        addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${state.players[attackerPlayerIndex].username}'s</span> <span class="spell-name">Flame Warrior</span> took <span class="damage">2 damage</span> from attacking`);
     }
 
     console.log('Konec souboje:', {
