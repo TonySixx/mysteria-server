@@ -132,7 +132,11 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     -- Přidáme nové karty
     ('Spirit Guardian', 2, 1, 3, 'Divine Shield. When Divine Shield is broken, give a random friendly minion Divine Shield', 'spiritGuardian', 'legendary', 'unit'),
     ('Flame Warrior', 4, 6, 6, 'Takes 2 damage whenever this minion attacks', 'flameWarrior', 'uncommon', 'unit'),
-    ('Arcane Wisp', 1, 1, 1, 'When this minion dies, add a copy of The Coin to your hand', 'arcaneWisp', 'uncommon', 'unit');
+    ('Arcane Wisp', 1, 1, 1, 'When this minion dies, add a copy of The Coin to your hand', 'arcaneWisp', 'uncommon', 'unit'),
+    ('Armored Elephant', 4, 2, 8, 'Taunt', 'armoredElephant', 'uncommon', 'unit'),
+    ('Holy Elemental', 3, 3, 4, 'Restore 2 health to your hero when played', 'holyElemental', 'uncommon', 'unit'),
+    ('Divine Healer', 4, 3, 4, 'Restore 3 health to all friendly characters when played', 'divineHealer', 'rare', 'unit'),
+    ('Friendly Spirit', 3, 2, 3, 'Divine Shield. At the end of each turn, gain +1 health', 'growingShield', 'uncommon', 'unit');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 

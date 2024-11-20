@@ -195,12 +195,19 @@ function startNextTurn(state, nextPlayer) {
         newState.startTurnEffects = [];
     }
 
-    // Přidáme efekt pro Raging Berserker
+    // Spojíme efekty Raging Berserker a Friendly Spirit do jednoho průchodu
     newState.players.forEach((player, playerIndex) => {
         player.field.forEach(card => {
-            if (card && card.name === 'Raging Berserker' && card.attack > 1) {
-                card.attack -= 1;
-                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Raging Berserker</span> lost <span class="attack">1 attack</span>`);
+            if (card) {
+                if (card.name === 'Raging Berserker' && card.attack > 1) {
+                    card.attack -= 1;
+                    addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Raging Berserker</span> lost <span class="attack">1 attack</span>`);
+                }
+                else if (card.name === 'Friendly Spirit') {
+                    card.health += 1;
+                    card.maxHealth += 1;
+                    addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Growing Shield</span> gained <span class="health">+1 health</span>`);
+                }
             }
         });
     });
@@ -1044,6 +1051,27 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
 
         case 'Death Prophet':
             // Efekt se zpracuje při smrti jednotky v handleCombat
+            break;
+
+        case 'Holy Elemental':
+            const healAmount = 2;
+            player.hero.health = Math.min(30, player.hero.health + healAmount);
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}'s</span> <span class="spell-name">Holy Elemental</span> restored <span class="heal">${healAmount} health</span> to their hero`);
+            break;
+
+        case 'Divine Healer':
+            const healValue = 3;
+            // Léčení hrdiny
+            player.hero.health = Math.min(30, player.hero.health + healValue);
+            
+            // Léčení minionů
+            player.field.forEach(unit => {
+                if (unit) {
+                    unit.health = Math.min(unit.maxHealth, unit.health + healValue);
+                }
+            });
+            
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}'s</span> <span class="spell-name">Divine Healer</span> restored <span class="heal">${healValue} health</span> to all friendly characters`);
             break;
     }
 

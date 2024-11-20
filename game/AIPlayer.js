@@ -264,6 +264,10 @@ class AIPlayer {
                 if (card.name === 'Crystal Guardian') value += 4;
                 if (card.name === 'Spirit Healer') value += 3;
                 if (card.name === 'Ancient Protector') value += 5;
+                if (card.name === 'Armored Elephant') value += 3;
+                if (card.name === 'Holy Elemental') value += 2;
+                if (card.name === 'Divine Healer') value += 4;
+                if (card.name === 'Growing Shield') value += 2;
                 break;
 
             case 3: // Seer
