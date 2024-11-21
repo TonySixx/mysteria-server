@@ -218,9 +218,14 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
 
             // V attack funkci, v části pro útok na hrdinu přidáme:
             if (attacker.name === 'Flame Warrior' && !blindnessLogged) {
-                attacker.health = Math.max(1, attacker.health - 2);
+                attacker.health = attacker.health - 2;
                 addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Flame Warrior</span> took <span class="damage">2 damage</span> from attacking`);
             }
+
+            // Odstraníme mrtvé jednotky
+                newState.players.forEach(player => {
+                    player.field = player.field.filter(card => card.health > 0);
+                });
 
             return checkGameOver(newState);
         } else {
@@ -631,6 +636,7 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
 
     // Pro Spirit Guardian
     if (attacker.name === 'Spirit Guardian' && attacker.hasDivineShield === false && !attacker.divineShieldProcessed) {
+        attacker.divineShieldProcessed = true;
         const attackerPlayer = state.players[attackerPlayerIndex];
         const availableTargets = attackerPlayer.field.filter(unit => 
             unit && !unit.hasDivineShield && unit.id !== attacker.id
@@ -639,7 +645,6 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
         if (availableTargets.length > 0) {
             const randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
             randomTarget.hasDivineShield = true;
-            attacker.divineShieldProcessed = true;
             addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Spirit Guardian</span> gave <span class="buff">Divine Shield</span> to <span class="spell-name">${randomTarget.name}</span>`);
         }
     }
@@ -663,7 +668,7 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
     if (attacker.name === 'Arcane Wisp' && attacker.health <= 0) {
         const attackerPlayer = state.players[attackerPlayerIndex];
         if (attackerPlayer.hand.length < 10) {
-            const coin = new SpellCard('coin', 'The Coin', 0, 'Gain 1 Mana Crystal', 'coinImage');
+            const coin = new SpellCard(`$coin-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, 'The Coin', 0, 'Gain 1 Mana Crystal', 'coinImage');
             attackerPlayer.hand.push(coin);
             addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Arcane Wisp</span> added <span class="spell-name">The Coin</span> to their hand`);
         }
@@ -672,7 +677,7 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
     if (defender.name === 'Arcane Wisp' && defender.health <= 0) {
         const defenderPlayer = state.players[1 - attackerPlayerIndex];
         if (defenderPlayer.hand.length < 10) {
-            const coin = new SpellCard('coin', 'The Coin', 0, 'Gain 1 Mana Crystal', 'coinImage');
+            const coin = new SpellCard(`$coin-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, 'The Coin', 0, 'Gain 1 Mana Crystal', 'coinImage');
             defenderPlayer.hand.push(coin);
             addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${defenderPlayer.username}'s</span> <span class="spell-name">Arcane Wisp</span> added <span class="spell-name">The Coin</span> to their hand`);
         }

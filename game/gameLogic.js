@@ -286,6 +286,7 @@ function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
 
         // Efekt Spirit Guardian při ztrátě Divine Shield
         if (unit.name === 'Spirit Guardian' && !unit.divineShieldProcessed) {
+            attacker.divineShieldProcessed = true;            
             const player = newState.players[1 - playerIndex];
             const availableTargets = player.field.filter(target => 
                 target && !target.hasDivineShield && target.id !== unit.id
@@ -313,7 +314,7 @@ function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
     if (unit.name === 'Arcane Wisp' && unit.health <= 0) {
         const player = newState.players[1 - playerIndex];
         if (player.hand.length < 10) {
-            const coin = new SpellCard('coin', 'The Coin', 0, 'Gain 1 Mana Crystal', 'coinImage');
+            const coin = new SpellCard(`$coin-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, 'The Coin', 0, 'Gain 1 Mana Crystal', 'coinImage');
             player.hand.push(coin);
             addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Arcane Wisp</span> added <span class="spell-name">The Coin</span> to their hand`);
         }
