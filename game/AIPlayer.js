@@ -409,6 +409,28 @@ class AIPlayer {
                 );
                 value = hasExpensiveCards ? potentialMana * 2 : -1;
                 break;
+
+            case 'Magic Arrows':
+                // Hodnota kouzla závisí na stavu hry
+                value = 3; // Základní hodnota za 3 poškození
+
+                // Vyšší hodnota pokud může zabít nějaké jednotky
+                weakUnits = opponent.field.filter(unit => 
+                    unit && unit.health <= 1
+                ).length;
+                value += weakUnits * 2;
+
+                // Vyšší hodnota pokud může zabít protivníka
+                if (opponent.hero.health <= 3) {
+                    value += 5;
+                }
+
+                // Nižší hodnota v pozdní hře
+                if (player.maxMana >= 7) {
+                    value -= 2;
+                }
+
+                return value;
         }
 
         // Obecné modifikátory

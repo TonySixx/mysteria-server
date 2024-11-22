@@ -727,6 +727,46 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             });
             addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mass Fortification</span> buffing ${buffedCount} minions`);
             break;
+
+        case 'Magic Arrows':
+            let arrowsShot = 0;
+            let damageLog = [];
+
+            while (arrowsShot < 3) {
+                // Vytvoříme seznam všech možných cílů (hrdina + minioni)
+                const targets = [...opponent.field.filter(unit => unit !== null)];
+                if (opponent.hero.health > 0) {
+                    targets.push(opponent.hero);
+                }
+
+                if (targets.length === 0) break;
+
+                // Vybereme náhodný cíl
+                const target = targets[Math.floor(Math.random() * targets.length)];
+                
+                if (target === opponent.hero) {
+                    opponent.hero.health = Math.max(0, opponent.hero.health - 1);
+                    damageLog.push('hero');
+                } else {
+                    handleUnitDamage(target, 1, opponent, playerIndex, newState);
+                    damageLog.push(target.name);
+                }
+
+                arrowsShot++;
+            }
+
+            // Vytvoříme zprávu pro combat log
+            const arrowsMessage = damageLog.map(target => 
+                target === 'hero' ? 
+                `enemy hero` : 
+                `<span class="spell-name">${target}</span>`
+            ).join(', ');
+
+            addCombatLogMessage(newState, 
+                `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast ` +
+                `<span class="spell-name">Magic Arrows</span> hitting ${arrowsMessage}`
+            );
+            break;
     }
 
     // Odstranění mrtvých jednotek
@@ -962,6 +1002,8 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
             break;
 
         case 'Sleeping Giant':
+        case 'Rookie Guard':
+        case 'Sacred Defender':
             // Nastavíme, že nemůže útočit v tomto kole
             card.hasAttacked = true;
             card.canAttack = false;

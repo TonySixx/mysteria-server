@@ -136,7 +136,11 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Armored Elephant', 4, 2, 8, 'Taunt', 'armoredElephant', 'uncommon', 'unit'),
     ('Holy Elemental', 3, 3, 4, 'Restore 2 health to your hero when played', 'holyElemental', 'uncommon', 'unit'),
     ('Divine Healer', 4, 3, 4, 'Restore 3 health to all friendly characters when played', 'divineHealer', 'rare', 'unit'),
-    ('Friendly Spirit', 3, 2, 3, 'Divine Shield. At the end of each turn, gain +1 health', 'growingShield', 'uncommon', 'unit');
+    ('Friendly Spirit', 3, 2, 3, 'Divine Shield. At the end of each turn, gain +1 health', 'growingShield', 'uncommon', 'unit'),
+    ('Magic Arrows', 1, NULL, NULL, 'Deal 1 damage to a random enemy character 3 times', 'magicArrows', 'common', 'spell'),
+    ('Charging Knight', 4, 5, 3, 'Divine Shield', 'chargingKnight', 'rare', 'unit'),
+    ('Rookie Guard', 2, 2, 4, 'Taunt. Cannot attack the turn it is played', 'rookieGuard', 'common', 'unit'),
+    ('Sacred Defender', 3, 2, 5, 'Taunt, Divine Shield. Cannot attack the turn it is played', 'sacredDefender', 'rare', 'unit');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 
