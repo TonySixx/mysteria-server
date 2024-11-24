@@ -140,7 +140,13 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Magic Arrows', 1, NULL, NULL, 'Deal 1 damage to a random enemy character 3 times', 'magicArrows', 'common', 'spell'),
     ('Charging Knight', 4, 5, 3, 'Divine Shield', 'chargingKnight', 'rare', 'unit'),
     ('Rookie Guard', 2, 2, 4, 'Taunt. Cannot attack the turn it is played', 'rookieGuard', 'common', 'unit'),
-    ('Sacred Defender', 3, 2, 5, 'Taunt, Divine Shield. Cannot attack the turn it is played', 'sacredDefender', 'rare', 'unit');
+    ('Sacred Defender', 3, 2, 5, 'Taunt, Divine Shield. Cannot attack the turn it is played', 'sacredDefender', 'rare', 'unit'),
+
+    -- Ohnivý drak - vyvážená karta za 7 many s Taunt a death efektem
+    ('Fire Dragon', 7, 6, 7, 'Taunt. When this minion dies, shuffle a Fireball into your deck', 'fireDragon', 'legendary', 'unit'),
+    
+    -- Posvátný drak - silná karta za 10 many s Taunt a léčivým death efektem
+    ('Sacred Dragon', 10, 8, 10, 'Taunt. When this minion dies, restore your hero to full health', 'sacredDragon', 'legendary', 'unit');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 

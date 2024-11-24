@@ -1541,7 +1541,7 @@ class GameManager {
             { name: 'Time Weaver', manaCost: 8, attack: 6, health: 8, effect: 'At the end of your turn, restore 2 health to all friendly characters', image: 'timeWeaver', rarity: 'legendary' },
             
             // Doplnění do 30 karet
-            ...Array(2).fill({ name: 'Spell Weaver', manaCost: 4, attack: 2, health: 3, effect: 'Gain +1/+1 for each spell in your hand when played', image: 'spellWeaver', rarity: 'epic' }),
+            ...Array(2).fill({ name: 'Spell Weaver', manaCost: 4, attack: 3, health: 3, effect: 'Gain +1/+1 for each spell in your hand when played', image: 'spellWeaver', rarity: 'epic' }),
             ...Array(2).fill({ name: 'Arcane Guardian', manaCost: 3, attack: 2, health: 4, effect: 'Has +1 health for each spell in your hand', image: 'arcaneGuardian', rarity: 'common' })
         ];
 

@@ -395,6 +395,32 @@ function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
             player.hero.health = Math.max(0, player.hero.health - 3);
             addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Cursed Imp</span> dealt <span class="damage">3 damage</span> to their hero`);
         }
+
+        // Přidáme efekt pro Fire Dragon
+        if (unit.name === 'Fire Dragon') {
+            let owner = opponent;
+            const fireball = new SpellCard(
+                `fireball-${Date.now()}`,
+                'Fireball',
+                4,
+                'Deal 6 damage to enemy hero',
+                'fireball',
+                'uncommon'
+            );
+            
+            // Vložíme Fireball do balíčku vlastníka
+            const randomIndex = Math.floor(Math.random() * (owner.deck.length + 1));
+            owner.deck.splice(randomIndex, 0, fireball);
+            
+            addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${owner.username}'s</span> <span class="spell-name">Fire Dragon</span> shuffled a <span class="spell-name">Fireball</span> into their deck`);
+        }
+
+        // Přidáme efekt pro Sacred Dragon
+        if (unit.name === 'Sacred Dragon') {
+            let owner = opponent;
+            owner.hero.health = 30;
+            addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${owner.username}'s</span> <span class="spell-name">Sacred Dragon</span> restored their hero to <span class="heal">full health</span>`);
+        }
     }
 }
 
