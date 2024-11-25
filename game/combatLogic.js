@@ -227,9 +227,16 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                 const deadUnits = player.field.filter(unit => unit && unit.health <= 0).length;
                 newState.deadMinionsCount = (newState.deadMinionsCount || 0) + deadUnits;
 
-                // Aktualizujeme cenu Ancient Colossus v rukou obou hráčů
+                // Aktualizujeme cenu Ancient Colossus ve všech místech
                 newState.players.forEach(p => {
+                    // V ruce
                     p.hand.forEach(card => {
+                        if (card.name === 'Ancient Colossus') {
+                            card.manaCost = Math.max(1, 20 - newState.deadMinionsCount);
+                        }
+                    });
+                    // V balíčku
+                    p.deck.forEach(card => {
                         if (card.name === 'Ancient Colossus') {
                             card.manaCost = Math.max(1, 20 - newState.deadMinionsCount);
                         }
@@ -282,9 +289,16 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                 const deadUnits = player.field.filter(unit => unit && unit.health <= 0).length;
                 newState.deadMinionsCount = (newState.deadMinionsCount || 0) + deadUnits;
 
-                // Aktualizujeme cenu Ancient Colossus v rukou obou hráčů
+                // Aktualizujeme cenu Ancient Colossus ve všech místech
                 newState.players.forEach(p => {
+                    // V ruce
                     p.hand.forEach(card => {
+                        if (card.name === 'Ancient Colossus') {
+                            card.manaCost = Math.max(1, 20 - newState.deadMinionsCount);
+                        }
+                    });
+                    // V balíčku
+                    p.deck.forEach(card => {
                         if (card.name === 'Ancient Colossus') {
                             card.manaCost = Math.max(1, 20 - newState.deadMinionsCount);
                         }
