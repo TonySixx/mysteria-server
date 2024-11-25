@@ -299,6 +299,8 @@ class AIPlayer {
             value += card.attack;
         }
 
+
+
         return value;
     }
 
@@ -431,6 +433,15 @@ class AIPlayer {
                 }
 
                 return value;
+
+            case 'Divine Formation':
+                const divineShieldUnits = player.field.filter(unit => 
+                    unit && unit.hasDivineShield && !unit.hasTaunt
+                ).length;
+                value = divineShieldUnits * 2;
+                // Extra hodnota pokud máme málo životů a potřebujeme obranu
+                if (player.hero.health < 15) value += 2;
+                break;
         }
 
         // Obecné modifikátory

@@ -794,10 +794,37 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 `<span class="spell-name">Magic Arrows</span> hitting ${arrowsMessage}`
             );
             break;
+
+        case 'Divine Formation':
+            let tauntsGiven = 0;
+            player.field.forEach(unit => {
+                if (unit && unit.hasDivineShield && !unit.hasTaunt) {
+                    unit.hasTaunt = true;
+                    tauntsGiven++;
+                }
+            });
+            
+            if (tauntsGiven > 0) {
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Divine Formation</span> giving <span class="buff">Taunt</span> to ${tauntsGiven} Divine Shield minions`);
+            }
+            break;
     }
 
-    // Odstranění mrtvých jednotek
+     // Odstranění mrtvých jednotek
     newState.players.forEach(player => {
+        const deadUnits = player.field.filter(unit => unit && unit.health <= 0).length;
+        newState.deadMinionsCount += deadUnits;
+
+        // Aktualizujeme cenu Ancient Colossus v rukou obou hráčů
+        newState.players.forEach(p => {
+            p.hand.forEach(card => {
+                if (card.name === 'Ancient Colossus') {
+                    card.manaCost = Math.max(1, 20 - newState.deadMinionsCount);
+                }
+            });
+        });
+
+        // Odstraníme mrtvé jednotky
         player.field = player.field.filter(unit => unit && unit.health > 0);
     });
 

@@ -222,10 +222,23 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                 addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Flame Warrior</span> took <span class="damage">2 damage</span> from attacking`);
             }
 
-            // Odstraníme mrtvé jednotky
-                newState.players.forEach(player => {
-                    player.field = player.field.filter(card => card.health > 0);
+            // Před odstraněním mrtvých jednotek spočítáme jejich počet
+            newState.players.forEach(player => {
+                const deadUnits = player.field.filter(unit => unit && unit.health <= 0).length;
+                newState.deadMinionsCount = (newState.deadMinionsCount || 0) + deadUnits;
+
+                // Aktualizujeme cenu Ancient Colossus v rukou obou hráčů
+                newState.players.forEach(p => {
+                    p.hand.forEach(card => {
+                        if (card.name === 'Ancient Colossus') {
+                            card.manaCost = Math.max(1, 20 - newState.deadMinionsCount);
+                        }
+                    });
                 });
+
+                // Odstraníme mrtvé jednotky
+                player.field = player.field.filter(card => card.health > 0);
+            });
 
             return checkGameOver(newState);
         } else {
@@ -264,8 +277,21 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                 }
             });
 
-            // Odstraníme mrtvé jednotky
+            // Před odstraněním mrtvých jednotek spočítáme jejich počet
             newState.players.forEach(player => {
+                const deadUnits = player.field.filter(unit => unit && unit.health <= 0).length;
+                newState.deadMinionsCount = (newState.deadMinionsCount || 0) + deadUnits;
+
+                // Aktualizujeme cenu Ancient Colossus v rukou obou hráčů
+                newState.players.forEach(p => {
+                    p.hand.forEach(card => {
+                        if (card.name === 'Ancient Colossus') {
+                            card.manaCost = Math.max(1, 20 - newState.deadMinionsCount);
+                        }
+                    });
+                });
+
+                // Odstraníme mrtvé jednotky
                 player.field = player.field.filter(card => card.health > 0);
             });
 

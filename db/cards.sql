@@ -146,7 +146,13 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Fire Dragon', 7, 6, 7, 'Taunt. When this minion dies, shuffle a Fireball into your deck', 'fireDragon', 'legendary', 'unit'),
     
     -- Posvátný drak - silná karta za 10 many s Taunt a léčivým death efektem
-    ('Sacred Dragon', 10, 8, 10, 'Taunt. When this minion dies, restore your hero to full health', 'sacredDragon', 'legendary', 'unit');
+    ('Sacred Dragon', 10, 8, 10, 'Taunt. When this minion dies, restore your hero to full health', 'sacredDragon', 'legendary', 'unit'),
+
+    -- Divine Protector - uncommon kouzlo dávající Taunt jednotkám s Divine Shield
+    ('Divine Formation', 1, NULL, NULL, 'Give Taunt to all friendly minions with Divine Shield', 'divineFormation', 'uncommon', 'spell'),
+    
+    -- Ancient Colossus - legendary minion se snižující se cenou
+    ('Ancient Colossus', 20, 12, 12, 'Costs (1) less for each minion that died this game', 'ancientColossus', 'legendary', 'unit');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 

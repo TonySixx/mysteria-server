@@ -179,7 +179,8 @@ class GameManager {
             spellsPlayedThisGame: 0,
             endTurnEffects: [],
             startTurnEffects: [],
-            combatLogMessages: []
+            combatLogMessages: [],
+            deadMinionsCount: 0,  // Přidáme počítadlo mrtvých minionů
         };
 
         this.games.set(gameId, gameState);
@@ -511,7 +512,7 @@ class GameManager {
             },
             notification: notification,
             combatLogMessages: game.combatLogMessages || [],
-            animation: game.animation
+            animation: game.animation,
         };
     }
 
@@ -531,6 +532,12 @@ class GameManager {
 
         const { cardIndex, destinationIndex, target } = data;
         const card = game.players[playerIndex].hand[cardIndex];
+
+        // Speciální logika pro Ancient Colossus
+        if (card.name === 'Ancient Colossus') {
+            // Upravíme cenu podle počtu mrtvých minionů
+            card.manaCost = Math.max(1, 20 - game.deadMinionsCount);
+        }
 
         // Přidáme animační data před provedením akce
         game.animation = {
@@ -978,7 +985,7 @@ class GameManager {
         const player1Id = game.players[0].socket.userId;
         const player2Id = game.players[1].socket.userId;
 
-        // Uložíme originální balíčky
+           // Uložíme originální balíčky
         const player1Deck = game.players[0].originalDeck || [];
         const player2Deck = game.players[1].originalDeck || [];
 
@@ -1329,6 +1336,7 @@ class GameManager {
                 endTurnEffects: [],
                 startTurnEffects: [],
                 combatLogMessages: [],
+                deadMinionsCount: 0,  // Přidáme počítadlo mrtvých minionů
                 isAIGame: true
             };
 
