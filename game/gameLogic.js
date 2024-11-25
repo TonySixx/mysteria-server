@@ -151,6 +151,7 @@ function startNextTurn(state, nextPlayer) {
                 if (availableTargets.length > 0) {
                     const randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
                     randomTarget.hasDivineShield = true;
+                    randomTarget.divineShieldProcessed = false;
                     addCombatLogMessage(newState, `<span class="${previousPlayer === 0 ? 'player-name' : 'enemy-name'}">${owner.username}'s</span> <span class="spell-name">Twilight Guardian</span> gave <span class="buff">Divine Shield</span> to <span class="spell-name">${randomTarget.name}</span>`);
                 }
             }
@@ -286,7 +287,7 @@ function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
 
         // Efekt Spirit Guardian při ztrátě Divine Shield
         if (unit.name === 'Spirit Guardian' && !unit.divineShieldProcessed) {
-            attacker.divineShieldProcessed = true;            
+            unit.divineShieldProcessed = true;            
             const player = newState.players[1 - playerIndex];
             const availableTargets = player.field.filter(target => 
                 target && !target.hasDivineShield && target.id !== unit.id
@@ -295,7 +296,7 @@ function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
             if (availableTargets.length > 0) {
                 const randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
                 randomTarget.hasDivineShield = true;
-                unit.divineShieldProcessed = true;
+                randomTarget.divineShieldProcessed = false;
                 addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Spirit Guardian</span> gave <span class="buff">Divine Shield</span> to <span class="spell-name">${randomTarget.name}</span>`);
             }
         }
@@ -760,7 +761,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
 
             while (arrowsShot < 3) {
                 // Vytvoříme seznam všech možných cílů (hrdina + minioni)
-                const targets = [...opponent.field.filter(unit => unit !== null)];
+                const targets = [...opponent.field.filter(unit => unit !== null && unit.health > 0)];
                 if (opponent.hero.health > 0) {
                     targets.push(opponent.hero);
                 }
@@ -1044,10 +1045,14 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
             // Najdeme sousední jednotky a dáme jim Divine Shield
             var fieldIndex = player.field.findIndex(unit => unit.id === card.id);
             if (fieldIndex > 0 && player.field[fieldIndex - 1]) {
-                player.field[fieldIndex - 1].hasDivineShield = true;
+                let unit = player.field[fieldIndex - 1];
+                unit.hasDivineShield = true;
+                unit.divineShieldProcessed = false;
             }
             if (fieldIndex < player.field.length - 1 && player.field[fieldIndex + 1]) {
-                player.field[fieldIndex + 1].hasDivineShield = true;
+                let otherUnit = player.field[fieldIndex + 1];
+                otherUnit.hasDivineShield = true;
+                otherUnit.divineShieldProcessed = false;
             }
             addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Ancient Protector</span> granting <span class="buff">Divine Shield</span> to adjacent minions`);
             break;

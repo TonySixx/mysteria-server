@@ -696,6 +696,7 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
         
         if (availableTargets.length > 0) {
             const randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
+            randomTarget.divineShieldProcessed = false;
             randomTarget.hasDivineShield = true;
             addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Spirit Guardian</span> gave <span class="buff">Divine Shield</span> to <span class="spell-name">${randomTarget.name}</span>`);
         }
@@ -703,6 +704,7 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
 
     // Stejná kontrola pro obránce
     if (defender.name === 'Spirit Guardian' && defender.hasDivineShield === false && !defender.divineShieldProcessed) {
+        attacker.divineShieldProcessed = true;
         const defenderPlayer = state.players[1 - attackerPlayerIndex];
         const availableTargets = defenderPlayer.field.filter(unit => 
             unit && !unit.hasDivineShield && unit.id !== defender.id
@@ -710,8 +712,8 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
         
         if (availableTargets.length > 0) {
             const randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
+            randomTarget.divineShieldProcessed = false;
             randomTarget.hasDivineShield = true;
-            defender.divineShieldProcessed = true;
             addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${defenderPlayer.username}'s</span> <span class="spell-name">Spirit Guardian</span> gave <span class="buff">Divine Shield</span> to <span class="spell-name">${randomTarget.name}</span>`);
         }
     }
