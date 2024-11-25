@@ -804,9 +804,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 }
             });
             
-            if (tauntsGiven > 0) {
-                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Divine Formation</span> giving <span class="buff">Taunt</span> to ${tauntsGiven} Divine Shield minions`);
-            }
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Divine Formation</span> giving <span class="buff">Taunt</span> to ${tauntsGiven} Divine Shield minions`);
             break;
     }
 
