@@ -744,7 +744,7 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
 
     // Stejná kontrola pro obránce
     if (defender.name === 'Spirit Guardian' && defender.hasDivineShield === false && !defender.divineShieldProcessed) {
-        attacker.divineShieldProcessed = true;
+        defender.divineShieldProcessed = true;
         const defenderPlayer = state.players[1 - attackerPlayerIndex];
         const availableTargets = defenderPlayer.field.filter(unit => 
             unit && !unit.hasDivineShield && unit.id !== defender.id
