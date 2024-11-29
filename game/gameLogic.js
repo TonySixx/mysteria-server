@@ -207,7 +207,7 @@ function startNextTurn(state, nextPlayer) {
                 else if (card.name === 'Friendly Spirit') {
                     card.health += 1;
                     card.maxHealth += 1;
-                    addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Growing Shield</span> gained <span class="health">+1 health</span>`);
+                    addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Friendly Spirit</span> gained <span class="health">+1 health</span>`);
                 }
             }
         });
@@ -270,6 +270,7 @@ function checkGameOver(state) {
 // Pomocná funkce pro zpracování poškození jednotky a její efekty
 function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
     if (!unit) return;
+    var afterEffectFunc = null;
 
     const oldHealth = unit.health;
     const hadDivineShield = unit.hasDivineShield;
@@ -292,12 +293,13 @@ function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
             const availableTargets = player.field.filter(target => 
                 target && !target.hasDivineShield && target.id !== unit.id
             );
-            
-            if (availableTargets.length > 0) {
-                const randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
-                randomTarget.hasDivineShield = true;
-                randomTarget.divineShieldProcessed = false;
-                addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Spirit Guardian</span> gave <span class="buff">Divine Shield</span> to <span class="spell-name">${randomTarget.name}</span>`);
+            afterEffectFunc = () => {
+                if (availableTargets.length > 0) {
+                    const randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
+                    randomTarget.hasDivineShield = true;
+                    randomTarget.divineShieldProcessed = false;
+                    addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Spirit Guardian</span> gave <span class="buff">Divine Shield</span> to <span class="spell-name">${randomTarget.name}</span>`);
+                }
             }
         }
     } else {
@@ -305,7 +307,7 @@ function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
         if (unit.isCursed) {
             const cursedDamage = damage * 2;
             unit.health -= cursedDamage;
-            addCombatLogMessage(newState, `<span class="spell-name">${unit.name}</span> takes <span class="damage">double damage (${cursedDamage})</span> due to curse`);
+            if (cursedDamage > 0) addCombatLogMessage(newState, `<span class="spell-name">${unit.name}</span> takes <span class="damage">double damage (${cursedDamage})</span> due to curse`);
         } else {
             unit.health -= damage;
         }
@@ -423,6 +425,7 @@ function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
             addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${owner.username}'s</span> <span class="spell-name">Sacred Dragon</span> restored their hero to <span class="heal">full health</span>`);
         }
     }
+    return afterEffectFunc;
 }
 
 function handleSpellEffects(card, player, opponent, state, playerIndex) {
@@ -435,7 +438,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
 
     const newState = { ...state };
 
-    // Přidáme efekt Arcane Protector k existující kontrole
+    // Přidáme efekt Arcane Protector k existujcí kontrole
     player.field.forEach(unit => {
         if (unit.name === 'Arcane Familiar' || unit.name === 'Arcane Protector' || unit.name === 'Mana Wyrm') {
             unit.attack += 1;
@@ -521,9 +524,14 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
 
         case 'Inferno Wave':
             const damagedUnits = opponent.field.filter(unit => unit).length;
+            var afterEffectFuncs = [];
             opponent.field.forEach(unit => {
-                handleUnitDamage(unit, 4, opponent, playerIndex, newState);
+                let afterEffectFunc = handleUnitDamage(unit, 4, opponent, playerIndex, newState);
+                if (afterEffectFunc) {
+                    afterEffectFuncs.push(afterEffectFunc);
+                }
             });
+            afterEffectFuncs.forEach(func => func());
             newState.notification = {
                 message: 'Inferno Wave dealt 4 damage to all enemy units!',
                 forPlayer: playerIndex
@@ -579,7 +587,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             }
 
             // Vybereme náhodnou jednotku
-            const randomIndex = Math.floor(Math.random() * availableTargets.length);
+            var randomIndex = Math.floor(Math.random() * availableTargets.length);
             const targetUnit = availableTargets[randomIndex];
 
             // Najdeme původní index jednotky v poli protivníka
@@ -599,12 +607,17 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
 
         case 'Arcane Explosion':
             let damagedCount = 0;
+            var afterEffectFuncs = [];
             opponent.field.forEach(unit => {
                 if (unit) {
-                    handleUnitDamage(unit, 1, opponent, playerIndex, newState);
+                    var afterEffectFunc = handleUnitDamage(unit, 1, opponent, playerIndex, newState);
+                    if (afterEffectFunc) {
+                        afterEffectFuncs.push(afterEffectFunc);
+                    }
                     damagedCount++;
                 }
             });
+            afterEffectFuncs.forEach(func => func());
             newState.notification = {
                 message: `Dealt 1 damage to ${damagedCount} enemy minions!`,
                 forPlayer: playerIndex
@@ -615,14 +628,18 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
         case 'Holy Nova':
             let healedCount = 0;
             let damagedEnemies = 0;
-
+            var afterEffectFuncs = [];
             // Poškození nepřátel
             opponent.field.forEach(unit => {
                 if (unit) {
-                    handleUnitDamage(unit, 2, opponent, playerIndex, newState);
+                    var afterEffectFunc = handleUnitDamage(unit, 2, opponent, playerIndex, newState);
+                    if (afterEffectFunc) {
+                        afterEffectFuncs.push(afterEffectFunc);
+                    }
                     damagedEnemies++;
                 }
             });
+            afterEffectFuncs.forEach(func => func());
             opponent.hero.health = Math.max(0, opponent.hero.health - 2);
 
             // Léčení přátel
@@ -680,15 +697,22 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             // Poškození všech postav
             player.hero.health = Math.max(0, player.hero.health - damage);
             opponent.hero.health = Math.max(0, opponent.hero.health - damage);
-
+            var afterEffectFuncs = [];
             // Upravené zpracování poškození jednotek
             player.field.forEach(unit => {
-                handleUnitDamage(unit, damage, player, playerIndex, newState);
+                var afterEffectFunc = handleUnitDamage(unit, damage, player, playerIndex, newState);
+                if (afterEffectFunc) {
+                    afterEffectFuncs.push(afterEffectFunc);
+                }
             });
 
             opponent.field.forEach(unit => {
-                handleUnitDamage(unit, damage, opponent, playerIndex, newState);
+                var afterEffectFunc = handleUnitDamage(unit, damage, opponent, playerIndex, newState);
+                if (afterEffectFunc) {
+                    afterEffectFuncs.push(afterEffectFunc);
+                }
             });
+            afterEffectFuncs.forEach(func => func());
 
             newState.notification = {
                 message: `Arcane Storm dealt ${damage} damage to all characters!`,
@@ -806,6 +830,85 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             
             addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Divine Formation</span> giving <span class="buff">Taunt</span> to ${tauntsGiven} Divine Shield minions`);
             break;
+
+        case 'Mind Theft':
+            if (opponent.hand.length === 0) {
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mind Theft</span> but opponent's hand was empty`);
+                break;
+            }
+            
+            var randomIndex = Math.floor(Math.random() * opponent.hand.length);
+            const stolenCard = opponent.hand[randomIndex];
+            opponent.hand.splice(randomIndex, 1);
+            
+            if (player.hand.length < 10) {
+                player.hand.push(stolenCard);
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mind Theft</span> and stole a card from opponent's hand`);
+            } else {
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mind Theft</span> but their hand was full`);
+            }
+            break;
+
+        case 'Shield Breaker':
+            let shieldsDestroyed = 0;
+            var afterEffectFuncs = [];
+            opponent.field.forEach(unit => {
+                if (unit && unit.hasDivineShield) {
+                    // Použijeme handleUnitDamage s nulovým poškozením, aby se spustily efekty ztráty Divine Shield
+                    var afterEffectFunc = handleUnitDamage(unit, 0, opponent, playerIndex, newState);
+                    if (afterEffectFunc) {
+                        afterEffectFuncs.push(afterEffectFunc);
+                    }
+                    shieldsDestroyed++;
+                }
+            });
+            afterEffectFuncs.forEach(func => func());
+            if (shieldsDestroyed > 0) {
+                player.hero.health = Math.min(30, player.hero.health + shieldsDestroyed);
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Shield Breaker</span> destroying <span class="buff">${shieldsDestroyed} Divine Shields</span> and restoring <span class="heal">${shieldsDestroyed} health</span>`);
+            } else {
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Shield Breaker</span> but found no Divine Shields`);
+            }
+            break;
+
+        case 'Mind Copy':
+            if (opponent.hand.length === 0) {
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mind Copy</span> but opponent's hand was empty`);
+                break;
+            }
+            
+            var randomIndex = Math.floor(Math.random() * opponent.hand.length);
+            const cardToCopy = opponent.hand[randomIndex];
+            
+            if (player.hand.length < 10) {
+                // Vytvoříme kopii karty s novým ID
+                const copiedCard = cardToCopy instanceof UnitCard ?
+                    new UnitCard(
+                        `copy-${Date.now()}-${Math.random()}`,
+                        cardToCopy.name,
+                        cardToCopy.manaCost,
+                        cardToCopy.attack,
+                        cardToCopy.health,
+                        cardToCopy.effect,
+                        cardToCopy.image,
+                        cardToCopy.rarity
+                    ) :
+                    new SpellCard(
+                        `copy-${Date.now()}-${Math.random()}`,
+                        cardToCopy.name,
+                        cardToCopy.manaCost,
+                        cardToCopy.effect,
+                        cardToCopy.image,
+                        cardToCopy.rarity
+                    );
+                
+                player.hand.push(copiedCard);
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mind Copy</span> and copied a card from opponent's hand`);
+            } else {
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mind Copy</span> but their hand was full`);
+            }
+            break;
+
     }
 
      // Odstranění mrtvých jednotek
@@ -1178,6 +1281,32 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
             });
             
             addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}'s</span> <span class="spell-name">Divine Healer</span> restored <span class="heal">${healValue} health</span> to all friendly characters`);
+            break;
+
+        case 'Wise Oracle':
+            let cardsDrawn = 0;
+            let cardsBurned = 0;
+            
+            for (let i = 0; i < 2; i++) {
+                if (player.deck.length > 0) {
+                    const drawnCard = player.deck.pop();
+                    if (player.hand.length < 10) {
+                        player.hand.push(drawnCard);
+                        cardsDrawn++;
+                    } else {
+                        cardsBurned++;
+                        addCombatLogMessage(newState, `<span class="spell-name">${drawnCard.name}</span> was burned because hand was full`);
+                    }
+                }
+            }
+            
+            // Přidáme zprávu do combat logu
+            if (cardsDrawn > 0) {
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Wise Oracle</span> and <span class="draw">drew ${cardsDrawn} cards</span>`);
+            }
+            if (cardsBurned > 0) {
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> burned ${cardsBurned} cards due to full hand`);
+            }
             break;
     }
 

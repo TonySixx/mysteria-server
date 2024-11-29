@@ -152,7 +152,25 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Divine Formation', 1, NULL, NULL, 'Give Taunt to all friendly minions with Divine Shield', 'divineFormation', 'uncommon', 'spell'),
     
     -- Ancient Colossus - legendary minion se snižující se cenou
-    ('Ancient Colossus', 20, 12, 12, 'Costs (1) less for each minion that died this game', 'ancientColossus', 'legendary', 'unit');
+    ('Ancient Colossus', 20, 12, 12, 'Costs (1) less for each minion that died this game', 'ancientColossus', 'legendary', 'unit'),
+
+    -- 1. Legendary kouzlo - Mind Theft
+    ('Mind Theft', 4, NULL, NULL, 'Steal a random card from your opponent''s hand', 'mindTheft', 'legendary', 'spell'),
+    
+    -- 2. Legendary minion - Wise Oracle
+    ('Wise Oracle', 5, 3, 4, 'Draw 2 cards when played', 'wiseOracle', 'legendary', 'unit'),
+    
+    -- 3. Uncommon minion - Assassin Scout
+    ('Assassin Scout', 3, 3, 3, 'Deals +2 damage when attacking the enemy hero', 'assassinScout', 'uncommon', 'unit'),
+    
+    -- 4. Uncommon kouzlo - Shield Breaker
+    ('Shield Breaker', 2, NULL, NULL, 'Destroy all enemy Divine Shields. Restore 1 health to your hero for each shield destroyed', 'shieldBreaker', 'uncommon', 'spell'),
+    
+    -- 5. Legendary minion - Divine Squire
+    ('Divine Squire', 1, 1, 1, 'Divine Shield', 'divineSquire', 'legendary', 'unit'),
+
+    -- 6. Epic kouzlo - Mind Copy
+    ('Mind Copy', 1, NULL, NULL, 'Create a copy of a random card from your opponent''s hand', 'mindCopy', 'epic', 'spell');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 

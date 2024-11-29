@@ -267,7 +267,7 @@ class AIPlayer {
                 if (card.name === 'Armored Elephant') value += 3;
                 if (card.name === 'Holy Elemental') value += 2;
                 if (card.name === 'Divine Healer') value += 4;
-                if (card.name === 'Growing Shield') value += 2;
+                if (card.name === 'Friendly Spirit') value += 2;
                 break;
 
             case 3: // Seer
@@ -298,8 +298,6 @@ class AIPlayer {
         if (opponent.field.length > player.field.length) {
             value += card.attack;
         }
-
-
 
         return value;
     }

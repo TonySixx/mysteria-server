@@ -129,7 +129,14 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                 blindnessLogged = true;
             }
 
-            if (!blindnessLogged) targetHero.health = Math.max(0, targetHero.health - attacker.attack);
+            if (!blindnessLogged) {
+                if (attacker.name === 'Assassin Scout') {
+                    targetHero.health = Math.max(0, targetHero.health - (attacker.attack + 2));
+                    addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Assassin Scout</span> dealt <span class="damage">+2 bonus damage</span> to enemy hero`);
+                } else {
+                    targetHero.health = Math.max(0, targetHero.health - attacker.attack);
+                }
+            }
 
             // V funkci attack, v části pro útok na hrdinu přidáme:
             if (attacker.name === 'Shadow Priest' && !blindnessLogged) {
