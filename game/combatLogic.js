@@ -346,6 +346,8 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
 
 
     let blindnessWasLogged = false;
+    let attackerDivineShieldBrokenInThisCombat = false;
+    let defenderDivineShieldBrokenInThisCombat = false;
 
     // Logování slepoty
     if (attackerMissed) {
@@ -357,6 +359,7 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
     if (!attackerMissed) {
         if (defender.hasDivineShield && attacker.attack > 0) {
             defender.hasDivineShield = false;
+            defenderDivineShieldBrokenInThisCombat = true;
         } else {
             defender.health -= attacker.attack;
         }
@@ -366,6 +369,7 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
     if (!defenderMissed) {
         if (attacker.hasDivineShield && defender.attack > 0) {
             attacker.hasDivineShield = false;
+            attackerDivineShieldBrokenInThisCombat = true;
         } else {
             attacker.health -= defender.attack;
         }
@@ -524,11 +528,11 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
     }
 
     // Upravíme logiku pro Cursed Warrior - aplikujeme dvojnásobné poškození vždy
-    if (attacker.isCursed) {
+    if (attacker.isCursed && !attackerDivineShieldBrokenInThisCombat) {
         attacker.health -= defender.attack; // Druhé poškození pro útočníka
         addCombatLogMessage(state, `<span class="spell-name">${attacker.name}</span> takes <span class="damage">double damage (${defender.attack * 2})</span> due to curse`);
     }
-    if (defender.isCursed) {
+    if (defender.isCursed && !defenderDivineShieldBrokenInThisCombat) {
         defender.health -= attacker.attack; // Druhé poškození pro obránce
         addCombatLogMessage(state, `<span class="spell-name">${defender.name}</span> takes <span class="damage">double damage (${attacker.attack * 2})</span> due to curse`);
     }
