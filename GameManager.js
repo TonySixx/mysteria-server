@@ -176,7 +176,6 @@ class GameManager {
             gameOver: false,
             winner: null,
             startTime: new Date(),
-            spellsPlayedThisGame: 0,
             endTurnEffects: [],
             startTurnEffects: [],
             combatLogMessages: [],
@@ -485,7 +484,6 @@ class GameManager {
             gameOver: game.gameOver,
             winner: game.winner,
             playerIndex,
-            spellsPlayedThisGame: game.spellsPlayedThisGame || 0,
             player: {
                 hero: player.hero,
                 hand: player.hand,
@@ -1332,7 +1330,6 @@ class GameManager {
                 gameOver: false,
                 winner: null,
                 startTime: new Date(),
-                spellsPlayedThisGame: 0,
                 endTurnEffects: [],
                 startTurnEffects: [],
                 combatLogMessages: [],

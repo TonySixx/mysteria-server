@@ -686,26 +686,22 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             break;
 
         case 'Arcane Storm':
-            const spellsCast = (state.spellsPlayedThisGame || 0);
-            const damage = spellsCast;
-
-            console.log('Arcane Storm damage:', {
-                spellsPlayed: spellsCast,
-                damage: damage
-            });
+            var damage = 8;
 
             // Poškození všech postav
             player.hero.health = Math.max(0, player.hero.health - damage);
             opponent.hero.health = Math.max(0, opponent.hero.health - damage);
             var afterEffectFuncs = [];
             // Upravené zpracování poškození jednotek
+            
             player.field.forEach(unit => {
-                var afterEffectFunc = handleUnitDamage(unit, damage, player, playerIndex, newState);
+                var afterEffectFunc = handleUnitDamage(unit, damage, player, 1 - playerIndex, newState);
                 if (afterEffectFunc) {
                     afterEffectFuncs.push(afterEffectFunc);
                 }
             });
 
+            //var afterEffectFunc = handleUnitDamage(unit, 1, opponent, playerIndex, newState);
             opponent.field.forEach(unit => {
                 var afterEffectFunc = handleUnitDamage(unit, damage, opponent, playerIndex, newState);
                 if (afterEffectFunc) {
@@ -1329,10 +1325,6 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
         };
     }
 
-    // Inicializace počítadla kouzel, pokud neexistuje
-    if (!newState.spellsPlayedThisGame) {
-        newState.spellsPlayedThisGame = 0;
-    }
 
     if (card instanceof UnitCard) {
         // Nejdřív zkontrolujeme, jestli je místo na poli
@@ -1372,9 +1364,6 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
             player.mana -= card.manaCost;
         }
 
-        // Zvýšíme počítadlo zahraných kouzel
-        newState.spellsPlayedThisGame++;
-        console.log(`Zahráno kouzel celkem: ${newState.spellsPlayedThisGame}`);
 
         // Před aplikací kouzla zkontrolujeme Spirit Healer efekt
         const spiritHealers = player.field.filter(unit => unit.name === 'Spirit Healer');
@@ -1415,7 +1404,6 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
         }
 
         if (spellResult === false) {
-            newState.spellsPlayedThisGame = Math.max(0, newState.spellsPlayedThisGame - 1);
             if (card.name !== 'Mana Surge') {
                 player.mana += card.manaCost + extraCost; // Vrátíme manu pokud se kouzlo nepovedlo
             }

@@ -363,8 +363,7 @@ class AIPlayer {
                 break;
 
             case 'Arcane Storm':
-                const spellDamage = this.gameState.spellsPlayedThisGame || 0;
-                if (spellDamage < 3) return -1; // Nepoužívat s malým poškozením
+                var spellDamage = 10;
                 // Hodnotit podle toho, kolik důležitých věcí zabije
                 const totalKills = [...player.field, ...opponent.field].filter(
                     unit => unit && unit.health <= spellDamage
