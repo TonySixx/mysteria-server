@@ -439,6 +439,17 @@ class AIPlayer {
                 // Extra hodnota pokud máme málo životů a potřebujeme obranu
                 if (player.hero.health < 15) value += 2;
                 break;
+
+            case 'Mass Dispel':
+                const totalTaunts = [...player.field, ...opponent.field].filter(
+                    unit => unit && unit.hasTaunt
+                ).length;
+                value = totalTaunts * 2;
+                // Extra hodnota pokud jsme blokováni Tauntem
+                if (opponent.field.some(unit => unit && unit.hasTaunt)) {
+                    value += 3;
+                }
+                break;
         }
 
         // Obecné modifikátory

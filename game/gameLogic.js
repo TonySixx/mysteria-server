@@ -905,6 +905,24 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             }
             break;
 
+        case 'Mass Dispel':
+            let tauntsRemoved = 0;
+            // Odstraníme Taunt všem jednotkám na poli
+            player.field.forEach(unit => {
+                if (unit && unit.hasTaunt) {
+                    unit.hasTaunt = false;
+                    tauntsRemoved++;
+                }
+            });
+            opponent.field.forEach(unit => {
+                if (unit && unit.hasTaunt) {
+                    unit.hasTaunt = false;
+                    tauntsRemoved++;
+                }
+            });
+            
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mass Dispel</span> removing <span class="buff">Taunt</span> from ${tauntsRemoved} minions`);
+            break;
     }
 
      // Odstranění mrtvých jednotek
@@ -1304,6 +1322,32 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                 addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> burned ${cardsBurned} cards due to full hand`);
             }
             break;
+
+            case 'Divine Protector':
+                if (player.hero.health === 30) {
+                    card.hasDivineShield = true;
+                    addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Divine Protector</span> gained <span class="buff">Divine Shield</span>`);
+                }
+                else {card.hasDivineShield = false;}
+                break;
+    
+            case 'Elendralis':
+                if (player.hero.health < 10) {
+                    card.hasTaunt = true;
+                    player.hero.health = Math.min(30, player.hero.health + 3);
+                    addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Elendralis</span> gained <span class="buff">Taunt</span> and restored <span class="heal">3 health</span>`);
+                }
+                else {card.hasTaunt = false;}
+                break;
+    
+            case 'Pride Hunter':
+                if (opponent.hero.health === 30) {
+                    card.attack += 1;
+                    card.health += 1;
+                    card.maxHealth += 1;
+                    addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Pride Hunter</span> gained <span class="buff">+1/+1</span>`);
+                }
+                break;
     }
 
     return newState;

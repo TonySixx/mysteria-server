@@ -170,7 +170,19 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Divine Squire', 1, 1, 1, 'Divine Shield', 'divineSquire', 'legendary', 'unit'),
 
     -- 6. Epic kouzlo - Mind Copy
-    ('Mind Copy', 1, NULL, NULL, 'Create a copy of a random card from your opponent''s hand', 'mindCopy', 'epic', 'spell');
+    ('Mind Copy', 1, NULL, NULL, 'Create a copy of a random card from your opponent''s hand', 'mindCopy', 'epic', 'spell'),
+
+    -- 1. Uncommon Minion - Divine Protector
+    ('Divine Protector', 4, 5, 5, 'Gain Divine Shield if your hero has full health when played', 'divineProtector', 'uncommon', 'unit'),
+    
+    -- 2. Legendary Minion - Last Hope Guardian
+    ('Elendralis', 5, 4, 6, 'If your hero has less than 10 health when played, gain Taunt and restore 3 health to your hero', 'elendralis', 'legendary', 'unit'),
+    
+    -- 3. Uncommon Minion - Pride Hunter
+    ('Pride Hunter', 2, 2, 3, 'Gain +1/+1 if enemy hero has full health when played', 'prideHunter', 'uncommon', 'unit'),
+    
+    -- 4. Epic Spell - Mass Dispel
+    ('Mass Dispel', 3, NULL, NULL, 'Remove Taunt from all minions', 'massDispel', 'epic', 'spell');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 
