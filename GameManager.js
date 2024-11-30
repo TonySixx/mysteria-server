@@ -1540,7 +1540,7 @@ class GameManager {
             
             // Silná kouzla
             ...Array(2).fill({ name: 'Mana Surge', manaCost: 3, effect: 'Restore your mana crystals to maximum available this turn', image: 'manaSurge', rarity: 'epic' }),
-            ...Array(2).fill({ name: 'Arcane Storm', manaCost: 7, effect: 'Deal 1 damage to all characters for each spell cast this game', image: 'arcaneStorm', rarity: 'epic' }),
+            ...Array(2).fill({ name: 'Arcane Storm', manaCost: 7, effect: 'Deal 8 damage to all characters', image: 'arcaneStorm', rarity: 'epic' }),
             
             // Legendární karta
             { name: 'Time Weaver', manaCost: 8, attack: 6, health: 8, effect: 'At the end of your turn, restore 2 health to all friendly characters', image: 'timeWeaver', rarity: 'legendary' },
