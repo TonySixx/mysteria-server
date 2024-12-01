@@ -182,7 +182,13 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Pride Hunter', 2, 2, 3, 'Gain +1/+1 if enemy hero has full health when played', 'prideHunter', 'uncommon', 'unit'),
     
     -- 4. Epic Spell - Mass Dispel
-    ('Mass Dispel', 3, NULL, NULL, 'Remove Taunt from all minions', 'massDispel', 'epic', 'spell');
+    ('Mass Dispel', 3, NULL, NULL, 'Remove Taunt from all minions', 'massDispel', 'epic', 'spell'),
+
+    -- 1. Frostbolt - uncommon kouzlo za 2 many
+    ('Frostbolt', 2, NULL, NULL, 'Deal 3 damage to a random enemy minion and freeze it', 'frostbolt', 'uncommon', 'spell'),
+
+    -- 2. Frost Knight - legendary jednotka s divine shield a freeze efektem
+    ('Frost Knight', 3, 2, 4, 'Divine Shield. Freeze any minion damaged by this unit', 'frostKnight', 'epic', 'unit');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 

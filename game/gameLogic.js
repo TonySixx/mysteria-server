@@ -576,7 +576,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             }
 
             // Najdeme všechny dostupné nepřátelské jednotky
-            const availableTargets = opponent.field.filter(unit => unit !== null);
+            var availableTargets = opponent.field.filter(unit => unit !== null);
 
             if (availableTargets.length === 0) {
                 newState.notification = {
@@ -922,6 +922,24 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             });
             
             addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mass Dispel</span> removing <span class="buff">Taunt</span> from ${tauntsRemoved} minions`);
+            break;
+
+        case 'Frostbolt':
+            var availableTargets = opponent.field.filter(unit => unit !== null);
+            if (availableTargets.length === 0) {
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Frostbolt</span> but there were no targets`);
+                break;
+            }
+            
+            const randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
+            var afterEffectFunc = handleUnitDamage(randomTarget, 3, opponent, playerIndex, newState);
+            if (afterEffectFunc) afterEffectFunc();
+            
+            randomTarget.frozen = true;
+            randomTarget.frozenLastTurn = false;
+            randomTarget.canAttack = false;
+            
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Frostbolt</span> dealing <span class="damage">3 damage</span> and <span class="freeze">freezing</span> <span class="spell-name">${randomTarget.name}</span>`);
             break;
     }
 

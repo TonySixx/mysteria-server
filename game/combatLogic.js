@@ -498,21 +498,20 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
         addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${defenderPlayer.username}'s</span> <span class="spell-name">Crystal Guardian</span> restored <span class="heal">3 health</span> to their hero`);
     }
 
-    // Upravíme logiku pro Frost Giant
-    if ((attacker.name === 'Frost Giant' || defender.name === 'Frost Giant') && !attackerMissed) {
+    // Upravíme logiku pro Frost Giant a Frost Knight
+    if ((attacker.name === 'Frost Giant' || attacker.name === 'Frost Knight' || defender.name === 'Frost Giant' || defender.name === 'Frost Knight') && !attackerMissed) {
         const attackerPlayer = state.players[attackerPlayerIndex];
         const defenderPlayer = state.players[1 - attackerPlayerIndex];
 
-
-        if (attacker.name === 'Frost Giant' && defender.health > 0) {
+        if ((attacker.name === 'Frost Giant' || attacker.name === 'Frost Knight') && defender.health > 0) {
             defender.frozen = true;
             defender.frozenLastTurn = false;
-            addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Frost Giant</span> <span class="freeze">froze</span> the enemy unit`);
+            addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">${attacker.name}</span> <span class="freeze">froze</span> the enemy unit`);
         }
-        if (defender.name === 'Frost Giant' && attacker.health > 0) {
+        if ((defender.name === 'Frost Giant' || defender.name === 'Frost Knight') && attacker.health > 0) {
             attacker.frozen = true;
             attacker.frozenLastTurn = false;
-            addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${defenderPlayer.username}'s</span> <span class="spell-name">Frost Giant</span> <span class="freeze">froze</span> the enemy unit`);
+            addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${defenderPlayer.username}'s</span> <span class="spell-name">${defender.name}</span> <span class="freeze">froze</span> the enemy unit`);
         }
     }
 
