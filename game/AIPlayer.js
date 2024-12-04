@@ -138,7 +138,10 @@ class AIPlayer {
         try {
             // Kontrola, zda máme vůbec nějaké útočníky
             const availableAttackers = player.field.filter(unit => 
-                unit && !unit.hasAttacked && !unit.frozen);
+                unit && !unit.hasAttacked && !unit.frozen && 
+                // Přidáme kontrolu pro obranné jednotky
+                !(unit.attack === 0 || (unit.hasTaunt && unit.attack <= 1 && !this.hasDeathEffectSynergy(player)))
+            );
 
             if (availableAttackers.length === 0) {
                 console.log('Žádní dostupní útočníci');
@@ -146,7 +149,6 @@ class AIPlayer {
             }
 
             // Vrátíme JEDEN nejlepší útok místo procházení všech útočníků
-            // Tím zajistíme, že stav hry bude aktuální pro každý další útok
             const bestAttacker = this.findBestAttacker(availableAttackers);
             if (!bestAttacker) {
                 console.log('Nenalezen vhodný útočník');
@@ -363,14 +365,61 @@ class AIPlayer {
                 break;
 
             case 'Arcane Storm':
-                var spellDamage = 8;
-                // Hodnotit podle toho, kolik důležitých věcí zabije
-                const totalKills = [...player.field, ...opponent.field].filter(
-                    unit => unit && unit.health <= spellDamage
+                const damage = 8;
+                
+                // Nejdřív zkontrolujeme, zda bychom nezabili sami sebe
+                if (player.hero.health <= damage) {
+                    return -999; // Nikdy nechceme zahrát kouzlo, které nás zabije
+                }
+
+                // Zkontrolujeme, zda zabijeme protivníka
+                if (opponent.hero.health <= damage) {
+                    return 100; // Vysoká hodnota pro vítězný tah
+                }
+
+                // Spočítáme kolik našich jednotek by zemřelo
+                const ourDeadUnits = player.field.filter(unit => 
+                    unit && unit.health <= damage && !unit.hasDivineShield
                 ).length;
-                value = totalKills * 2;
-                // Přidat hodnotu pokud zabije protivníka
-                if (opponent.hero.health <= spellDamage) value += 10;
+
+                // Spočítáme kolik nepřátelských jednotek by zemřelo
+                const enemyDeadUnits = opponent.field.filter(unit => 
+                    unit && unit.health <= damage && !unit.hasDivineShield
+                ).length;
+
+                // Základní hodnota podle rozdílu zabitých jednotek
+                value = (enemyDeadUnits - ourDeadUnits) * 5;
+
+                // Přidáme bonus pokud máme výrazně více životů než soupeř
+                if (player.hero.health - damage > opponent.hero.health - damage + 10) {
+                    value += 5;
+                }
+
+                // Snížíme hodnotu pokud bychom ztratili moc životů
+                if (player.hero.health - damage < 10) {
+                    value -= 10;
+                }
+
+                // Snížíme hodnotu pokud bychom ztratili důležité jednotky
+                const losingImportantUnits = player.field.some(unit => 
+                    unit && unit.health <= damage && !unit.hasDivineShield && (
+                        unit.attack >= 4 ||
+                        unit.effect.includes('at the end of your turn') ||
+                        unit.name === 'Time Weaver' ||
+                        unit.name === 'Mana Collector'
+                    )
+                );
+                if (losingImportantUnits) {
+                    value -= 15;
+                }
+
+                // Zvýšíme hodnotu pokud jsme v nevýhodné pozici na poli
+                if (enemyDeadUnits > 2 && ourDeadUnits <= 1) {
+                    value += 10;
+                }
+
+                // Pokud je výsledná hodnota příliš nízká, raději kouzlo nehrajeme
+                return value < -5 ? -999 : value;
                 break;
 
             case 'Mirror Image':
@@ -534,7 +583,8 @@ class AIPlayer {
             const hasDeathEffectSynergy = this.gameState.players[this.playerIndex].field.some(unit => 
                 unit && unit.effect && (
                     unit.effect.includes('any minion dies') ||
-                    unit.name === 'Soul Harvester'
+                    unit.name === 'Soul Harvester' ||
+                    unit.name === 'Blood Cultist'
                 )
             );
 
@@ -594,7 +644,8 @@ class AIPlayer {
                     const hasDeathEffectSynergy = this.gameState.players[this.playerIndex].field.some(unit => 
                         unit && unit.effect && (
                             unit.effect.includes('any minion dies') ||
-                            unit.name === 'Soul Harvester'
+                            unit.name === 'Soul Harvester' ||
+                            unit.name === 'Blood Cultist'
                         )
                     );
                     
@@ -685,6 +736,17 @@ class AIPlayer {
         if (unit.effect.includes('Draw')) threat += 2;
         
         return threat;
+    }
+
+    // Přidáme novou pomocnou metodu pro kontrolu death efektů
+    hasDeathEffectSynergy(player) {
+        return player.field.some(unit => 
+            unit && unit.effect && (
+                unit.effect.includes('any minion dies') ||
+                unit.name === 'Soul Harvester' ||
+                unit.name === 'Blood Cultist'
+            )
+        );
     }
 }
 
