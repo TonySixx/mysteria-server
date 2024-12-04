@@ -931,7 +931,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 break;
             }
             
-            const randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
+            var randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
             var afterEffectFunc = handleUnitDamage(randomTarget, 3, opponent, playerIndex, newState);
             if (afterEffectFunc) afterEffectFunc();
             
@@ -941,6 +941,50 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             
             addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Frostbolt</span> dealing <span class="damage">3 damage</span> and <span class="freeze">freezing</span> <span class="spell-name">${randomTarget.name}</span>`);
             break;
+
+        case 'Polymorph Wave':
+            // Transformujeme všechny jednotky na obou stranách pole
+            [...player.field, ...opponent.field].forEach((unit, index) => {
+                if (unit) {
+                    const isDuck = new UnitCard(
+                        `duck-${Date.now()}-${index}`,
+                        'Duck',
+                        1,
+                        1,
+                        1,
+                        'Quack! I used to be something more majestic...',
+                        'duck',
+                        'common'
+                    );
+                    if (index < player.field.length) {
+                        player.field[index] = isDuck;
+                    } else {
+                        opponent.field[index - player.field.length] = isDuck;
+                    }
+                }
+            });
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Polymorph Wave</span> transforming all minions into Ducks`);
+            break;
+
+        case 'Holy Strike':
+            var validTargets = opponent.field.filter(unit => unit !== null);
+            if (validTargets.length > 0) {
+                var randomTarget = validTargets[Math.floor(Math.random() * validTargets.length)];
+                var afterEffectFunc = handleUnitDamage(randomTarget, 2, opponent, playerIndex, newState);
+                if (afterEffectFunc) afterEffectFunc();
+                
+                // Léčení hrdiny
+                const healAmount = 2;
+                player.hero.health = Math.min(30, player.hero.health + healAmount);
+                
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Holy Strike</span> dealing <span class="damage">2 damage</span> to <span class="spell-name">${randomTarget.name}</span> and restoring <span class="heal">2 health</span>`);
+            } else {
+                // Pokud nejsou cíle, stále vyléčíme hrdinu
+                player.hero.health = Math.min(30, player.hero.health + 2);
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Holy Strike</span> restoring <span class="heal">2 health</span>`);
+            }
+            break;
+
     }
 
      // Odstranění mrtvých jednotek
@@ -1366,6 +1410,16 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                     addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Pride Hunter</span> gained <span class="buff">+1/+1</span>`);
                 }
                 break;
+
+            case 'Sneaky Infiltrator':
+                    // Efekt se zpracuje v combat logice
+                    break;
+        
+            case 'Silence Assassin':
+                    // Nastavíme, že nemůže útočit v tomto kole
+                    card.hasAttacked = true;
+                    card.canAttack = false;
+                    break;          
     }
 
     return newState;

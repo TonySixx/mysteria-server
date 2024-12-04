@@ -133,6 +133,9 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                 if (attacker.name === 'Assassin Scout') {
                     targetHero.health = Math.max(0, targetHero.health - (attacker.attack + 2));
                     addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Assassin Scout</span> dealt <span class="damage">+2 bonus damage</span> to enemy hero`);
+                } else if (attacker.name === 'Sneaky Infiltrator') {
+                    targetHero.health = Math.max(0, targetHero.health - Math.max(0, attacker.attack - 2));
+                    addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Sneaky Infiltrator</span> dealt reduced damage to enemy hero`);
                 } else {
                     targetHero.health = Math.max(0, targetHero.health - attacker.attack);
                 }
@@ -145,7 +148,6 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                 attackerPlayer.hero.health = Math.min(30, attackerPlayer.hero.health + damageDone);
                 addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Shadow Priest</span> restored <span class="heal">${damageDone} health</span> to their hero`);
             }
-
             
             // Přidáme efekt Mana Leech při útoku na hrdinu
             if (attacker.name === 'Mana Leech') {
@@ -791,6 +793,12 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
     if (attacker.name === 'Flame Warrior' && !attackerMissed) {
         attacker.health = attacker.health - 2;
         addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${state.players[attackerPlayerIndex].username}'s</span> <span class="spell-name">Flame Warrior</span> took <span class="damage">2 damage</span> from attacking`);
+    }
+
+    // Efekt Silence Assassin - odstranění Tauntu před útokem
+    if (attacker.name === 'Silence Assassin' && defender.hasTaunt) {
+        defender.hasTaunt = false;
+        addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${state.players[attackerPlayerIndex].username}'s</span> <span class="spell-name">Silence Assassin</span> removed <span class="buff">Taunt</span> from <span class="spell-name">${defender.name}</span>`);
     }
 
     console.log('Konec souboje:', {

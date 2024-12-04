@@ -188,7 +188,19 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Frostbolt', 2, NULL, NULL, 'Deal 3 damage to a random enemy minion and freeze it', 'frostbolt', 'uncommon', 'spell'),
 
     -- 2. Frost Knight - legendary jednotka s divine shield a freeze efektem
-    ('Frost Knight', 3, 2, 4, 'Divine Shield. Freeze any minion damaged by this unit', 'frostKnight', 'epic', 'unit');
+    ('Frost Knight', 3, 2, 4, 'Divine Shield. Freeze any minion damaged by this unit', 'frostKnight', 'epic', 'unit'),
+
+    -- 1. Epic kouzlo - Polymorph Wave
+    ('Polymorph Wave', 7, NULL, NULL, 'Transform all minions into 1/1 Ducks', 'polymorphWave', 'epic', 'spell'),
+
+    -- 2. Rare jednotka - Sneaky Infiltrator
+    ('Sneaky Infiltrator', 1, 3, 2, 'Deals 2 less damage when attacking enemy hero', 'sneakyInfiltrator', 'rare', 'unit'),
+
+    -- 3. Uncommon kouzlo - Holy Strike
+    ('Holy Strike', 2, NULL, NULL, 'Deal 2 damage to a random enemy minion and restore 2 health to your hero', 'holyStrike', 'uncommon', 'spell'),
+
+    -- 4. Legendary jednotka - Silence Assassin
+    ('Silence Assassin', 3, 3, 4, 'When this minion attacks a Taunt minion, remove its Taunt. Cannot attack the turn it is played', 'silenceAssassin', 'legendary', 'unit');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 
