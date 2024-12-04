@@ -137,11 +137,31 @@ class AIPlayer {
     findBestAttack(player, opponent) {
         try {
             // Kontrola, zda máme vůbec nějaké útočníky
-            const availableAttackers = player.field.filter(unit => 
-                unit && !unit.hasAttacked && !unit.frozen && 
-                // Přidáme kontrolu pro obranné jednotky
-                !(unit.attack === 0 || (unit.hasTaunt && unit.attack <= 1 && !this.hasDeathEffectSynergy(player)))
-            );
+            const availableAttackers = player.field.filter(unit => {
+                if (!unit || unit.hasAttacked || unit.frozen) return false;
+                
+                // Pro čistě obranné jednotky (0 útok)
+                if (unit.attack === 0) {
+                    return this.hasDeathEffectSynergy(player);
+                }
+                
+                // Pro Taunt jednotky s nízkým útokem
+                if (unit.hasTaunt && unit.attack <= 1) {
+                    // Povolíme útok pokud:
+                    // 1. Máme death effect synergii
+                    if (this.hasDeathEffectSynergy(player)) return true;
+                    
+                    // 2. Můžeme útočit na hrdinu
+                    if (!opponent.field.some(u => u && u.hasTaunt)) return true;
+                    
+                    // 3. Můžeme zabít nepřátelskou jednotku s 1 životem
+                    if (opponent.field.some(u => u && u.health <= unit.attack)) return true;
+                    
+                    return false;
+                }
+                
+                return true;
+            });
 
             if (availableAttackers.length === 0) {
                 console.log('Žádní dostupní útočníci');
@@ -577,23 +597,27 @@ class AIPlayer {
     }
 
     isGoodTrade(attacker, target) {
-        // Přidáme kontrolu na Mirror Image a podobné čistě obranné jednotky
-        if (attacker.attack === 0 || (attacker.hasTaunt && attacker.attack <= 1)) {
-            // Neútočit s obrannými jednotkami, pokud nemáme speciální efekty
-            const hasDeathEffectSynergy = this.gameState.players[this.playerIndex].field.some(unit => 
-                unit && unit.effect && (
-                    unit.effect.includes('any minion dies') ||
-                    unit.name === 'Soul Harvester' ||
-                    unit.name === 'Blood Cultist'
-                )
-            );
-
-            if (!hasDeathEffectSynergy) {
-                return false;
-            }
+        // Pro čistě obranné jednotky (0 útok)
+        if (attacker.attack === 0) {
+            return this.hasDeathEffectSynergy(this.gameState.players[this.playerIndex]);
+        }
+        
+        // Pro Taunt jednotky s nízkým útokem
+        if (attacker.hasTaunt && attacker.attack <= 1) {
+            // Povolíme výměnu pokud:
+            // 1. Máme death effect synergii
+            if (this.hasDeathEffectSynergy(this.gameState.players[this.playerIndex])) return true;
+            
+            // 2. Můžeme zabít jednotku a přežít
+            if (attacker.attack >= target.health && attacker.health > target.attack) return true;
+            
+            // 3. Cíl má 1 život (můžeme ho zabít)
+            if (target.health <= attacker.attack) return true;
+            
+            return false;
         }
 
-        // Výměna je dobrá pokud:
+        // Původní logika pro ostatní jednotky
         // 1. Zabijeme jednotku a přežijeme
         if (attacker.attack >= target.health && attacker.health > target.attack) {
             return true;
