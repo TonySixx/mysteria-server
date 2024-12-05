@@ -74,6 +74,25 @@ function startNextTurn(state, nextPlayer) {
                 forPlayer: nextPlayer
             };
         }
+    } else {
+        // Fatigue damage
+        if (!player.fatigueDamage) {
+            player.fatigueDamage = 1;
+        } else {
+            player.fatigueDamage++;
+        }
+
+        // Aplikujeme fatigue damage
+        player.hero.health -= player.fatigueDamage;
+        
+        // Přidáme zprávu do combat logu
+        addCombatLogMessage(newState, `<span class="${nextPlayer === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> took <span class="damage">${player.fatigueDamage} fatigue damage</span> from an empty deck`);
+        
+        // Použijeme checkGameOver místo přímé kontroly
+        const gameOverState = checkGameOver(newState);
+        if (gameOverState.gameOver) {
+            return gameOverState;
+        }
     }
 
     const playerName = newState.players[nextPlayer].username;

@@ -157,7 +157,8 @@ class GameManager {
                     field: [],
                     mana: 1,
                     maxMana: 1,
-                    originalDeck: [...player1Deck]
+                    originalDeck: [...player1Deck],
+                    fatigueDamage: 0
                 },
                 {
                     socket: player2Socket,
@@ -168,7 +169,8 @@ class GameManager {
                     field: [],
                     mana: 0,
                     maxMana: 0,
-                    originalDeck: [...player2Deck]
+                    originalDeck: [...player2Deck],
+                    fatigueDamage: 0
                 }
             ],
             currentPlayer: 0,
@@ -1311,7 +1313,8 @@ class GameManager {
                         field: [],
                         mana: 1,
                         maxMana: 1,
-                        originalDeck: [...playerDeck]
+                        originalDeck: [...playerDeck],
+                        fatigueDamage: 0
                     },
                     {
                         socket: aiSocket, // Použijeme ná mock socket
@@ -1322,7 +1325,8 @@ class GameManager {
                         field: [],
                         mana: 0,
                         maxMana: 0,
-                        originalDeck: [...aiDeck]
+                        originalDeck: [...aiDeck],
+                        fatigueDamage: 0
                     }
                 ],
                 currentPlayer: 0,
