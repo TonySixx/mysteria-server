@@ -200,7 +200,23 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Holy Strike', 2, NULL, NULL, 'Deal 2 damage to a random enemy minion and restore 2 health to your hero', 'holyStrike', 'uncommon', 'spell'),
 
     -- 4. Legendary jednotka - Silence Assassin
-    ('Silence Assassin', 3, 3, 4, 'When this minion attacks a Taunt minion, remove its Taunt. Cannot attack the turn it is played', 'silenceAssassin', 'legendary', 'unit');
+    ('Silence Assassin', 3, 3, 4, 'When this minion attacks a Taunt minion, remove its Taunt. Cannot attack the turn it is played', 'silenceAssassin', 'legendary', 'unit'),
+
+    -- Přidáme nové karty na konec souboru
+    -- 1. Epic Spell - Battle Cry
+    ('Battle Cry', 2, 'Give all friendly minions +1 Attack', 'battleCry', 'epic', 'spell'),
+
+    -- 2. Rare minion - Frost Warden
+    ('Frost Warden', 6, 6, 6, 'Freeze a random enemy minion when played', 'frostWarden', 'rare', 'unit'),
+
+    -- 3. Legendary Minion - Chaos Lord
+    ('Chaos Lord', 6, 6, 9, 'When played, discard a random card from your hand', 'chaosLord', 'legendary', 'unit'),
+
+    -- 4. Epic Minion - Blood Knight
+    ('Blood Knight', 6, 6, 8, 'Deal 2 damage to your hero when played', 'bloodKnight', 'epic', 'unit'),
+
+    -- Přidáme nového miniona za 0 many
+    ('Desperate Scout', 0, 1, 1, 'Draw a card and deal 1 damage to your hero when played', 'desperateScout', 'common', 'unit');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 

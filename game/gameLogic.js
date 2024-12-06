@@ -1004,6 +1004,21 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             }
             break;
 
+        case 'Battle Cry':
+            let buffedUnits = 0;
+            player.field.forEach(unit => {
+                if (unit) {
+                    unit.attack += 1;
+                    if (unit.baseAttack !== undefined) {
+                        unit.baseAttack += 1;
+                    }
+                    buffedUnits++;
+                }
+            });
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Battle Cry</span> giving <span class="buff">+1 Attack</span> to ${buffedUnits} minions`);
+            break;
+
+
     }
 
      // Odstranění mrtvých jednotek
@@ -1439,6 +1454,47 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                     card.hasAttacked = true;
                     card.canAttack = false;
                     break;          
+
+        case 'Frost Warden':
+            var availableTargets = opponent.field.filter(unit => unit);
+            if (availableTargets.length > 0) {
+                const randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
+                randomTarget.frozen = true;
+                randomTarget.frozenLastTurn = false;
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Frost Warden</span> <span class="freeze">froze</span> enemy <span class="spell-name">${randomTarget.name}</span>`);
+            }
+            break;
+
+        case 'Chaos Lord':
+            if (player.hand.length > 0) {
+                const randomIndex = Math.floor(Math.random() * player.hand.length);
+                const discardedCard = player.hand.splice(randomIndex, 1)[0];
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Chaos Lord</span> discarded <span class="spell-name">${discardedCard.name}</span>`);
+            }
+            break;
+
+        case 'Blood Knight':
+            player.hero.health = Math.max(0, player.hero.health - 2);
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Blood Knight</span> dealt <span class="damage">2 damage</span> to their hero`);
+            break;
+            
+        case 'Desperate Scout':
+            // Poškození vlastního hrdiny
+            player.hero.health = Math.max(0, player.hero.health - 1);
+
+            // Líznutí karty
+            if (player.deck.length > 0) {
+                const drawnCard = player.deck.pop();
+                if (player.hand.length < 10) {
+                    player.hand.push(drawnCard);
+                    addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Desperate Scout</span> <span class="draw">drew a card</span>`);
+                } else {
+                    addCombatLogMessage(newState, `<span class="spell-name">${drawnCard.name}</span> was burned because hand was full`);
+                }
+            }
+
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Desperate Scout</span> dealt <span class="damage">1 damage</span> to their hero`);
+            break;
     }
 
     return newState;
