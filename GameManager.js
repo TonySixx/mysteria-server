@@ -281,8 +281,8 @@ class GameManager {
             ...Array(2).fill({ id: 15, name: 'Mana Wyrm', manaCost: 2, attack: 2, health: 3, effect: 'Gain +1 attack when you cast a spell', image: 'manaWyrm', rarity: 'rare' }),
             ...Array(2).fill({ id: 16, name: 'Shadow Assassin', manaCost: 3, attack: 4, health: 2, effect: 'Deal 2 damage to enemy hero when played', image: 'shadowAssassin', rarity: 'rare' }),
             ...Array(2).fill({ id: 43, name: 'Mountain Giant', manaCost: 7, attack: 6, health: 9, effect: 'Taunt', image: 'mountainGiant', rarity: 'rare' }),
-            ...Array(2).fill({ id: 44, name: 'Light Champion', manaCost: 6, attack: 5, health: 5, effect: 'Divine Shield', image: 'lightChampion', rarity: 'uncommon' }),
-
+            ...Array(1).fill({ id: 44, name: 'Light Champion', manaCost: 6, attack: 5, health: 5, effect: 'Divine Shield', image: 'lightChampion', rarity: 'uncommon' }),
+            ...Array(1).fill({ id: 45, name: 'Radiant Protector', manaCost: 6, attack: 4, health: 5, effect: 'Taunt, Divine Shield', image: 'radiantProtector', rarity: 'legendary' }),
 
 
             // Běžná kouzla (2 kopie každého)
@@ -1531,7 +1531,8 @@ class GameManager {
             ...Array(2).fill({ name: 'Battle Mage', manaCost: 4, attack: 3, health: 5, effect: 'When you cast a spell, this minion gains +2 attack this turn', image: 'battleMage', rarity: 'rare' }),
             
             // Karty pro manipulaci s manou
-            ...Array(2).fill({ name: 'Mana Crystal', manaCost: 1, attack: 1, health: 3, effect: 'When this minion dies, gain 1 mana crystal', image: 'manaCrystal', rarity: 'common' }),
+            ...Array(2).fill({ id: 9, name: 'Nimble Sprite', manaCost: 1, attack: 1, health: 2, effect: 'Draw a card when played', image: 'nimbleSprite', rarity: 'common' }),
+
             ...Array(2).fill({ name: 'Mana Collector', manaCost: 5, attack: 3, health: 6, effect: 'At the start of your turn, gain mana equal to this minions attack', image: 'manaCollector', rarity: 'uncommon' }),
             
             // Kouzla pro lízání karet

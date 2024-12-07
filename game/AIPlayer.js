@@ -66,13 +66,104 @@ class AIPlayer {
 
         switch (player.hero.id) {
             case 1: // Mage
-                return opponent.hero.health <= 2 || player.mana >= 8;
+                // Použít schopnost pokud:
+                // 1. Můžeme zabít hrdinu
+                if (opponent.hero.health <= 2) return true;
+                              
+                // 3. Máme přebytek many a není lepší využití
+                if (player.mana >= 8 && player.hand.every(card => card.manaCost > player.mana || this.evaluateCard(card) < 5)) {
+                    return true;
+                }
+                
+                return false;
+
             case 2: // Priest
-                return player.hero.health <= 25;
+                // Neléčit pokud máme plné životy
+                if (player.hero.health >= 29) return false;
+                
+                // Spočítáme potenciální léčení z ruky
+                const healingPotential = player.hand.reduce((total, card) => {
+                    if (card.effect && card.effect.includes('Restore') && card.manaCost <= player.mana) {
+                        const healAmount = parseInt(card.effect.match(/\d+/)[0]) || 0;
+                        return total + healAmount;
+                    }
+                    return total;
+                }, 0);
+
+                // Použít schopnost pokud:
+                // 1. Jsme v kritickém stavu (pod 10 HP)
+                if (player.hero.health <= 10) return true;
+                
+                
+                // 3. Jsme pod 25 HP, nemáme léčení v ruce a pole je stabilní
+                if (player.hero.health <= 25 && 
+                    healingPotential === 0 && 
+                    !opponent.field.some(unit => unit && unit.attack >= 4)) {
+                    return true;
+                }
+                
+                // 4. Máme přebytek many a není lepší využití
+                if (player.mana >= 8 && 
+                    player.hero.health < 25 && 
+                    player.hand.every(card => card.manaCost > player.mana || this.evaluateCard(card) < 5)) {
+                    return true;
+                }
+                
+                return false;
+
             case 3: // Seer
-                return player.hand.length < 4;
+                // Použít schopnost pokud:
+                // 1. Máme málo karet a žádné lízání v ruce
+                if (player.hand.length <= 2 && 
+                    !player.hand.some(card => card.effect && card.effect.includes('Draw'))) {
+                    return true;
+                }
+                
+                // 2. Máme karty se synergií s kouzly a volnou manu
+                const spellSynergyUnits = player.field.filter(unit => 
+                    unit && unit.effect && unit.effect.includes('cast a spell')
+                ).length;
+                if (spellSynergyUnits >= 2 && player.mana >= 4) {
+                    return true;
+                }
+                
+                // 3. Potřebujeme konkrétní odpověď (např. Taunt nebo removal)
+                const needsAnswer = opponent.field.some(unit => unit && unit.attack >= 5) &&
+                    !player.hand.some(card => card.hasTaunt || card.effect.includes('Deal damage'));
+                if (needsAnswer && player.hand.length < 5) {
+                    return true;
+                }
+                
+                // 4. Máme přebytek many a málo karet
+                if (player.mana >= 6 && player.hand.length < 4) {
+                    return true;
+                }
+                
+                return false;
+
             case 4: // Defender
-                return player.field.length > 0 && !player.field.some(unit => unit.hasTaunt);
+                // Použít schopnost pokud:
+                // 1. Máme jednotky bez Tauntu a soupeř má silné jednotky
+                if (player.field.length > 0 && 
+                    !player.field.some(unit => unit.hasTaunt) &&
+                    opponent.field.some(unit => unit && unit.attack >= 4)) {
+                    return true;
+                }
+                
+                // 2. Máme důležité jednotky, které potřebují ochranu
+                const hasImportantUnit = player.field.some(unit => 
+                    unit && !unit.hasTaunt && (
+                        unit.attack >= 4 ||
+                        unit.effect.includes('at the end of your turn') ||
+                        unit.effect.includes('when you cast a spell')
+                    )
+                );
+                if (hasImportantUnit && opponent.field.some(unit => unit)) {
+                    return true;
+                }
+                
+                return false;
+
             default:
                 return false;
         }

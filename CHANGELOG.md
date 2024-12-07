@@ -258,7 +258,7 @@
 
 ### Changed
 - Přepracována komponenta GameScene pro podporu online multiplayeru
-- Odstraněna lokáln herní logika
+- Odstraněna lokální herní logika
 - Přidána podpora pro zobrazení stavu hry ze serveru
 - Implementováno omezení akcí podle aktuálního stavu hry
 - Vylepšeno zobrazení stavu tahu a disabled stavů
@@ -266,7 +266,7 @@
 ### Added
 - Implementována drag & drop logika pro hraní karet a útoky v online režimu
 - Přidáno zobrazení stavu many a balíčku pro oba hráče
-- Přidána vizuáln indikace aktivního hráe
+- Přidána vizuální indikace aktivního hráe
 
 ### Fixed
 - Opraveno zobrazování karet protivníka na herním poli - nyní jsou viditelné
@@ -284,10 +284,10 @@
 - Přidáno bezpečnostní opatření proti podvádění - klient nevidí detaily karet v ruce protihráče
 
 ### Fixed
-- Opraveno odesílán stavu karet v ruce protihráče ze serveru
+- Opraveno odesílání stavu karet v ruce protihráče ze serveru
 - Přidány chybějící vlastnosti pro skryté karty protihráče
 - Vylepšena struktura GameManager třídy pro správnou práci s herním stavem
-- Opraveno zobrazování počtu karet v ruce protihráče
+- Opraveno zobrazení počtu karet v ruce protihráče
 
 ### Security
 - Vylepšeno skrývání informací o kartách protihráče - přidány pouze nezbytné vlastnosti
@@ -295,7 +295,7 @@
 ### Changed
 - Vylepšen design matchmaking obrazovky
   - Přidáno elegantní gradientové pozadí
-  - Přidány animované efekty pro lepší vizuáln�� dojem
+  - Přidány animované efekty pro lepší vizuální dojem
   - Implementován světelný efekt ve středu obrazovky
 
 ### Fixed
@@ -306,7 +306,7 @@
 - Opraveno zobrazování obrázků hrdinů - nyní se správně rozlišuje hrdina hráče a protivníka
 
 ### Fixed
-- Opraven problém s detekc konce hry při zabití hrdiny
+- Opraven problém s detekcí konce hry při zabití hrdiny
 - Přidána správná kontrola konce hry po každém útoku na hrdinu
 - Zajištěno správné ukončení hry při dosažení nulových nebo záporných životů hrdiny
 
@@ -416,7 +416,7 @@
 
 ### Added
 - Přidáno podrobné logování na serveru
-  - Logován�� průběhu útoku a soubojů
+  - Logování průběhu útoku a soubojů
   - Sledování změn zdraví jednotek a hrdinů
   - Logování kontrol Taunt efektu
 
@@ -725,4 +725,10 @@
   - Změněn efekt na "Takes 2 damage whenever this minion attacks"
   - Zvýšeno základní zdraví pro lepší využitelnost efektu
   - Nyní nabízí zajímavější strategické rozhodování při útocích
+
+### Changed
+- Vylepšena AI logika pro používání hrdinských schopností
+  - Přidáno sofistikovanější rozhodování pro každého hrdinu
+  - Zohledněn stav hry, ruky a pole
+  - Přidány specifické podmínky pro každou hrdinskou schopnost
 
