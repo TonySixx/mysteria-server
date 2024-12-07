@@ -216,7 +216,19 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Blood Knight', 6, 6, 8, 'Deal 2 damage to your hero when played', 'bloodKnight', 'epic', 'unit'),
 
     -- Přidáme nového miniona za 0 many
-    ('Desperate Scout', 0, 1, 1, 'Draw a card and deal 1 damage to your hero when played', 'desperateScout', 'common', 'unit');
+    ('Desperate Scout', 0, 1, 1, 'Draw a card and deal 1 damage to your hero when played', 'desperateScout', 'common', 'unit'),
+
+    -- 1. Balanced Warrior - common 5 mana minion bez efektu
+    ('Balanced Warrior', 5, 6, 6, NULL, 'balancedWarrior', 'common', 'unit'),
+    
+    -- 2. Aggressive Warrior - common 4 mana minion s vysokým útokem
+    ('Aggressive Warrior', 4, 6, 3, NULL, 'aggressiveWarrior', 'common', 'unit'),
+    
+    -- 3. Healing Sentinel - uncommon 5 mana minion s léčivým efektem
+    ('Healing Sentinel', 5, 4, 5, 'Restore 4 health to your hero when played', 'healingSentinel', 'uncommon', 'unit'),
+    
+    -- 4. Frost Overseer - epic 6 mana minion se zmrazovacím efektem
+    ('Frost Overseer', 5, 4, 6, 'At the end of your turn, freeze a random enemy minion', 'frostOverseer', 'epic', 'unit');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 

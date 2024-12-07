@@ -21,8 +21,8 @@ class UnitCard extends Card {
         this.canAttack = false;
         this.hasAttacked = false;
         this.frozen = false;
-        this.hasTaunt = effect.toLowerCase().includes('taunt');
-        this.hasDivineShield = effect.toLowerCase().includes('divine shield');
+        this.hasTaunt = effect?.toLowerCase().includes('taunt');
+        this.hasDivineShield = effect?.toLowerCase().includes('divine shield');
     }
 }
 

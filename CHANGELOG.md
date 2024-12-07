@@ -9,6 +9,12 @@
 - Implementována nová hrdinská schopnost Protect
 - Přidána vizuální zpětná vazba pro nové hrdinské schopnosti
 - New hero: Warrior with hero power "Battle Command" that gives +1 Attack to a random friendly minion
+- New common minion: Balanced Warrior (5/6 for 5 mana)
+- New common minion: Aggressive Warrior (6/3 for 4 mana)
+- New uncommon minion: Healing Sentinel (4/5 for 5 mana) with healing effect
+- New epic minion: Frost Overseer (4/6 for 6 mana) with freeze effect
+- Added new end-turn effect processing for Frost Overseer
+- Added AI evaluation for new cards
 
 ### Changed
 - Vylepšena vizuální stránka hry přidáním dynamických efektů pro lepší uživatelský zážitek.
@@ -69,7 +75,7 @@
   - Healing Wisp (2/2) - při útoku léčí vlastního hrdinu
   - Arcane Guardian (2/4) - získává +1 zdraví za každé kouzlo v ruce
 - Vylepšeno zobrazení karty Arcane Storm
-  - Přidáno zobrazení aktuálního poškozen podle počtu zahraných kouzel
+  - Přidáno zobrazení aktuálního po��kozen podle počtu zahraných kouzel
   - Zachován původní popis efektu v závorce
   - Dynamická aktualizace hodnoty během hry
 - Implementována nová komponenta ConnectionStatus pro zobrazování stavu připojení k serveru
@@ -103,7 +109,7 @@
 - Přidáno zpoždění pro zobrazení poškození u útočící jednotky pro správné umístění textu.
 - Vylepšena zpětná vazba pro hráče při nelegálních tazích.
 - Vylešen design notifikací - nyní se zobrazují uprostřed obrazovky s černým poloprůhledným pozadím.
-- Změněno písmo notifikací na Arial.
+- Změněno písmo notifikac�� na Arial.
 - Přidána plynulá animace pro objevení a zmizení notifikací.
 - Prodloužena doba zobrazení notifikací pro lepší čitelnost.
 - Vylepšena logika drag and drop pro prevenci nelegálních tahů.
@@ -219,7 +225,7 @@
   - Aktualizovány allowed origins pro CORS
   - Opravena URL serveru v konfiguraci
 - Sjednoceny porty pro socketovou komunikaci
-- Vylepšena inicializace socketového připojení
+- Vylepšena inicializace socketového připojen��
 - Přidána lepš správa životnho cyklu socket instance
 
 ### Changed

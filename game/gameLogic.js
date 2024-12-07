@@ -120,6 +120,13 @@ function startNextTurn(state, nextPlayer) {
                 unitId: card.id
             });
         }
+        else if (card.name === 'Frost Overseer') {
+            newState.endTurnEffects.push({
+                type: 'frostOverseer',
+                owner: previousPlayer,
+                unitId: card.id
+            });
+        }
     });
 
     // Přidáme efekty pro všechny Wolf Warriory na poli OBOU hráčů
@@ -134,6 +141,7 @@ function startNextTurn(state, nextPlayer) {
             }
         });
     });
+
 
     // Zpracování end-turn efektů
     if (newState.endTurnEffects && newState.endTurnEffects.length > 0) {
@@ -162,8 +170,8 @@ function startNextTurn(state, nextPlayer) {
             }
 
             if (effect.type === 'twilightGuardian' && effect.owner === previousPlayer) {
-                const owner = newState.players[previousPlayer];
-                const availableTargets = owner.field.filter(unit => 
+                var owner = newState.players[previousPlayer];
+                var availableTargets = owner.field.filter(unit => 
                     unit && !unit.hasDivineShield && unit.id !== effect.unitId
                 );
                 
@@ -172,6 +180,19 @@ function startNextTurn(state, nextPlayer) {
                     randomTarget.hasDivineShield = true;
                     randomTarget.divineShieldProcessed = false;
                     addCombatLogMessage(newState, `<span class="${previousPlayer === 0 ? 'player-name' : 'enemy-name'}">${owner.username}'s</span> <span class="spell-name">Twilight Guardian</span> gave <span class="buff">Divine Shield</span> to <span class="spell-name">${randomTarget.name}</span>`);
+                }
+            }
+
+            else if (effect.type === 'frostOverseer' && effect.owner === previousPlayer) {
+                var owner = newState.players[previousPlayer];
+                var opponent_local = newState.players[1 - effect.owner];
+                var availableTargets = opponent_local.field.filter(unit => unit &&!unit.frozen);
+                
+                if (availableTargets.length > 0) {
+                    const randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
+                    randomTarget.frozen = true;
+                    randomTarget.frozenLastTurn = true;
+                    addCombatLogMessage(newState, `<span class="${effect.owner === 0 ? 'player-name' : 'enemy-name'}">${owner.username}'s</span> <span class="spell-name">Frost Overseer</span> <span class="freeze">froze</span> enemy <span class="spell-name">${randomTarget.name}</span>`);
                 }
             }
         });
@@ -1220,7 +1241,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
             break;
 
         case 'Freezing Dragon':
-            // Zmrazí všechny nepřátelské jednotky
+                // Zmrazí všechny nepřátelské jednotky
             opponent.field.forEach(unit => {
                 if (unit) {
                     unit.frozen = true;
@@ -1373,7 +1394,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
             break;
 
         case 'Holy Elemental':
-            const healAmount = 2;
+            var healAmount = 2;
             player.hero.health = Math.min(30, player.hero.health + healAmount);
             addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}'s</span> <span class="spell-name">Holy Elemental</span> restored <span class="heal">${healAmount} health</span> to their hero`);
             break;
@@ -1494,6 +1515,12 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
             }
 
             addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Desperate Scout</span> dealt <span class="damage">1 damage</span> to their hero`);
+            break;
+
+        case 'Healing Sentinel':
+            var healAmount = 4;
+            player.hero.health = Math.min(30, player.hero.health + healAmount);
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Healing Sentinel</span> restoring <span class="heal">${healAmount} health</span> to their hero`);
             break;
     }
 
