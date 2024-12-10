@@ -1052,13 +1052,13 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             // V ruce
             p.hand.forEach(card => {
                 if (card.name === 'Ancient Colossus') {
-                    card.manaCost = Math.max(1, 20 - newState.deadMinionsCount);
+                    card.manaCost = Math.max(1, 25 - newState.deadMinionsCount);
                 }
             });
             // V balíčku
             p.deck.forEach(card => {
                 if (card.name === 'Ancient Colossus') {
-                    card.manaCost = Math.max(1, 20 - newState.deadMinionsCount);
+                    card.manaCost = Math.max(1, 25 - newState.deadMinionsCount);
                 }
             });
         });
