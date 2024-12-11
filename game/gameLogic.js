@@ -1472,6 +1472,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
         
             case 'Silence Assassin':
                     // Nastavíme, že nemůže útočit v tomto kole
+                    card.hasTaunt = false;
                     card.hasAttacked = true;
                     card.canAttack = false;
                     break;          
