@@ -644,6 +644,46 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
             attackerPlayer.hero.health = 30;
             addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Sacred Dragon</span> restored their hero to <span class="heal">full health</span>`);
         }
+
+        // Přidáme efekt pro Arcane Summoner
+        if (attacker.name === 'Arcane Summoner') {
+            const attackerPlayer = state.players[attackerPlayerIndex];
+            for (let i = 0; i < 2; i++) {
+                const arcaneWisp = new UnitCard(
+                    `wisp-${Date.now()}-${i}`,
+                    'Arcane Wisp',
+                    1,
+                    1,
+                    1,
+                    'When this minion dies, add a copy of The Coin to your hand',
+                    'arcaneWisp',
+                    'uncommon'
+                );
+                // Vložíme Arcane Wisp na náhodnou pozici v balíčku
+                const randomIndex = Math.floor(Math.random() * (attackerPlayer.deck.length + 1));
+                attackerPlayer.deck.splice(randomIndex, 0, arcaneWisp);
+            }
+            addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Arcane Summoner</span> shuffled two <span class="spell-name">Arcane Wisps</span> into their deck`);
+        }
+
+        // Přidáme efekt pro Eternal Wanderer
+        if (attacker.name === 'Eternal Wanderer') {
+            const attackerPlayer = state.players[attackerPlayerIndex];
+            if (attackerPlayer.hand.length < 10) {
+                const wanderer = new UnitCard(
+                    `wanderer-${Date.now()}`,
+                    'Eternal Wanderer',
+                    6,
+                    5,
+                    5,
+                    'Cannot attack the turn it is played. When this minion dies, return it to your hand',
+                    'eternalWanderer',
+                    'epic'
+                );
+                attackerPlayer.hand.push(wanderer);
+                addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Eternal Wanderer</span> returned to their hand`);
+            }
+        }
     }
 
     if (defender.health <= 0) {
@@ -709,6 +749,46 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
             const defenderPlayer = state.players[1 - attackerPlayerIndex];
             defenderPlayer.hero.health = 30;
             addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${defenderPlayer.username}'s</span> <span class="spell-name">Sacred Dragon</span> restored their hero to <span class="heal">full health</span>`);
+        }
+
+        // Přidáme efekt pro Arcane Summoner
+        if (defender.name === 'Arcane Summoner') {
+            const defenderPlayer = state.players[1 - attackerPlayerIndex];
+            for (let i = 0; i < 2; i++) {
+                const arcaneWisp = new UnitCard(
+                    `wisp-${Date.now()}-${i}`,
+                    'Arcane Wisp',
+                    1,
+                    1,
+                    1,
+                    'When this minion dies, add a copy of The Coin to your hand',
+                    'arcaneWisp',
+                    'uncommon'
+                );
+                // Vložíme Arcane Wisp na náhodnou pozici v balíčku
+                const randomIndex = Math.floor(Math.random() * (defenderPlayer.deck.length + 1));
+                defenderPlayer.deck.splice(randomIndex, 0, arcaneWisp);
+            }
+            addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${defenderPlayer.username}'s</span> <span class="spell-name">Arcane Summoner</span> shuffled two <span class="spell-name">Arcane Wisps</span> into their deck`);
+        }
+
+        // Přidáme efekt pro Eternal Wanderer
+        if (defender.name === 'Eternal Wanderer') {
+            const defenderPlayer = state.players[1 - attackerPlayerIndex];
+            if (defenderPlayer.hand.length < 10) {
+                const wanderer = new UnitCard(
+                    `wanderer-${Date.now()}`,
+                    'Eternal Wanderer',
+                    6,
+                    5,
+                    5,
+                    'Cannot attack the turn it is played. When this minion dies, return it to your hand',
+                    'eternalWanderer',
+                    'epic'
+                );
+                defenderPlayer.hand.push(wanderer);
+                addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${defenderPlayer.username}'s</span> <span class="spell-name">Eternal Wanderer</span> returned to their hand`);
+            }
         }
     }
 

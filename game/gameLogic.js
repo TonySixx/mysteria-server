@@ -464,6 +464,46 @@ function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
             owner.hero.health = 30;
             addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${owner.username}'s</span> <span class="spell-name">Sacred Dragon</span> restored their hero to <span class="heal">full health</span>`);
         }
+
+        // Přidáme efekt pro Arcane Summoner
+        if (unit.name === 'Arcane Summoner') {
+            const player = newState.players[1 - playerIndex];
+            for (let i = 0; i < 2; i++) {
+                const arcaneWisp = new UnitCard(
+                    `wisp-${Date.now()}-${i}`,
+                    'Arcane Wisp',
+                    1,
+                    1,
+                    1,
+                    'When this minion dies, add a copy of The Coin to your hand',
+                    'arcaneWisp',
+                    'uncommon'
+                );
+                // Vložíme Arcane Wisp na náhodnou pozici v balíčku
+                const randomIndex = Math.floor(Math.random() * (player.deck.length + 1));
+                player.deck.splice(randomIndex, 0, arcaneWisp);
+            }
+            addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Arcane Summoner</span> shuffled two <span class="spell-name">Arcane Wisps</span> into their deck`);
+        }
+
+        // Přidáme efekt pro Eternal Wanderer
+        if (unit.name === 'Eternal Wanderer') {
+            const player = newState.players[1 - playerIndex];
+            if (player.hand.length < 10) {
+                const wanderer = new UnitCard(
+                    `wanderer-${Date.now()}`,
+                    'Eternal Wanderer',
+                    6,
+                    5,
+                    5,
+                    'Cannot attack the turn it is played. When this minion dies, return it to your hand',
+                    'eternalWanderer',
+                    'epic'
+                );
+                player.hand.push(wanderer);
+                addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Eternal Wanderer</span> returned to their hand`);
+            }
+        }
     }
     return afterEffectFunc;
 }
@@ -1522,6 +1562,65 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
             var healAmount = 4;
             player.hero.health = Math.min(30, player.hero.health + healAmount);
             addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Healing Sentinel</span> restoring <span class="heal">${healAmount} health</span> to their hero`);
+            break;
+
+        case 'Legion Commander':
+            const emptySpaces = 7 - player.field.length;
+            for (let i = 0; i < emptySpaces; i++) {
+                const recruit = new UnitCard(
+                    `recruit-${Date.now()}-${i}`,
+                    'Recruit',
+                    1,
+                    1,
+                    1,
+                    '',
+                    'recruit',
+                    'common'
+                );
+                recruit.hasAttacked = true;
+                recruit.canAttack = false;
+                player.field.push(recruit);
+            }
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Legion Commander</span> summoning ${emptySpaces} <span class="spell-name">Recruits</span>`);
+            break;
+
+        case 'Mind Mimic':
+            if (opponent.hand.length > 0) {
+                const randomIndex = Math.floor(Math.random() * opponent.hand.length);
+                const cardToCopy = opponent.hand[randomIndex];
+                
+                if (player.hand.length < 10) {
+                    // Vytvoříme kopii karty s novým ID
+                    const copiedCard = cardToCopy instanceof UnitCard ?
+                        new UnitCard(
+                            `copy-${Date.now()}-${Math.random()}`,
+                            cardToCopy.name,
+                            cardToCopy.manaCost,
+                            cardToCopy.attack,
+                            cardToCopy.health,
+                            cardToCopy.effect,
+                            cardToCopy.image,
+                            cardToCopy.rarity
+                        ) :
+                        new SpellCard(
+                            `copy-${Date.now()}-${Math.random()}`,
+                            cardToCopy.name,
+                            cardToCopy.manaCost,
+                            cardToCopy.effect,
+                            cardToCopy.image,
+                            cardToCopy.rarity
+                        );
+                    
+                    player.hand.push(copiedCard);
+                    addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Mind Mimic</span> copying a card from opponent's hand`);
+                }
+            }
+            break;
+
+        case 'Eternal Wanderer':
+            // Nastavíme, že nemůže útočit v tomto kole
+            card.hasAttacked = true;
+            card.canAttack = false;
             break;
     }
 

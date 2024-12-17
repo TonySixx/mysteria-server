@@ -228,7 +228,19 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Healing Sentinel', 5, 4, 5, 'Restore 4 health to your hero when played', 'healingSentinel', 'uncommon', 'unit'),
     
     -- 4. Frost Overseer - epic 6 mana minion se zmrazovacím efektem
-    ('Frost Overseer', 5, 4, 6, 'At the end of your turn, freeze a random enemy minion', 'frostOverseer', 'epic', 'unit');
+    ('Frost Overseer', 5, 4, 6, 'At the end of your turn, freeze a random enemy minion', 'frostOverseer', 'epic', 'unit'),
+
+    -- 1. Legendary minion - Legion Commander
+    ('Legion Commander', 9, 6, 6, 'When played, fill your board with 1/1 minions that cannot attack this turn', 'legionCommander', 'legendary', 'unit'),
+    
+    -- 2. Epic minion - Arcane Summoner
+    ('Arcane Summoner', 4, 3, 3, 'When this minion dies, shuffle two Arcane Wisps into your deck', 'arcaneSummoner', 'epic', 'unit'),
+    
+    -- 3. Epic minion - Mind Mimic
+    ('Mind Mimic', 5, 4, 4, 'When played, create a copy of a random card from your opponent''s hand', 'mindMimic', 'epic', 'unit'),
+    
+    -- 4. Epic minion - Eternal Wanderer
+    ('Eternal Wanderer', 6, 5, 5, 'Cannot attack the turn it is played. When this minion dies, return it to your hand', 'eternalWanderer', 'epic', 'unit');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 
