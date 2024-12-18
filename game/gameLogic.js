@@ -127,6 +127,13 @@ function startNextTurn(state, nextPlayer) {
                 unitId: card.id
             });
         }
+        else if (card.name === 'Spirit Summoner') {
+            newState.endTurnEffects.push({
+                type: 'spiritSummoner',
+                owner: previousPlayer,
+                unitId: card.id
+            });
+        }
     });
 
     // Přidáme efekty pro všechny Wolf Warriory na poli OBOU hráčů
@@ -195,6 +202,24 @@ function startNextTurn(state, nextPlayer) {
                     addCombatLogMessage(newState, `<span class="${effect.owner === 0 ? 'player-name' : 'enemy-name'}">${owner.username}'s</span> <span class="spell-name">Frost Overseer</span> <span class="freeze">froze</span> enemy <span class="spell-name">${randomTarget.name}</span>`);
                 }
             }
+
+            else if (effect.type === 'spiritSummoner' && effect.owner === previousPlayer) {
+                var owner = newState.players[previousPlayer];
+                if (owner.field.length < 7) {
+                    const spirit = new UnitCard(
+                        `spirit-${Date.now()}-${Math.random()}`,
+                        'Spirit',
+                        1,
+                        1,
+                        1,
+                        '',
+                        'spirit',
+                        'rare'
+                    );
+                    owner.field.push(spirit);
+                    addCombatLogMessage(newState, `<span class="${effect.owner === 0 ? 'player-name' : 'enemy-name'}">${owner.username}'s</span> <span class="spell-name">Spirit Summoner</span> summoned a <span class="spell-name">Spirit</span>`);
+                }                  
+            }
         });
         // Vyčistíme efekty po zpracování
         newState.endTurnEffects = [];
@@ -252,6 +277,7 @@ function startNextTurn(state, nextPlayer) {
             }
         });
     });
+
 
     return newState;
 }
@@ -1079,7 +1105,34 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Battle Cry</span> giving <span class="buff">+1 Attack</span> to ${buffedUnits} minions`);
             break;
 
+        case 'Soothing Return':
+            var validTargets = opponent.field.filter(unit => unit !== null);
+            if (validTargets.length > 0) {
+                var randomTarget = validTargets[Math.floor(Math.random() * validTargets.length)];
+                // Vrátíme kartu do ruky
+                if (opponent.hand.length < 10) {
+                    opponent.hand.push(randomTarget);
+                    // Odstraníme kartu z pole
+                    opponent.field = opponent.field.filter(unit => unit.id !== randomTarget.id);
+                    // Vyléčíme hrdinu
+                    player.hero.health = Math.min(30, player.hero.health + 3);
+                    
+                    addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Soothing Return</span>, returning <span class="spell-name">${randomTarget.name}</span> to hand and restoring <span class="heal">3 health</span>`);
+                }
+            }
+            break;
 
+        case 'Death Touch':
+            var validTargets = opponent.field.filter(unit => unit !== null);
+            if (validTargets.length > 0) {
+                var randomTarget = validTargets[Math.floor(Math.random() * validTargets.length)];
+                // Odstraníme kartu z pole
+                var afterEffectFunc = handleUnitDamage(randomTarget, randomTarget.health, opponent, playerIndex, newState);
+                if (afterEffectFunc) afterEffectFunc();             
+                
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Shadow Word: Death</span>, destroying <span class="spell-name">${randomTarget.name}</span>`);
+            }
+            break;
     }
 
      // Odstranění mrtvých jednotek
@@ -1622,6 +1675,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
             card.hasAttacked = true;
             card.canAttack = false;
             break;
+
     }
 
     return newState;

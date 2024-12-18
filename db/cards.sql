@@ -240,7 +240,19 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Mind Mimic', 5, 4, 4, 'When played, create a copy of a random card from your opponent''s hand', 'mindMimic', 'epic', 'unit'),
     
     -- 4. Epic minion - Eternal Wanderer
-    ('Eternal Wanderer', 6, 5, 5, 'Cannot attack the turn it is played. When this minion dies, return it to your hand', 'eternalWanderer', 'epic', 'unit');
+    ('Eternal Wanderer', 6, 5, 5, 'Cannot attack the turn it is played. When this minion dies, return it to your hand', 'eternalWanderer', 'epic', 'unit'),
+
+    -- 1. Taunt za 1 manu (Common)
+    ('Tiny Protector', 1, 1, 3, 'Taunt', 'tinyProtector', 'common', 'unit'),
+
+    -- 2. Uncommon spell - vrácení karty a léčení
+    ('Soothing Return', 3, NULL, NULL, 'Return a random enemy minion to their hand and restore 3 health to your hero', 'soothingReturn', 'uncommon', 'spell'),
+
+    -- 3. Rare spell - zničení miniona
+    ('Death Touch', 4, NULL, NULL, 'Destroy a random enemy minion', 'shadowWordDeath', 'rare', 'spell'),
+
+    -- 4. Epic minion - spawner
+    ('Spirit Summoner', 4, 3, 4, 'At the end of your turn, summon a 1/1 Spirit', 'spiritSummoner', 'epic', 'unit');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 
