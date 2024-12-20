@@ -134,6 +134,13 @@ function startNextTurn(state, nextPlayer) {
                 unitId: card.id
             });
         }
+        else if (card.name === 'Angel Guardian') {
+           newState.endTurnEffects.push({
+            type: 'angelGuardian',
+            owner: previousPlayer,
+            unitId: card.id
+           });
+        }
     });
 
     // Přidáme efekty pro všechny Wolf Warriory na poli OBOU hráčů
@@ -200,6 +207,17 @@ function startNextTurn(state, nextPlayer) {
                     randomTarget.frozen = true;
                     randomTarget.frozenLastTurn = true;
                     addCombatLogMessage(newState, `<span class="${effect.owner === 0 ? 'player-name' : 'enemy-name'}">${owner.username}'s</span> <span class="spell-name">Frost Overseer</span> <span class="freeze">froze</span> enemy <span class="spell-name">${randomTarget.name}</span>`);
+                }
+            }
+
+            else if (effect.type === 'angelGuardian' && effect.owner === previousPlayer) {
+                var owner = newState.players[previousPlayer];
+                if (owner.hero.health === 30) {     
+                    var angelGuardian = owner.field.find(unit => unit && unit.id === effect.unitId);
+                    angelGuardian.attack += 1;
+                    angelGuardian.health += 1;
+                    angelGuardian.maxHealth += 1;
+                    addCombatLogMessage(newState, `<span class="${previousPlayer === 0 ? 'player-name' : 'enemy-name'}">${owner.username}'s</span> <span class="spell-name">Angel Guardian</span> gained <span class="buff">+1/+1</span>`);
                 }
             }
 
@@ -601,7 +619,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             // Healing Touch nyní léčí pouze vlastního hrdinu
             const oldHealth = player.hero.health;
             player.hero.health = Math.min(player.hero.health + 8, 30);
-            const healAmount = player.hero.health - oldHealth;
+            var healAmount = player.hero.health - oldHealth;
 
             console.log('Healing Touch vyléčil:', {
                 healAmount,
@@ -792,7 +810,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             break;
 
         case 'Arcane Storm':
-            var damage = 8;
+           var damage = 8;
 
             // Poškození všech postav
             player.hero.health = Math.max(0, player.hero.health - damage);
@@ -1080,7 +1098,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 if (afterEffectFunc) afterEffectFunc();
                 
                 // Léčení hrdiny
-                const healAmount = 2;
+                var healAmount = 2;
                 player.hero.health = Math.min(30, player.hero.health + healAmount);
                 
                 addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Holy Strike</span> dealing <span class="damage">2 damage</span> to <span class="spell-name">${randomTarget.name}</span> and restoring <span class="heal">2 health</span>`);
@@ -1132,6 +1150,21 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 
                 addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Shadow Word: Death</span>, destroying <span class="spell-name">${randomTarget.name}</span>`);
             }
+            break;
+
+        case 'Unity Strike':
+            var friendlyMinions = player.field.filter(unit => unit !== null).length;
+            var damage = friendlyMinions;
+            opponent.hero.health = Math.max(0, opponent.hero.health - damage);
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Unity Strike</span> dealing <span class="damage">${damage} damage</span> based on friendly minions`);
+            break;
+
+        case 'Source Healing':
+            var totalMinions = player.field.filter(unit => unit !== null).length + 
+                               opponent.field.filter(unit => unit !== null).length;
+            var healAmount = totalMinions;
+            player.hero.health = Math.min(30, player.hero.health + healAmount);
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Source Healing</span> restoring <span class="heal">${healAmount} health</span> based on total minions`);
             break;
     }
 
@@ -1676,6 +1709,18 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
             card.canAttack = false;
             break;
 
+        case 'Rune Defender':
+            if (player.hero.health === 30) {
+                card.hasTaunt = true;
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}'s</span> <span class="spell-name">Rune Defender</span> gained <span class="buff">Taunt</span>`);
+            }
+            else {card.hasTaunt = false;}
+            break;
+
+        case 'Angel Guardian':
+            // Základní Taunt je již nastaven v kartě
+            // Efekt +1/+1 se zpracuje v endTurn
+            break;
     }
 
     return newState;
@@ -1769,7 +1814,7 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
 
         // Po úspěšném seslání kouzla aplikujeme efekt Spirit Healera
         if (spellResult !== false && spiritHealers.length > 0) {
-            const healAmount = 2 * spiritHealers.length;
+            var healAmount = 2 * spiritHealers.length;
             player.hero.health = Math.min(30, player.hero.health + healAmount);
 
             addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Spirit Healer</span> restored <span class="heal">${healAmount} health</span>`);

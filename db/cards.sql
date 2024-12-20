@@ -252,7 +252,19 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Death Touch', 4, NULL, NULL, 'Destroy a random enemy minion', 'shadowWordDeath', 'rare', 'spell'),
 
     -- 4. Epic minion - spawner
-    ('Spirit Summoner', 4, 3, 4, 'At the end of your turn, summon a 1/1 Spirit', 'spiritSummoner', 'epic', 'unit');
+    ('Spirit Summoner', 4, 3, 4, 'At the end of your turn, summon a 1/1 Spirit', 'spiritSummoner', 'epic', 'unit'),
+
+    -- 1. Epic Minion - Vitality Guardian
+    ('Angel Guardian', 5, 3, 8, 'Taunt. At the end of your turn, gain +1/+1 if your hero has full health', 'angelGuardian', 'epic', 'unit'),
+    
+    -- 2. Uncommon Minion - Health Protector
+    ('Rune Defender', 4, 5, 6, 'Gain Taunt if your hero has full health when played', 'runeDefender', 'uncommon', 'unit'),
+    
+    -- 3. Rare Spell - Unity Strike
+    ('Unity Strike', 2, NULL, NULL, 'Deal damage to enemy hero equal to the number of friendly minions', 'unityStrike', 'rare', 'spell'),
+    
+    -- 4. Rare Spell - Mass Healing
+    ('Source Healing', 2, NULL, NULL, 'Restore health to your hero equal to the total number of minions on the board', 'sourceHealing', 'rare', 'spell');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 
