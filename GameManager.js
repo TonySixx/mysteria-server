@@ -536,7 +536,7 @@ class GameManager {
         // Speciální logika pro Ancient Colossus
         if (card.name === 'Ancient Colossus') {
             // Upravíme cenu podle počtu mrtvých minionů
-            card.manaCost = Math.max(1, 25 - game.deadMinionsCount);
+            card.manaCost = Math.max(1, 30 - game.deadMinionsCount);
         }
 
         // Přidáme animační data před provedením akce
