@@ -15,6 +15,19 @@
 - New epic minion: Frost Overseer (4/6 for 6 mana) with freeze effect
 - Added new end-turn effect processing for Frost Overseer
 - Added AI evaluation for new cards
+- Nová speciální karta "Hand of Fate"
+  - Karta je přidána do počáteční ruky obou hráčů
+  - Lze ji zahrát pouze jako první kartu v prvním tahu
+  - Po zahrání zamíchá všechny karty z ruky (kromě The Coin) zpět do balíčku a dobere nové
+  - Pokud není zahrána jako první karta, zmizí z ruky
+  - Pokud není zahrána v prvním tahu, je nahrazena náhodnou kartou z balíčku
+- Upravena funkčnost karty "Hand of Fate":
+  - Pokud není zahrána v prvním tahu, je nahrazena kartou "Fate Token"
+  - Fate Token je karta s nulovými náklady na manu
+  - Na začátku příštího tahu Fate Token zmizí a hráč dostane náhodnou kartu z balíčku
+- New legendary card: Spirit Guardian (2 mana 1/3 with Divine Shield and unique effect)
+- New uncommon card: Flame Warrior (4 mana 6/8 with self-damage effect)
+- New uncommon card: Arcane Wisp (1 mana 1/1 that gives The Coin on death)
 
 ### Changed
 - Vylepšena vizuální stránka hry přidáním dynamických efektů pro lepší uživatelský zážitek.
@@ -75,7 +88,7 @@
   - Healing Wisp (2/2) - při útoku léčí vlastního hrdinu
   - Arcane Guardian (2/4) - získává +1 zdraví za každé kouzlo v ruce
 - Vylepšeno zobrazení karty Arcane Storm
-  - Přidáno zobrazení aktuálního po��kozen podle počtu zahraných kouzel
+  - Přidáno zobrazení aktuálního poškození podle počtu zahraných kouzel
   - Zachován původní popis efektu v závorce
   - Dynamická aktualizace hodnoty během hry
 - Implementována nová komponenta ConnectionStatus pro zobrazování stavu připojení k serveru
@@ -109,7 +122,7 @@
 - Přidáno zpoždění pro zobrazení poškození u útočící jednotky pro správné umístění textu.
 - Vylepšena zpětná vazba pro hráče při nelegálních tazích.
 - Vylešen design notifikací - nyní se zobrazují uprostřed obrazovky s černým poloprůhledným pozadím.
-- Změněno písmo notifikac�� na Arial.
+- Změněno písmo notifikací na Arial.
 - Přidána plynulá animace pro objevení a zmizení notifikací.
 - Prodloužena doba zobrazení notifikací pro lepší čitelnost.
 - Vylepšena logika drag and drop pro prevenci nelegálních tahů.
@@ -225,7 +238,7 @@
   - Aktualizovány allowed origins pro CORS
   - Opravena URL serveru v konfiguraci
 - Sjednoceny porty pro socketovou komunikaci
-- Vylepšena inicializace socketového připojen��
+- Vylepšena inicializace socketového připojení
 - Přidána lepš správa životnho cyklu socket instance
 
 ### Changed

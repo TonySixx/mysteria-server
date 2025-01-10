@@ -296,6 +296,39 @@ function startNextTurn(state, nextPlayer) {
         });
     });
 
+    if (previousPlayerState.maxMana === 1) {
+        const handOfFateIndex = previousPlayerState.hand.findIndex(card => card.name === 'Hand of Fate');
+        if (handOfFateIndex !== -1) {
+            previousPlayerState.hand.splice(handOfFateIndex, 1);
+                  // Vytvoříme a přidáme Fate Token
+                  const fateToken = new SpellCard(
+                    `fateToken-${Date.now()}`,
+                    'Fate Token',
+                    99,
+                    'Unplayable. At the start of your next turn, draw a random card from your deck.',
+                    'fateToken',
+                    'legendary'
+                );
+                previousPlayerState.hand.push(fateToken);
+                addCombatLogMessage(newState, `<span class="${nextPlayer === 0 ? 'player-name' : 'enemy-name'}">${previousPlayerState.username}'s</span> <span class="spell-name">Hand of Fate</span> was transformed into a <span class="spell-name">Fate Token</span>`);
+        }
+    }
+
+        // Kontrola a zpracování Fate Token
+        const fateTokenIndex = player.hand.findIndex(card => card.name === 'Fate Token');
+        if (fateTokenIndex !== -1) {
+            // Odstraníme Fate Token
+            player.hand.splice(fateTokenIndex, 1);
+            
+            // Přidáme náhodnou kartu z balíčku
+            if (player.deck.length > 0) {
+                var randomIndex = Math.floor(Math.random() * player.deck.length);
+                const bonusCard = player.deck.splice(randomIndex, 1)[0];
+                player.hand.push(bonusCard);
+                addCombatLogMessage(newState, `<span class="${nextPlayer === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Fate Token</span> granted them a random card from their deck`);
+            }
+        }
+    
 
     return newState;
 }
@@ -997,9 +1030,14 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 break;
             }
             
-            var randomIndex = Math.floor(Math.random() * opponent.hand.length);
-            const cardToCopy = opponent.hand[randomIndex];
+            // Vybereme náhodnou kartu z ruky protivníka, která není Hand of Fate ani Fate Token
+            var validCardsToCopy = opponent.hand.filter(card => 
+                card.name !== 'Hand of Fate' && card.name !== 'Fate Token'
+            );
             
+            var randomIndexToCopy = Math.floor(Math.random() * validCardsToCopy.length);
+            const cardToCopy = validCardsToCopy[randomIndexToCopy];
+
             if (player.hand.length < 10) {
                 // Vytvoříme kopii karty s novým ID
                 const copiedCard = cardToCopy instanceof UnitCard ?
@@ -1732,6 +1770,34 @@ function playCardCommon(state, playerIndex, cardIndex, target = null, destinatio
     const opponent = newState.players[1 - playerIndex];
     const card = player.hand[cardIndex];
 
+    // Speciální logika pro Hand of Fate
+    if (card.name === 'Hand of Fate') {    
+        
+        // Odstraníme kartu z ruky
+        player.hand.splice(cardIndex, 1);
+        
+        // Aplikujeme efekt
+        return handleHandOfFate(state, playerIndex);
+    }
+    // Pokud hráč zahrál jinou kartu než Hand of Fate ve svém prvním tahu,
+    // odstraníme Hand of Fate z jeho ruky a přidáme Fate Token
+    else if (player.maxMana === 1) {
+        const handOfFateIndex = player.hand.findIndex(c => c.name === 'Hand of Fate');
+        if (handOfFateIndex !== -1) {
+            player.hand.splice(handOfFateIndex, 1);
+            addCombatLogMessage(state, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Hand of Fate</span> was transformed into a <span class="spell-name">Fate Token</span>`);
+            const fateToken = new SpellCard(
+                `fateToken-${Date.now()}`,
+                'Fate Token',
+                99,
+                'At the start of your next turn, draw a random card from your deck.',
+                'fateToken',
+                'legendary'
+            );
+            player.hand.push(fateToken);
+        }
+    } 
+
     if (!card || player.mana < card.manaCost) {
         return {
             ...newState,
@@ -1936,6 +2002,37 @@ function useHeroAbility(state, playerIndex) {
 
     // Kontrola konce hry
     return checkGameOver(newState);
+}
+
+function handleHandOfFate(state, playerIndex) {
+    const player = state.players[playerIndex];
+    
+    // Uložíme si The Coin karty
+    const coinCards = player.hand.filter(card => card.name === 'The Coin');
+    
+    // Vrátíme všechny ostatní karty do balíčku
+    const nonCoinCards = player.hand.filter(card => card.name !== 'The Coin');
+    const cardCount = nonCoinCards.length;
+    player.deck.push(...nonCoinCards);
+    
+    // Zamícháme balíček
+    for (let i = player.deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [player.deck[i], player.deck[j]] = [player.deck[j], player.deck[i]];
+    }
+    
+    // Vyprázdníme ruku a vrátíme The Coin
+    player.hand = [...coinCards];
+    
+    // Doberte nové karty
+    const cardsToDraw = Math.min(cardCount, player.deck.length);
+    for (let i = 0; i < cardsToDraw; i++) {
+        player.hand.push(player.deck.pop());
+    }
+    
+    addCombatLogMessage(state, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> used <span class="spell-name">Hand of Fate</span> to shuffle their hand back into their deck and draw new cards`);
+    
+    return state;
 }
 
 // Exportujeme novou funkci

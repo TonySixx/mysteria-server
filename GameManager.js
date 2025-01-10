@@ -145,6 +145,25 @@ class GameManager {
             player2Socket.userId
         );
 
+           // Vytvoříme kartu Hand of Fate pro oba hráče
+           const handOfFate = new SpellCard(
+            `handOfFate-${Date.now()}-1`,
+            'Hand of Fate',
+            0,
+            'Redraw hand when played, otherwise becomes Fate Token.',
+            'handOfFate',
+            'legendary'
+        );
+
+        const handOfFate2 = new SpellCard(
+            `handOfFate-${Date.now()}-2`,
+            'Hand of Fate',
+            0,
+            'Redraw hand when played, otherwise becomes Fate Token.',
+            'handOfFate',
+            'legendary'
+        );
+
         const gameState = {
             gameId,
             players: [
@@ -153,7 +172,7 @@ class GameManager {
                     username: player1Socket.username,
                     hero: new Hero(player1Socket.username, 30, player1Hero),
                     deck: player1Deck,
-                    hand: player1Deck.splice(0, 3),
+                    hand: [...player1Deck.splice(0, 3), handOfFate],
                     field: [],
                     mana: 1,
                     maxMana: 1,
@@ -165,7 +184,7 @@ class GameManager {
                     username: player2Socket.username,
                     hero: new Hero(player2Socket.username, 30, player2Hero),
                     deck: player2Deck,
-                    hand: [...player2Deck.splice(0, 3), new SpellCard('coin', 'The Coin', 0, 'Gain 1 Mana Crystal', 'coinImage')],
+                    hand: [...player2Deck.splice(0, 3), new SpellCard('coin', 'The Coin', 0, 'Gain 1 Mana Crystal', 'coinImage'),handOfFate2],
                     field: [],
                     mana: 0,
                     maxMana: 0,
