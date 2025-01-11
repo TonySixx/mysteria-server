@@ -2035,6 +2035,16 @@ function useHeroAbility(state, playerIndex) {
                 addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> used <span class="spell-name">Battle Command</span> but had no valid targets`);
             }
             break;
+        case 6: // Frost Mage
+            const availableMinionsFrost = opponent.field.filter(unit => unit);
+            if (availableMinionsFrost.length > 0) {
+                const randomMinion = availableMinionsFrost[Math.floor(Math.random() * availableMinionsFrost.length)];
+                randomMinion.frozen = true;
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> used <span class="spell-name">Frost Nova</span> freezing <span class="spell-name">${randomMinion.name}</span>`);
+            } else {
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> used <span class="spell-name">Frost Nova</span> but had no valid targets`);
+            }
+            break;
         default:
             console.log('Neznámý hrdina ID:', player.hero.id);
             return newState;

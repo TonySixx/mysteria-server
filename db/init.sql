@@ -484,7 +484,7 @@ BEGIN
         selected_rarity := 'epic';
     END IF;
 
-    -- Vr��tíme garantovanou kartu
+    -- Vrátíme garantovanou kartu
     RETURN QUERY
     SELECT 
         c.id AS card_id,
@@ -810,5 +810,6 @@ INSERT INTO heroes (name, ability_name, ability_description, ability_cost, image
 INSERT INTO heroes (name, ability_name, ability_description, ability_cost, image) VALUES
     ('Seer', 'Fortune Draw', 'Draw a random card from your deck', 2, 'seer'),
     ('Defender', 'Protect', 'Give a random friendly minion Taunt', 2, 'defender'),
-    ('Warrior', 'Battle Command', 'Give a random friendly minion +1 Attack', 2, 'warrior');
+    ('Warrior', 'Battle Command', 'Give a random friendly minion +1 Attack', 2, 'warrior'),
+    ('Frost Mage', 'Frost Nova', 'Freeze a random enemy minion', 2, 'frostmage');
 
