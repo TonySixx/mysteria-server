@@ -141,6 +141,13 @@ function startNextTurn(state, nextPlayer) {
             unitId: card.id
            });
         }
+        else if (card.name === 'Zoxus') {
+            newState.endTurnEffects.push({
+                type: 'zoxus',
+                owner: previousPlayer,
+                unitId: card.id
+            });
+        }
     });
 
     // Přidáme efekty pro všechny Wolf Warriory na poli OBOU hráčů
@@ -156,6 +163,16 @@ function startNextTurn(state, nextPlayer) {
         });
     });
 
+
+
+    // Zpracování extra many z Mana Benefactor
+    if (newState.players[nextPlayer].nextTurnExtraMana) {
+        const extraMana = newState.players[nextPlayer].nextTurnExtraMana;
+        newState.players[nextPlayer].mana += extraMana;
+        newState.players[nextPlayer].mana = Math.min(10, newState.players[nextPlayer].mana);
+        newState.players[nextPlayer].nextTurnExtraMana = 0;
+        addCombatLogMessage(newState, `<span class="${nextPlayer === 0 ? 'player-name' : 'enemy-name'}">${newState.players[nextPlayer].username}</span> gained <span class="mana">${extraMana} bonus mana crystal</span> from Mana Benefactor`);
+    }
 
     // Zpracování end-turn efektů
     if (newState.endTurnEffects && newState.endTurnEffects.length > 0) {
@@ -219,6 +236,15 @@ function startNextTurn(state, nextPlayer) {
                     angelGuardian.maxHealth += 1;
                     addCombatLogMessage(newState, `<span class="${previousPlayer === 0 ? 'player-name' : 'enemy-name'}">${owner.username}'s</span> <span class="spell-name">Angel Guardian</span> gained <span class="buff">+1/+1</span>`);
                 }
+            }
+
+            else if (effect.type === 'zoxus' && effect.owner === previousPlayer) {
+                var owner = newState.players[previousPlayer];
+                var zoxus = owner.field.find(unit => unit && unit.id === effect.unitId);
+                zoxus.attack += 1;
+                zoxus.health += 1;
+                zoxus.maxHealth += 1;
+                addCombatLogMessage(newState, `<span class="${previousPlayer === 0 ? 'player-name' : 'enemy-name'}">${owner.username}'s</span> <span class="spell-name">Zoxus</span> gained <span class="buff">+1/+1</span>`);
             }
 
             else if (effect.type === 'spiritSummoner' && effect.owner === previousPlayer) {
@@ -1758,6 +1784,24 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
         case 'Angel Guardian':
             // Základní Taunt je již nastaven v kartě
             // Efekt +1/+1 se zpracuje v endTurn
+            break;
+
+        // Growing Guardian - přidání efektu na konci kola
+        case 'Zoxus':
+            card.hasDivineShield = true;
+            break;
+
+        // Merciful Protector - obnovení HP nepříteli při vyložení
+        case 'Merciful Protector':
+            card.hasDivineShield = true;
+            opponent.hero.health = Math.min(30, opponent.hero.health + 5);
+            addCombatLogMessage(state, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Merciful Protector</span> restored <span class="heal">5 health</span> to enemy hero`);
+            break;
+
+        // Mana Benefactor - přidání many nepříteli v příštím kole
+        case 'Mana Benefactor':
+            opponent.nextTurnExtraMana = (opponent.nextTurnExtraMana || 0) + 1;
+            addCombatLogMessage(state, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Mana Benefactor</span> will grant enemy <span class="mana">1 extra mana crystal</span> next turn`);
             break;
     }
 

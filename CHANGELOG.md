@@ -28,6 +28,10 @@
 - New legendary card: Spirit Guardian (2 mana 1/3 with Divine Shield and unique effect)
 - New uncommon card: Flame Warrior (4 mana 6/8 with self-damage effect)
 - New uncommon card: Arcane Wisp (1 mana 1/1 that gives The Coin on death)
+- Nové karty:
+  - Growing Guardian (Legendary) - 2 mana 1/1 s Divine Shield, který získává +1/+1 na konci každého kola
+  - Merciful Protector (Epic) - 3 mana 3/4 s Divine Shield, který při vyložení obnoví 5 zdraví nepřátelskému hrdinovi
+  - Mana Benefactor (Epic) - 2 mana 3/4, který dá nepříteli +1 mana crystal v příštím kole
 
 ### Changed
 - Vylepšena vizuální stránka hry přidáním dynamických efektů pro lepší uživatelský zážitek.

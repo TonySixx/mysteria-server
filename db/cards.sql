@@ -264,7 +264,12 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Unity Strike', 2, NULL, NULL, 'Deal damage to enemy hero equal to the number of friendly minions', 'unityStrike', 'rare', 'spell'),
     
     -- 4. Rare Spell - Mass Healing
-    ('Source Healing', 2, NULL, NULL, 'Restore health to your hero equal to the total number of minions on the board', 'sourceHealing', 'rare', 'spell');
+    ('Source Healing', 2, NULL, NULL, 'Restore health to your hero equal to the total number of minions on the board', 'sourceHealing', 'rare', 'spell'),
+
+    -- Přidání nových karet
+    ('Zoxus', 2, 1, 1, 'Divine Shield. At the end of each turn, gain +1/+1', 'zoxus', 'legendary', 'unit'),
+    ('Merciful Protector', 3, 3, 4, 'Divine Shield. When played, restore 5 health to enemy hero', 'mercifulProtector', 'epic', 'unit'),
+    ('Mana Benefactor', 2, 3, 4, 'When played, your opponent gains 1 mana crystal next turn', 'manaBenefactor', 'epic', 'unit');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 
