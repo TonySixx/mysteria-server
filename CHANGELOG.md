@@ -32,6 +32,9 @@
   - Growing Guardian (Legendary) - 2 mana 1/1 s Divine Shield, který získává +1/+1 na konci každého kola
   - Merciful Protector (Epic) - 3 mana 3/4 s Divine Shield, který při vyložení obnoví 5 zdraví nepřátelskému hrdinovi
   - Mana Benefactor (Epic) - 2 mana 3/4, který dá nepříteli +1 mana crystal v příštím kole
+  - Frost Spirit (Uncommon, 1 mana, 1/1) - Po smrti zmrazí náhodnou nepřátelskou jednotku
+  - Bee Guardian (Epic, 6 mana, 5/5) - Taunt, Divine Shield, po smrti dá soupeři kartu
+  - Healing Acolyte (Rare, 2 mana, 1/4) - Na konci kola léčí hrdinu o 1 HP
 
 ### Changed
 - Vylepšena vizuální stránka hry přidáním dynamických efektů pro lepší uživatelský zážitek.

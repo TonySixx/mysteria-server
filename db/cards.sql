@@ -269,7 +269,12 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     -- Přidání nových karet
     ('Zoxus', 2, 1, 1, 'Divine Shield. At the end of each turn, gain +1/+1', 'zoxus', 'legendary', 'unit'),
     ('Merciful Protector', 3, 3, 4, 'Divine Shield. When played, restore 5 health to enemy hero', 'mercifulProtector', 'epic', 'unit'),
-    ('Mana Benefactor', 2, 3, 4, 'When played, your opponent gains 1 mana crystal next turn', 'manaBenefactor', 'epic', 'unit');
+    ('Mana Benefactor', 2, 3, 4, 'When played, your opponent gains 1 mana crystal next turn', 'manaBenefactor', 'epic', 'unit'),
+
+    -- Přidání nových karet
+    ('Frost Spirit', 1, 2, 1, 'When this minion dies, freeze a random enemy minion', 'frostSpirit', 'uncommon', 'unit'),
+    ('Bee Guardian', 6, 5, 5, 'Taunt, Divine Shield. When this minion dies, your opponent draws a card', 'beeGuardian', 'epic', 'unit'),
+    ('Healing Acolyte', 2, 1, 4, 'At the end of your turn, restore 1 health to your hero', 'healingAcolyte', 'rare', 'unit');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 

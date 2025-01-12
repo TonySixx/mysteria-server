@@ -148,6 +148,13 @@ function startNextTurn(state, nextPlayer) {
                 unitId: card.id
             });
         }
+        else if (card.name === 'Healing Acolyte') {
+            newState.endTurnEffects.push({
+                type: 'healingAcolyte',
+                owner: previousPlayer,
+                unitId: card.id
+            });
+        }
     });
 
     // Přidáme efekty pro všechny Wolf Warriory na poli OBOU hráčů
@@ -245,6 +252,12 @@ function startNextTurn(state, nextPlayer) {
                 zoxus.health += 1;
                 zoxus.maxHealth += 1;
                 addCombatLogMessage(newState, `<span class="${previousPlayer === 0 ? 'player-name' : 'enemy-name'}">${owner.username}'s</span> <span class="spell-name">Zoxus</span> gained <span class="buff">+1/+1</span>`);
+            }
+
+            else if (effect.type === "healingAcolyte" && effect.owner === previousPlayer) {
+                var owner = newState.players[previousPlayer];
+                owner.hero.health = Math.min(30, owner.hero.health + 1);
+                addCombatLogMessage(newState, `<span class="${previousPlayer === 0 ? 'player-name' : 'enemy-name'}">${owner.username}'s</span> <span class="spell-name">Healing Acolyte</span> restored <span class="heal">1 health</span> to their hero`);
             }
 
             else if (effect.type === 'spiritSummoner' && effect.owner === previousPlayer) {
@@ -469,7 +482,7 @@ function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
     // Kontrola pro Defensive Scout
     if (unit.name === 'Defensive Scout' && oldHealth > unit.health) {
         if (opponent.deck.length > 0 && opponent.hand.length < 10) {
-            const drawnCard = opponent.deck.pop();
+            var drawnCard = opponent.deck.pop();
             opponent.hand.push(drawnCard);
 
             newState.notification = {
@@ -485,7 +498,7 @@ function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
         // Death Prophet efekt
         if (unit.name === 'Death Prophet') {
             if (opponent.deck.length > 0 && opponent.hand.length < 10) {
-                const drawnCard = opponent.deck.pop();
+                var drawnCard = opponent.deck.pop();
                 opponent.hand.push(drawnCard);
                 addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">Death Prophet</span> <span class="draw">drew a card</span> on death`);
             }
@@ -494,7 +507,7 @@ function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
         // Ice Revenant efekt
         if (unit.name === 'Ice Revenant') {
             const enemyPlayer = newState.players[playerIndex];
-            const availableTargets = enemyPlayer.field.filter(unit => unit && unit.health > 0);
+            var availableTargets = enemyPlayer.field.filter(unit => unit && unit.health > 0);
             
             if (availableTargets.length > 0) {
                 const randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
@@ -605,6 +618,28 @@ function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
                 );
                 player.hand.push(wanderer);
                 addCombatLogMessage(newState, `<span class="${(1 - playerIndex) === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Eternal Wanderer</span> returned to their hand`);
+            }
+        }
+
+        // Frost Spirit efekt
+        if (unit.name === 'Frost Spirit') {
+            const enemyPlayer = newState.players[playerIndex];
+            var availableTargets = enemyPlayer.field.filter(target => target && target.health > 0);
+            if (availableTargets.length > 0) {
+                var randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
+                randomTarget.frozen = true;
+                randomTarget.frozenLastTurn = false;
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${unit.name}</span> <span class="freeze">froze</span> enemy <span class="spell-name">${randomTarget.name}</span>`);
+            }
+        }
+
+        // Bee Guardian efekt
+        if (unit.name === 'Bee Guardian') {
+            const enemyPlayer = newState.players[playerIndex];
+            if (enemyPlayer.deck.length > 0 && enemyPlayer.hand.length < 10) {
+                var drawnCard = enemyPlayer.deck.pop();
+                enemyPlayer.hand.push(drawnCard);
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'enemy-name' : 'player-name'}">${opponent.username}</span> drew a card from <span class="spell-name">Bee Guardian's</span> death effect`);
             }
         }
     }
@@ -1779,11 +1814,6 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                 addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}'s</span> <span class="spell-name">Rune Defender</span> gained <span class="buff">Taunt</span>`);
             }
             else {card.hasTaunt = false;}
-            break;
-
-        case 'Angel Guardian':
-            // Základní Taunt je již nastaven v kartě
-            // Efekt +1/+1 se zpracuje v endTurn
             break;
 
         // Growing Guardian - přidání efektu na konci kola

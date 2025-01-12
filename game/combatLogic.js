@@ -579,8 +579,31 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
         }
     }
 
+
     // V handleCombat funkci přidáme zpracování efektů při smrti jednotek
     if (attacker.health <= 0) {
+        // Frost Spirit efekt
+        if (attacker.name === 'Frost Spirit') {
+            const opponent = state.players[1 - attackerPlayerIndex];
+            const availableTargets = opponent.field.filter(unit => unit && unit.health > 0);
+            if (availableTargets.length > 0) {
+                const randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
+                randomTarget.frozen = true;
+                randomTarget.frozenLastTurn = false;
+                addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${state.players[attackerPlayerIndex].username}'s</span> <span class="spell-name">Frost Spirit</span> <span class="freeze">froze</span> enemy <span class="spell-name">${randomTarget.name}</span>`);
+            }
+        }
+
+        // Bee Guardian efekt
+        if (attacker.name === 'Bee Guardian') {
+            const opponent = state.players[1 - attackerPlayerIndex];
+            if (opponent.deck.length > 0 && opponent.hand.length < 10) {
+                const drawnCard = opponent.deck.pop();
+                opponent.hand.push(drawnCard);
+                addCombatLogMessage(state, `<span class="${(1 - attackerPlayerIndex) === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}</span> drew a card from <span class="spell-name">Bee Guardian's</span> death effect`);
+            }
+        }
+
         // Death Prophet efekt
         if (attacker.name === 'Death Prophet') {
             const attackerPlayer = state.players[attackerPlayerIndex];
@@ -687,7 +710,29 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
     }
 
     if (defender.health <= 0) {
-        // Death Prophet efekt pro obránce
+        // Frost Spirit efekt
+        if (defender.name === 'Frost Spirit') {
+            const opponent = state.players[attackerPlayerIndex];
+            const availableTargets = opponent.field.filter(unit => unit && unit.health > 0);
+            if (availableTargets.length > 0) {
+                const randomTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
+                randomTarget.frozen = true;
+                randomTarget.frozenLastTurn = false;
+                addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${state.players[attackerPlayerIndex].username}'s</span> <span class="spell-name">Frost Spirit</span> <span class="freeze">froze</span> enemy <span class="spell-name">${randomTarget.name}</span>`);
+            }
+        }
+
+        // Bee Guardian efekt
+        if (defender.name === 'Bee Guardian') {
+            const opponent = state.players[attackerPlayerIndex];
+            if (opponent.deck.length > 0 && opponent.hand.length < 10) {
+                const drawnCard = opponent.deck.pop();
+                opponent.hand.push(drawnCard);
+                addCombatLogMessage(state, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}</span> drew a card from <span class="spell-name">Bee Guardian's</span> death effect`);
+            }
+        }
+
+        // Death Prophet efekt
         if (defender.name === 'Death Prophet') {
             const defenderPlayer = state.players[1 - attackerPlayerIndex];
             if (defenderPlayer.deck.length > 0 && defenderPlayer.hand.length < 10) {
