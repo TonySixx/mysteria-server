@@ -188,6 +188,11 @@ function startNextTurn(state, nextPlayer) {
         newState.players[nextPlayer].nextTurnExtraMana = 0;
         addCombatLogMessage(newState, `<span class="${nextPlayer === 0 ? 'player-name' : 'enemy-name'}">${newState.players[nextPlayer].username}</span> gained <span class="mana">${extraMana} bonus mana crystal</span> from Mana Benefactor`);
     }
+    if (newState.players[nextPlayer].overloadedMana > 0) {
+        var playerMana = newState.players[nextPlayer].mana;
+        newState.players[nextPlayer].mana = Math.max(0, playerMana - newState.players[nextPlayer].overloadedMana);
+        newState.players[nextPlayer].overloadedMana = 0;
+    }
 
     // Zpracování end-turn efektů
     if (newState.endTurnEffects && newState.endTurnEffects.length > 0) {
@@ -375,7 +380,7 @@ function startNextTurn(state, nextPlayer) {
                 addCombatLogMessage(newState, `<span class="${nextPlayer === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Fate Token</span> granted them a random card from their deck`);
             }
         }
-    
+
 
     return newState;
 }
@@ -900,6 +905,12 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mana Surge</span> and restored mana to <span class="mana">${player.maxMana}</span>`);
             break;
 
+        case 'Mana Fusion':
+            player.mana = Math.min(player.mana + 2, 10);
+            player.overloadedMana = (player.overloadedMana || 0) + 2;
+            addCombatLogMessage(state, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> gained <span class="mana">2 temporary mana</span> but will be overloaded next turn`);
+            break;
+
         case 'Soul Exchange':
             const playerHealth = player.hero.health;
             player.hero.health = opponent.hero.health;
@@ -1255,7 +1266,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                 var afterEffectFunc = handleUnitDamage(randomTarget, randomTarget.health, opponent, playerIndex, newState);
                 if (afterEffectFunc) afterEffectFunc();             
                 
-                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Shadow Word: Death</span>, destroying <span class="spell-name">${randomTarget.name}</span>`);
+                addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Death Touch</span>, destroying <span class="spell-name">${randomTarget.name}</span>`);
             }
             break;
 
@@ -1449,6 +1460,17 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
 
         case 'Twin Blade':
             // Nastavíme speciální vlastnost pro dvojitý útok
+            card.canAttackTwice = true;
+            card.attacksThisTurn = 0;
+            break;
+
+        case 'Overloading Giant':
+            player.overloadedMana = (player.overloadedMana || 0) + 2;
+            addCombatLogMessage(state, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}</span> will be overloaded by <span class="mana">2</span> next turn`);
+            break;
+
+        case 'Swift Guardian':
+            card.hasDivineShield = true;
             card.canAttackTwice = true;
             card.attacksThisTurn = 0;
             break;

@@ -274,7 +274,12 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     -- Přidání nových karet
     ('Frost Spirit', 1, 2, 1, 'When this minion dies, freeze a random enemy minion', 'frostSpirit', 'uncommon', 'unit'),
     ('Bee Guardian', 6, 5, 5, 'Taunt, Divine Shield. When this minion dies, your opponent draws a card', 'beeGuardian', 'epic', 'unit'),
-    ('Healing Acolyte', 2, 1, 4, 'At the end of your turn, restore 1 health to your hero', 'healingAcolyte', 'rare', 'unit');
+    ('Healing Acolyte', 2, 1, 4, 'At the end of your turn, restore 1 health to your hero', 'healingAcolyte', 'rare', 'unit'),
+
+    -- Přidáme nové karty
+    ('Overloading Giant', 4, 7, 7, 'Overload (2)', 'overloadingGiant', 'epic', 'unit'),
+    ('Mana Fusion', 0, NULL, NULL, 'Gain 2 Mana Crystals this turn only. Overload (2)', 'manaFusion', 'epic', 'spell'),
+    ('Swift Guardian', 4, 3, 3, 'Divine Shield. Can attack twice each turn', 'swiftGuardian', 'epic', 'unit');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 
@@ -285,3 +290,4 @@ WHERE name = 'Blind Assassin';
 UPDATE cards 
 SET effect = 'Gain +1/+1 for each spell in your hand when played' 
 WHERE name = 'Spell Weaver';
+

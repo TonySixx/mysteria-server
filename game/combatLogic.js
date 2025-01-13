@@ -190,7 +190,7 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
             }
 
             // Upravíme logiku pro Twin Blade při útoku na hrdinu
-            if (attacker.name === 'Twin Blade') {
+            if (attacker.canAttackTwice === true) {
                 if (!attacker.attacksThisTurn) {
                     attacker.attacksThisTurn = 1;
                     attacker.hasAttacked = false;
@@ -472,7 +472,7 @@ function handleCombat(attacker, defender, state, attackerPlayerIndex) {
     }
 
     // Upravíme logiku pro Twin Blade
-    if (attacker.name === 'Twin Blade') {
+    if (attacker.canAttackTwice === true) {
         if (!attacker.attacksThisTurn) {
             attacker.attacksThisTurn = 1;
             attacker.hasAttacked = false;
