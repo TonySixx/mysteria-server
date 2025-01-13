@@ -66,7 +66,15 @@ function startNextTurn(state, nextPlayer) {
     if (player.deck.length > 0) {
         const drawnCard = player.deck.pop();
         if (player.hand.length < 10) {
-            player.hand.push(drawnCard);
+            // Najdeme pozici Hand Of Fate v ruce, pokud existuje
+            const handOfFateIndex = player.hand.findIndex(card => card.name === 'Hand of Fate');
+            if (handOfFateIndex !== -1) {
+                // Vložíme novou kartu před Hand Of Fate
+                player.hand.splice(handOfFateIndex, 0, drawnCard);
+            } else {
+                // Pokud Hand Of Fate není v ruce, vložíme kartu na konec
+                player.hand.push(drawnCard);
+            }
         } else {
             // Přidáme notifikaci o spálení karty
             newState.notification = {
