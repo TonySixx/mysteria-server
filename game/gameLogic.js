@@ -437,14 +437,14 @@ function checkGameOver(state) {
 }
 
 // Pomocná funkce pro zpracování poškození jednotky a její efekty
-function handleUnitDamage(unit, damage, opponent, playerIndex, newState) {
+function handleUnitDamage(unit, damage, opponent, playerIndex, newState,ingoreDivineShield = false) {
     if (!unit) return;
     var afterEffectFunc = null;
 
     const oldHealth = unit.health;
     const hadDivineShield = unit.hasDivineShield;
 
-    if (unit.hasDivineShield) {
+    if (unit.hasDivineShield && !ingoreDivineShield) {
         unit.hasDivineShield = false;
         
         // Efekt Crystal Guardian při ztrátě Divine Shield
@@ -1263,7 +1263,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             if (validTargets.length > 0) {
                 var randomTarget = validTargets[Math.floor(Math.random() * validTargets.length)];
                 // Odstraníme kartu z pole
-                var afterEffectFunc = handleUnitDamage(randomTarget, randomTarget.health, opponent, playerIndex, newState);
+                var afterEffectFunc = handleUnitDamage(randomTarget, randomTarget.health, opponent, playerIndex, newState,true);
                 if (afterEffectFunc) afterEffectFunc();             
                 
                 addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Death Touch</span>, destroying <span class="spell-name">${randomTarget.name}</span>`);
