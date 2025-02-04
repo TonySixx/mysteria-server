@@ -279,7 +279,12 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     -- Přidáme nové karty
     ('Overloading Giant', 4, 7, 7, 'Overload (2)', 'overloadingGiant', 'epic', 'unit'),
     ('Mana Fusion', 0, NULL, NULL, 'Gain 2 Mana Crystals this turn only. Overload (2)', 'manaFusion', 'epic', 'spell'),
-    ('Swift Guardian', 4, 3, 3, 'Divine Shield. Can attack twice each turn', 'swiftGuardian', 'epic', 'unit');
+    ('Swift Guardian', 4, 3, 3, 'Divine Shield. Can attack twice each turn', 'swiftGuardian', 'epic', 'unit'),
+
+    -- Přidání nových karet
+    ('Tactical Scout', 2, 2, 4, 'Draw a card when played if your hero has more health than your opponent', 'tacticalScout', 'rare', 'unit'),
+    ('Frost Harvester', 3, 3, 3, 'Gain +1/+1 for each frozen enemy minion when played', 'frostHarvester', 'epic', 'unit'),
+    ('Taunt Collector', 6, 3, 3, 'Taunt. Remove Taunt from all other minions, gain +1 HP per Taunt removed.', 'tauntCollector', 'epic', 'unit');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 

@@ -1863,6 +1863,56 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
             opponent.nextTurnExtraMana = (opponent.nextTurnExtraMana || 0) + 1;
             addCombatLogMessage(state, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Mana Benefactor</span> will grant enemy <span class="mana">1 extra mana crystal</span> next turn`);
             break;
+
+        // Tactical Scout - Draw a card when played if your hero has more health than opponent's hero
+        case 'Tactical Scout':
+            if (player.hero.health > opponent.hero.health && player.deck.length > 0 ) {
+                var drawnCard = player.deck.pop();
+                if (player.hand.length < 10) {
+                    player.hand.push(drawnCard);
+                    addCombatLogMessage(state, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Tactical Scout</span> <span class="draw">drew a card</span>`);
+                } else {
+                    addCombatLogMessage(newState, `<span class="spell-name">${drawnCard.name}</span> was burned because hand was full`);
+                }
+            }
+            break;
+
+        // Frost Harvester - Gain +1/+1 for each frozen enemy minion
+        case 'Frost Harvester':
+            const frozenCount = opponent.field.filter(unit => unit && unit.frozen).length;
+            if (frozenCount > 0) {
+                card.attack += frozenCount;
+                card.health += frozenCount;
+                card.maxHealth = card.health;
+                addCombatLogMessage(state, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Frost Harvester</span> gained <span class="buff">+${frozenCount}/+${frozenCount}</span>`);
+            }
+            break;
+
+        // Taunt Collector - Remove Taunt from all other minions and gain +1 Health for each
+        case 'Taunt Collector':
+            let tauntCount = 0;
+            
+            // Počítáme a odebíráme Taunt z vlastních minionů
+            player.field.forEach(unit => {
+                if (unit && unit.hasTaunt && unit.id !== card.id) {
+                    unit.hasTaunt = false;
+                    tauntCount++;
+                }
+            });
+            
+            // Počítáme a odebíráme Taunt z nepřátelských minionů
+            opponent.field.forEach(unit => {
+                if (unit && unit.hasTaunt) {
+                    unit.hasTaunt = false;
+                    tauntCount++;
+                }
+            });
+
+            if (tauntCount > 0) {
+                card.health += tauntCount;
+                addCombatLogMessage(state, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Taunt Collector</span> removed <span class="buff">${tauntCount} Taunts</span> and gained <span class="buff">+${tauntCount} Health</span>`);
+            }
+            break;
     }
 
     return newState;
