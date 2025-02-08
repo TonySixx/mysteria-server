@@ -1913,6 +1913,51 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                 addCombatLogMessage(state, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Taunt Collector</span> removed <span class="buff">${tauntCount} Taunts</span> and gained <span class="buff">+${tauntCount} Health</span>`);
             }
             break;
+
+        // Dark Scholar efekt
+        case 'Dark Scholar':
+            player.hero.health = Math.max(0, player.hero.health - 2);
+            if (player.deck.length > 0) {
+                const drawnCard = player.deck.pop();
+                if (player.hand.length < 10) {
+                    player.hand.push(drawnCard);
+                    addCombatLogMessage(state, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Dark Scholar</span> dealt <span class="damage">2 damage</span> to their hero and <span class="draw">drew a card</span>`);
+                }
+                else {
+                    addCombatLogMessage(newState, `<span class="spell-name">${drawnCard.name}</span> was burned because hand was full`);
+                }
+            }
+            break;
+
+        // Vigilant Guard efekt
+        case 'Vigilant Guard':
+            if (player.deck.length > 0) {
+                const drawnCard = player.deck.pop();
+                if (player.hand.length < 10) {
+                    player.hand.push(drawnCard);
+                    addCombatLogMessage(state, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Vigilant Guard</span> <span class="draw">drew a card</span>`);
+                }
+                else {
+                    addCombatLogMessage(newState, `<span class="spell-name">${drawnCard.name}</span> was burned because hand was full`);
+                }
+            }
+            break;
+
+        // Lone Protector efekt
+        case 'Lone Protector':
+            const totalMinions = player.field.filter(unit => unit && unit.id !== card.id).length +
+                opponent.field.filter(unit => unit).length;
+
+            if (totalMinions === 0) {
+                card.hasDivineShield = true;
+                card.hasTaunt = true;
+                addCombatLogMessage(state, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Lone Protector</span> gained <span class="buff">Divine Shield</span> and <span class="buff">Taunt</span>`);
+            }
+            else {
+                card.hasDivineShield = false;
+                card.hasTaunt = false;
+            }
+            break;
     }
 
     return newState;

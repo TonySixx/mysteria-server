@@ -284,7 +284,12 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     -- Přidání nových karet
     ('Tactical Scout', 2, 2, 4, 'Draw a card when played if your hero has more health than your opponent', 'tacticalScout', 'rare', 'unit'),
     ('Frost Harvester', 3, 3, 3, 'Gain +1/+1 for each frozen enemy minion when played', 'frostHarvester', 'epic', 'unit'),
-    ('Taunt Collector', 6, 3, 3, 'Taunt. Remove Taunt from all other minions, gain +1 HP per Taunt removed.', 'tauntCollector', 'epic', 'unit');
+    ('Taunt Collector', 6, 3, 3, 'Taunt. Remove Taunt from all other minions, gain +1 HP per Taunt removed.', 'tauntCollector', 'epic', 'unit'),
+
+    -- Přidání nových karet
+    ('Dark Scholar', 2, 3, 2, 'Deal 2 damage to your hero and draw a card when played', 'darkScholar', 'rare', 'unit'),
+    ('Vigilant Guard', 3, 2, 4, 'Taunt. Draw a card when played', 'vigilantGuard', 'uncommon', 'unit'),
+    ('Lone Protector', 3, 4, 2, 'Gain Divine Shield and Taunt if there are no other minions on the board when played', 'loneProtector', 'epic', 'unit');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 
