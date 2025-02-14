@@ -289,7 +289,12 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     -- Přidání nových karet
     ('Dark Scholar', 2, 3, 2, 'Deal 2 damage to your hero and draw a card when played', 'darkScholar', 'rare', 'unit'),
     ('Vigilant Guard', 3, 2, 4, 'Taunt. Draw a card when played', 'vigilantGuard', 'uncommon', 'unit'),
-    ('Lone Protector', 3, 4, 2, 'Gain Divine Shield and Taunt if there are no other minions on the board when played', 'loneProtector', 'epic', 'unit');
+    ('Lone Protector', 3, 4, 2, 'Gain Divine Shield and Taunt if there are no other minions on the board when played', 'loneProtector', 'epic', 'unit'),
+
+    -- Přidání nových karet
+    ('Wisdom Seeker', 6, 5, 5, 'Draw a card if your hero has full health when played, otherwise gain Taunt', 'wisdomSeeker', 'epic', 'unit'),
+    ('Echo Warrior', 5, 4, 4, 'When played, shuffle a copy of this card into your deck', 'echoWarrior', 'epic', 'unit'),
+    ('Chaos Imp', 2, 2, 1, 'Divine Shield. When played, destroy a random card in your hand', 'chaosImp', 'epic', 'unit');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 

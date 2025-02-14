@@ -1958,6 +1958,42 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                 card.hasTaunt = false;
             }
             break;
+               // Wisdom Seeker efekt
+            case 'Wisdom Seeker':
+            if (player.hero.health === 30) {
+                card.hasTaunt = false
+                if (player.deck.length > 0) {
+                    const drawnCard = player.deck.pop();
+                    if (player.hand.length < 10) {
+                        player.hand.push(drawnCard);
+                        addCombatLogMessage(state, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Wisdom Seeker</span> <span class="draw">drew a card</span>`);
+                    } else {
+                        addCombatLogMessage(state, `<span class="spell-name">${drawnCard.name}</span> was burned because hand was full`);
+                    }
+                }
+            } else {
+                card.hasTaunt = true;
+                addCombatLogMessage(state, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Wisdom Seeker</span> gained <span class="buff">Taunt</span>`);
+            }
+            break;
+            
+            // Echo Warrior efekt
+            case 'Echo Warrior':
+            const echoWarriorCopy = { ...card };
+            echoWarriorCopy.id = `echo-${Date.now()}-${Math.random()}`;
+            const randomIndex = Math.floor(Math.random() * (player.deck.length + 1));
+            player.deck.splice(randomIndex, 0, echoWarriorCopy);
+            addCombatLogMessage(state, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Echo Warrior</span> shuffled a copy of itself into their deck`);
+            break;
+
+        // Chaos Imp efekt
+        case 'Chaos Imp':
+            if (player.hand.length > 0) {
+                const randomCardIndex = Math.floor(Math.random() * player.hand.length);
+                const destroyedCard = player.hand.splice(randomCardIndex, 1)[0];
+                addCombatLogMessage(state, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Chaos Imp</span> destroyed <span class="spell-name">${destroyedCard.name}</span> from their hand`);
+            }
+            break;
     }
 
     return newState;
