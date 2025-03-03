@@ -1,4 +1,4 @@
-const { Card, UnitCard, SpellCard, Hero } = require('./game/CardClasses');
+const { Card, UnitCard, SpellCard, Hero, SecretCard } = require('./game/CardClasses');
 const { startNextTurn, checkGameOver, playCardCommon, handleUnitEffects, useHeroAbility } = require('./game/gameLogic');
 const { attack } = require('./game/combatLogic');
 const { createClient } = require('@supabase/supabase-js');
@@ -177,7 +177,8 @@ class GameManager {
                     mana: 1,
                     maxMana: 1,
                     originalDeck: [...player1Deck],
-                    fatigueDamage: 0
+                    fatigueDamage: 0,
+                    secrets: []
                 },
                 {
                     socket: player2Socket,
@@ -189,7 +190,8 @@ class GameManager {
                     mana: 0,
                     maxMana: 0,
                     originalDeck: [...player2Deck],
-                    fatigueDamage: 0
+                    fatigueDamage: 0,
+                    secrets: []
                 }
             ],
             currentPlayer: 0,
@@ -267,6 +269,26 @@ class GameManager {
                             card.image,
                             card.rarity
                         ));
+                    } else if (card.type === 'secret') {
+                        // Určíme triggerType podle názvu karty
+                        let triggerType = '';
+                        if (card.name === 'Counterspell') {
+                            triggerType = 'spell_played';
+                        } else if (card.name === 'Explosive Trap') {
+                            triggerType = 'hero_attack';
+                        } else if (card.name === 'Ambush') {
+                            triggerType = 'unit_played';
+                        }
+                        
+                        playerDeck.push(new SecretCard(
+                            uniqueId,
+                            card.name,
+                            card.mana_cost,
+                            card.effect,
+                            card.image,
+                            card.rarity,
+                            triggerType
+                        ));
                     } else {
                         playerDeck.push(new SpellCard(
                             uniqueId,
@@ -329,6 +351,16 @@ class GameManager {
                     card.effect,
                     card.image,
                     card.rarity
+                );
+            } else if (card.type === 'secret') {
+                return new SecretCard(
+                    uniqueId,
+                    card.name,
+                    card.manaCost,
+                    card.effect,
+                    card.image,
+                    card.rarity,
+                    card.triggerType
                 );
             } else {
                 return new SpellCard(
@@ -512,7 +544,8 @@ class GameManager {
                 deck: player.deck.length,
                 mana: player.mana,
                 maxMana: player.maxMana,
-                username: player.username
+                username: player.username,
+                secrets: player.secrets
             },
             opponent: {
                 hero: opponent.hero,
@@ -527,7 +560,16 @@ class GameManager {
                 deckSize: opponent.deck.length,
                 mana: opponent.mana,
                 maxMana: opponent.maxMana,
-                username: opponent.username
+                username: opponent.username,
+                secrets: opponent.secrets.map(secret => ({
+                    id: secret.id,
+                    type: 'secret',
+                    isSecret: true,
+                    isRevealed: secret.isRevealed,
+                    triggerType: secret.isRevealed ? secret.triggerType : null,
+                    name: secret.isRevealed ? secret.name : 'Secret',
+                    image: secret.isRevealed ? secret.image : 'secretCard'
+                }))
             },
             notification: notification,
             combatLogMessages: game.combatLogMessages || [],
@@ -559,13 +601,32 @@ class GameManager {
         }
 
         // Přidáme animační data před provedením akce
-        game.animation = {
-            type: 'playCard',
-            player: game.players[playerIndex].username,
-            card: card,
-            sourceIndex: cardIndex,
-            targetIndex: destinationIndex
-        };
+        if (card.type === 'secret') {
+            // Pro tajné karty vytvoříme speciální animaci, která nezobrazuje konkrétní kartu
+            game.animation = {
+                type: 'playCard',
+                player: game.players[playerIndex].username,
+                playerIndex: playerIndex,
+                card: {
+                    id: `secret-${Date.now()}`,
+                    name: 'Secret',
+                    type: 'secret',
+                    manaCost: card.manaCost,
+                    image: 'secretCard'
+                },
+                sourceIndex: cardIndex,
+                targetIndex: destinationIndex
+            };
+        } else {
+            game.animation = {
+                type: 'playCard',
+                player: game.players[playerIndex].username,
+                playerIndex: playerIndex,
+                card: card,
+                sourceIndex: cardIndex,
+                targetIndex: destinationIndex
+            };
+        }
 
         const updatedState = playCardCommon(game, playerIndex, cardIndex, target, destinationIndex);
 
@@ -1333,7 +1394,8 @@ class GameManager {
                         mana: 1,
                         maxMana: 1,
                         originalDeck: [...playerDeck],
-                        fatigueDamage: 0
+                        fatigueDamage: 0,
+                        secrets: []
                     },
                     {
                         socket: aiSocket, // Použijeme ná mock socket
@@ -1345,7 +1407,8 @@ class GameManager {
                         mana: 0,
                         maxMana: 0,
                         originalDeck: [...aiDeck],
-                        fatigueDamage: 0
+                        fatigueDamage: 0,
+                        secrets: []
                     }
                 ],
                 currentPlayer: 0,

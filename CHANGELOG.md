@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 ### Added
+- Implementována nová herní mechanika tajných karet (secrets)
+  - Tajné karty se hrají lícem dolů a aktivují se za určitých podmínek
+  - Přidány 3 nové tajné karty:
+    - Counterspell (3 mana) - Aktivuje se, když protihráč zahraje kouzlo, a zruší jeho efekt
+    - Explosive Trap (2 mana) - Aktivuje se, když protihráč zaútočí na hrdinu, a způsobí 2 poškození všem nepřátelským jednotkám
+    - Ambush (2 mana) - Aktivuje se, když protihráč zahraje jednotku, a přidá na pole 2/1 jednotku s efektem Stealth
+  - Přidána vizuální reprezentace tajných karet na herní ploše
+  - Implementována logika pro aktivaci tajných karet na základě různých herních událostí
+  - Přidána podpora pro zobrazení aktivovaných tajných karet
 - Přidáni dva noví hrdinové:
   - Seer - schopnost Fortune Draw (líz karty za 2 manu)
   - Defender - schopnost Protect (dává Taunt náhodné vlastní jednotce za 2 manu)
@@ -178,6 +187,41 @@
 - Přidáno tlačítko pro vytvoření nového balíčku
 - Implementováno zobrazení seznamu balíčků s počtem karet
 - Přidáno zvýraznění aktivního balíčku
+- Přidáno 10 nových karet s unikátními efekty:
+  - Time Weaver (Legendary) - léčí spojence na konci tahu
+  - Mana Leech (Legendary) - získává manu za způsobené poškození
+  - Mirror Entity (Epic) - kopíruje statistiky nepřátelské jednotky
+  - Mana Golem (Epic) - útok podle aktuální many
+  - Spirit Healer (Rare) - léčí při sesílání kouzel
+  - Spell Seeker (Rare) - vyhledává kouzla z balíčku
+  - Mana Surge (Epic) - zdvojnásobuje manu
+  - Soul Exchange (Legendary) - výměna životů hrdinů
+  - Arcane Storm (Epic) - poškození podle zahraných kouzel
+  - Mirror Image (Rare) - vytváří obranné jednotky s Tauntem
+- Přidány 3 nové běžné (common) jednotky:
+  - Mana Crystal (1/3) - při smrti poskytne 1 mana krystal
+  - Healing Wisp (2/2) - při útoku léčí vlastního hrdinu
+  - Arcane Guardian (2/4) - získává +1 zdraví za každé kouzlo v ruce
+- Vylepšeno zobrazení karty Arcane Storm
+  - Přidáno zobrazení aktuálního poškození podle počtu zahraných kouzel
+  - Zachován původní popis efektu v závorce
+  - Dynamická aktualizace hodnoty během hry
+- Implementována nová komponenta ConnectionStatus pro zobrazování stavu připojení k serveru
+  - Přidána animovaná notifikace při ztrátě připojení
+  - Přidáno automatické skrývání notifikace po úspěšném připojení
+  - Vylepšena vizuální zpětná vazba pro uživatele
+- Vylepšeno zobrazování stavu připojení k serveru
+  - Přidána informativní zpráva v angličtině
+  - Implementováno lepší umístění a styling notifikací
+  - Přidána animace pro plynulé zobrazení/skrytí
+- Přidány 3 nové karty:
+  - Mountain Giant (7 mana, 6/9) - Velká jednotka s Tauntem
+  - Ancient Guardian (3 mana, 4/6) - Defenzivní jednotka s Tauntem, která nemůže útočit
+  - Arcane Protector (4 mana, 2/5) - Jednotka s Tauntem, která získává +1 útok za každé seslané kouzlo
+- Implementována mechanika slepoty (blind) pro jednotky
+- Slepé jednotky mají 50% šanci minout útok
+- Slepé jednotky mohou uhnout útoku s 50% šancí
+- Přidány combat log zprávy pro minutí/uhnutí útoku kvůli slepotě
 - Vylepšen systém Combat Logu
   - Přidána podpora pro více zpráv najednou
   - Implementováno pole combatLogMessages místo jedné zprávy

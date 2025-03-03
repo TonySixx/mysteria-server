@@ -111,143 +111,188 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
             }
         }
 
+        // Kontrola, zda se má aktivovat tajná karta
+        const { checkAndActivateSecrets } = require('./gameLogic');
+        
+        // Vytvoříme data pro aktivaci tajných karet
+        const secretData = {
+            playerIndex: attackerPlayerIndex,
+            attackerIndex,
+            targetIndex,
+            attacker
+        };
+        
+        var stateAfterSecrets;
+        var shouldContinue;
+        // Kontrolujeme tajné karty před útokem
+        if (isHeroAttack) {
+            secretResult = checkAndActivateSecrets(newState, 'hero_attack', secretData);
+            shouldContinue = secretResult.shouldContinue;
+            stateAfterSecrets = secretResult.updatedState;
+        }
+        else {
+            secretResult = checkAndActivateSecrets(newState, 'attack', secretData);
+            shouldContinue = secretResult.shouldContinue;
+            stateAfterSecrets = secretResult.updatedState;
+        }
+
+        if (!shouldContinue) {
+            return stateAfterSecrets;
+        }
+        
+        // Pokud se hra skončila po aktivaci tajných karet, vrátíme nový stav
+        if (stateAfterSecrets.gameOver) {
+            return stateAfterSecrets;
+        }
+        
+        // Pokračujeme s útokem po aktivaci tajných karet
+        const updatedState = stateAfterSecrets;
+        
+        // Znovu získáme útočníka, protože mohl být změněn tajnými kartami
+        const updatedAttacker = updatedState.players[attackerPlayerIndex].field[attackerIndex];
+        
+        // Pokud útočník už neexistuje nebo je zmražený, ukončíme útok
+        if (!updatedAttacker || updatedAttacker.frozen) {
+            return updatedState;
+        }
+
         // Provedeme útok
-        attacker.hasAttacked = true;
-        attacker.canAttack = false;
+        updatedAttacker.hasAttacked = true;
+        updatedAttacker.canAttack = false;
 
         if (isHeroAttack) {
-            const targetHero = newState.players[defenderPlayerIndex].hero;
+            const targetHero = updatedState.players[defenderPlayerIndex].hero;
             const oldHealth = targetHero.health;
 
             // Upravíme log zprávu s použitím skutečných jmen
-            const attackerName = newState.players[attackerPlayerIndex].username;
-            const defenderName = newState.players[defenderPlayerIndex].username;
+            const attackerName = updatedState.players[attackerPlayerIndex].username;
+            const defenderName = updatedState.players[defenderPlayerIndex].username;
             var blindnessLogged = false;
 
-            if (attacker.isBlind && Math.random() < 0.5) {
-                addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">${attacker.name}</span> missed the attack to ${defenderName}'s hero`);
+            if (updatedAttacker.isBlind && Math.random() < 0.5) {
+                addCombatLogMessage(updatedState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">${updatedAttacker.name}</span> missed the attack to ${defenderName}'s hero`);
                 blindnessLogged = true;
             }
 
             if (!blindnessLogged) {
-                if (attacker.name === 'Assassin Scout') {
-                    targetHero.health = Math.max(0, targetHero.health - (attacker.attack + 2));
-                    addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Assassin Scout</span> dealt <span class="damage">+2 bonus damage</span> to enemy hero`);
-                } else if (attacker.name === 'Sneaky Infiltrator') {
-                    targetHero.health = Math.max(0, targetHero.health - Math.max(0, attacker.attack - 2));
-                    addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Sneaky Infiltrator</span> dealt reduced damage to enemy hero`);
+                if (updatedAttacker.name === 'Assassin Scout') {
+                    targetHero.health = Math.max(0, targetHero.health - (updatedAttacker.attack + 2));
+                    addCombatLogMessage(updatedState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Assassin Scout</span> dealt <span class="damage">+2 bonus damage</span> to enemy hero`);
+                } else if (updatedAttacker.name === 'Sneaky Infiltrator') {
+                    targetHero.health = Math.max(0, targetHero.health - Math.max(0, updatedAttacker.attack - 2));
+                    addCombatLogMessage(updatedState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Sneaky Infiltrator</span> dealt reduced damage to enemy hero`);
                 } else {
-                    targetHero.health = Math.max(0, targetHero.health - attacker.attack);
+                    targetHero.health = Math.max(0, targetHero.health - updatedAttacker.attack);
                 }
             }
 
             // V funkci attack, v části pro útok na hrdinu přidáme:
-            if (attacker.name === 'Shadow Priest' && !blindnessLogged) {
-                const damageDone = attacker.attack;
-                const attackerPlayer = newState.players[attackerPlayerIndex];
+            if (updatedAttacker.name === 'Shadow Priest' && !blindnessLogged) {
+                const damageDone = updatedAttacker.attack;
+                const attackerPlayer = updatedState.players[attackerPlayerIndex];
                 attackerPlayer.hero.health = Math.min(30, attackerPlayer.hero.health + damageDone);
-                addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Shadow Priest</span> restored <span class="heal">${damageDone} health</span> to their hero`);
+                addCombatLogMessage(updatedState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Shadow Priest</span> restored <span class="heal">${damageDone} health</span> to their hero`);
             }
             
             // Přidáme efekt Mana Leech při útoku na hrdinu
-            if (attacker.name === 'Mana Leech') {
+            if (updatedAttacker.name === 'Mana Leech') {
                 const damageDone = oldHealth - targetHero.health;
-                const attackerPlayer = newState.players[attackerPlayerIndex];
+                const attackerPlayer = updatedState.players[attackerPlayerIndex];
                 attackerPlayer.mana = Math.min(10, attackerPlayer.mana + damageDone);
                 
-                newState.notification = {
+                updatedState.notification = {
                     message: `Mana Leech restored ${damageDone} mana!`,
                     forPlayer: attackerPlayerIndex
                 };
-                addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Mana Leech</span> restored <span class="mana">${damageDone} mana</span>`);
+                addCombatLogMessage(updatedState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Mana Leech</span> restored <span class="mana">${damageDone} mana</span>`);
             }
 
             // Přidáme efekty pro útok na hrdinu
-            if (attacker.name === 'Healing Wisp') {
-                const attackerPlayer = newState.players[attackerPlayerIndex];
+            if (updatedAttacker.name === 'Healing Wisp') {
+                const attackerPlayer = updatedState.players[attackerPlayerIndex];
                 const healAmount = 1;
                 attackerPlayer.hero.health = Math.min(30, attackerPlayer.hero.health + healAmount);
                 
-                newState.notification = {
+                updatedState.notification = {
                     message: `Healing Wisp restored ${healAmount} health to your hero!`,
                     forPlayer: attackerPlayerIndex
                 };
                 
                 // Přidáme zprávu do combat logu pro Healing Wisp
-                addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Healing Wisp</span> restored <span class="heal">${healAmount} health to their hero</span>`);
+                addCombatLogMessage(updatedState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Healing Wisp</span> restored <span class="heal">${healAmount} health to their hero</span>`);
             }
 
             // Přidáme efekt Mana Siphon při útoku na hrdinu
-            if (attacker.name === 'Mana Siphon') {
-                const attackerPlayer = newState.players[attackerPlayerIndex];
+            if (updatedAttacker.name === 'Mana Siphon') {
+                const attackerPlayer = updatedState.players[attackerPlayerIndex];
                 attackerPlayer.mana = Math.min(10, attackerPlayer.mana + 1);
                 
-                newState.notification = {
+                updatedState.notification = {
                     message: 'Mana Siphon granted 1 temporary mana!',
                     forPlayer: attackerPlayerIndex
                 };
-                addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Mana Siphon</span> granted <span class="mana">1 temporary mana</span>`);
+                addCombatLogMessage(updatedState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerPlayer.username}'s</span> <span class="spell-name">Mana Siphon</span> granted <span class="mana">1 temporary mana</span>`);
             }
 
             // Upravíme logiku pro Twin Blade při útoku na hrdinu
-            if (attacker.canAttackTwice === true) {
-                if (!attacker.attacksThisTurn) {
-                    attacker.attacksThisTurn = 1;
-                    attacker.hasAttacked = false;
-                    attacker.canAttack = true;
+            if (updatedAttacker.canAttackTwice === true) {
+                if (!updatedAttacker.attacksThisTurn) {
+                    updatedAttacker.attacksThisTurn = 1;
+                    updatedAttacker.hasAttacked = false;
+                    updatedAttacker.canAttack = true;
                 } else {
-                    attacker.attacksThisTurn = 2;
-                    attacker.hasAttacked = true;
-                    attacker.canAttack = false;
+                    updatedAttacker.attacksThisTurn = 2;
+                    updatedAttacker.hasAttacked = true;
+                    updatedAttacker.canAttack = false;
                 }
             } else {
-                attacker.hasAttacked = true;
-                attacker.canAttack = false;
+                updatedAttacker.hasAttacked = true;
+                updatedAttacker.canAttack = false;
             }
             
             if (!blindnessLogged) {
-                addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}</span> attacked with <span class="spell-name">${attacker.name}</span> dealing <span class="damage">${attacker.attack} damage</span> to ${defenderName}'s hero`);
+                addCombatLogMessage(updatedState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}</span> attacked with <span class="spell-name">${updatedAttacker.name}</span> dealing <span class="damage">${updatedAttacker.attack} damage</span> to ${defenderName}'s hero`);
             }
 
             // V funkci attack, v části pro útok na hrdinu přidáme:
-            if (attacker.name === 'Mana Vampire' && !blindnessLogged) {
-                const damageDone = attacker.attack;
-                const attackerPlayer = newState.players[attackerPlayerIndex];
+            if (updatedAttacker.name === 'Mana Vampire' && !blindnessLogged) {
+                const damageDone = updatedAttacker.attack;
+                const attackerPlayer = updatedState.players[attackerPlayerIndex];
                 attackerPlayer.mana = Math.min(10, attackerPlayer.mana + damageDone);
-                addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Mana Vampire</span> granted <span class="mana">${damageDone} temporary mana</span>`);
+                addCombatLogMessage(updatedState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Mana Vampire</span> granted <span class="mana">${damageDone} temporary mana</span>`);
             }
 
             // Přidáme efekt Life Drainer při útoku na hrdinu
-            if (attacker.name === 'Life Drainer' && !blindnessLogged) {
+            if (updatedAttacker.name === 'Life Drainer' && !blindnessLogged) {
                 const healAmount = 2;
-                const attackerPlayer = newState.players[attackerPlayerIndex];
+                const attackerPlayer = updatedState.players[attackerPlayerIndex];
                 attackerPlayer.hero.health = Math.min(30, attackerPlayer.hero.health + healAmount);
-                addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Life Drainer</span> restored <span class="heal">${healAmount} health</span> to their hero`);
+                addCombatLogMessage(updatedState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Life Drainer</span> restored <span class="heal">${healAmount} health</span> to their hero`);
             }
 
             // V attack funkci, v části pro útok na hrdinu přidáme:
-            if (attacker.name === 'Flame Warrior' && !blindnessLogged) {
-                attacker.health = attacker.health - 2;
-                addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Flame Warrior</span> took <span class="damage">2 damage</span> from attacking`);
+            if (updatedAttacker.name === 'Flame Warrior' && !blindnessLogged) {
+                updatedAttacker.health = updatedAttacker.health - 2;
+                addCombatLogMessage(updatedState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}'s</span> <span class="spell-name">Flame Warrior</span> took <span class="damage">2 damage</span> from attacking`);
             }
 
             // Před odstraněním mrtvých jednotek spočítáme jejich počet
-            newState.players.forEach(player => {
+            updatedState.players.forEach(player => {
                 const deadUnits = player.field.filter(unit => unit && unit.health <= 0).length;
-                newState.deadMinionsCount = (newState.deadMinionsCount || 0) + deadUnits;
+                updatedState.deadMinionsCount = (updatedState.deadMinionsCount || 0) + deadUnits;
 
                 // Aktualizujeme cenu Ancient Colossus ve všech místech
-                newState.players.forEach(p => {
+                updatedState.players.forEach(p => {
                     // V ruce
                     p.hand.forEach(card => {
                         if (card.name === 'Ancient Colossus') {
-                            card.manaCost = Math.max(1, 30 - newState.deadMinionsCount);
+                            card.manaCost = Math.max(1, 30 - updatedState.deadMinionsCount);
                         }
                     });
                     // V balíčku
                     p.deck.forEach(card => {
                         if (card.name === 'Ancient Colossus') {
-                            card.manaCost = Math.max(1, 30 - newState.deadMinionsCount);
+                            card.manaCost = Math.max(1, 30 - updatedState.deadMinionsCount);
                         }
                     });
                 });
@@ -256,12 +301,12 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                 player.field = player.field.filter(card => card.health > 0);
             });
 
-            return checkGameOver(newState);
+            return checkGameOver(updatedState);
         } else {
-            const target = newState.players[defenderPlayerIndex].field[targetIndex];
+            const target = updatedState.players[defenderPlayerIndex].field[targetIndex];
             if (!target) {
                 console.log('Chyba: Cíl útoku neexistuje');
-                return newState;
+                return updatedState;
             }
 
             console.log('Útok na jednotku:', {
@@ -271,14 +316,14 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                     hasDivineShield: target.hasDivineShield
                 },
                 attackerBefore: {
-                    name: attacker.name,
-                    health: attacker.health,
-                    hasDivineShield: attacker.hasDivineShield
+                    name: updatedAttacker.name,
+                    health: updatedAttacker.health,
+                    hasDivineShield: updatedAttacker.hasDivineShield
                 }
             });
 
             // Uložíme si informaci o tom, zda byl útok ovlivněn slepotou
-            const wasBlindnessLogged = handleCombat(attacker, target, newState, attackerPlayerIndex);
+            const wasBlindnessLogged = handleCombat(updatedAttacker, target, updatedState, attackerPlayerIndex);
 
             console.log('Po útoku:', {
                 targetAfter: {
@@ -287,29 +332,29 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
                     hasDivineShield: target.hasDivineShield
                 },
                 attackerAfter: {
-                    name: attacker.name,
-                    health: attacker.health,
-                    hasDivineShield: attacker.hasDivineShield
+                    name: updatedAttacker.name,
+                    health: updatedAttacker.health,
+                    hasDivineShield: updatedAttacker.hasDivineShield
                 }
             });
 
             // Před odstraněním mrtvých jednotek spočítáme jejich počet
-            newState.players.forEach(player => {
+            updatedState.players.forEach(player => {
                 const deadUnits = player.field.filter(unit => unit && unit.health <= 0).length;
-                newState.deadMinionsCount = (newState.deadMinionsCount || 0) + deadUnits;
+                updatedState.deadMinionsCount = (updatedState.deadMinionsCount || 0) + deadUnits;
 
                 // Aktualizujeme cenu Ancient Colossus ve všech místech
-                newState.players.forEach(p => {
+                updatedState.players.forEach(p => {
                     // V ruce
                     p.hand.forEach(card => {
                         if (card.name === 'Ancient Colossus') {
-                            card.manaCost = Math.max(1, 30 - newState.deadMinionsCount);
+                            card.manaCost = Math.max(1, 30 - updatedState.deadMinionsCount);
                         }
                     });
                     // V balíčku
                     p.deck.forEach(card => {
                         if (card.name === 'Ancient Colossus') {
-                            card.manaCost = Math.max(1, 30 - newState.deadMinionsCount);
+                            card.manaCost = Math.max(1, 30 - updatedState.deadMinionsCount);
                         }
                     });
                 });
@@ -320,13 +365,13 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
 
             // Vypíšeme combat log pouze pokud útok nebyl ovlivněn slepotou
             if (!wasBlindnessLogged) {
-                const attackerName = newState.players[attackerPlayerIndex].username;
-                const defenderName = newState.players[defenderPlayerIndex].username;
+                const attackerName = updatedState.players[attackerPlayerIndex].username;
+                const defenderName = updatedState.players[defenderPlayerIndex].username;
                 
-                addCombatLogMessage(newState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}</span> attacked with <span class="spell-name">${attacker.name}</span> dealing <span class="damage">${attacker.attack} damage</span> to ${defenderName}'s <span class="spell-name">${target.name}</span>`);
+                addCombatLogMessage(updatedState, `<span class="${attackerPlayerIndex === 0 ? 'player-name' : 'enemy-name'}">${attackerName}</span> attacked with <span class="spell-name">${updatedAttacker.name}</span> dealing <span class="damage">${updatedAttacker.attack} damage</span> to ${defenderName}'s <span class="spell-name">${target.name}</span>`);
             }
 
-            return checkGameOver(newState);
+            return checkGameOver(updatedState);
         }
     };
 }

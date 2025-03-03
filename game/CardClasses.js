@@ -33,6 +33,17 @@ class SpellCard extends Card {
     }
 }
 
+// Nová třída pro tajné karty
+class SecretCard extends SpellCard {
+    constructor(id, name, manaCost, effect, image, rarity, triggerType) {
+        super(id, name, manaCost, effect, image, rarity);
+        this.type = 'secret';
+        this.isSecret = true;
+        this.isRevealed = false;
+        this.triggerType = triggerType; // 'attack', 'spell', 'turn_start', 'turn_end', atd.
+    }
+}
+
 class Hero {
     constructor(name, health, heroData = null) {
         this.name = name;
@@ -54,5 +65,6 @@ module.exports = {
     Card,
     UnitCard,
     SpellCard,
+    SecretCard,
     Hero
 };

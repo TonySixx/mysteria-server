@@ -306,3 +306,10 @@ UPDATE cards
 SET effect = 'Gain +1/+1 for each spell in your hand when played' 
 WHERE name = 'Spell Weaver';
 
+-- Přidání nových tajných karet
+INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type) VALUES
+    -- Tajné karty
+    ('Counterspell', 3, NULL, NULL, 'Secret: When your opponent casts a spell, counter it.', 'counterspell', 'rare', 'secret'),
+    ('Explosive Trap', 2, NULL, NULL, 'Secret: When your opponent attacks your hero, deal 2 damage to all enemy characters.', 'explosiveTrap', 'rare', 'secret'),
+    ('Ambush', 2, NULL, NULL, 'Secret: When your opponent plays a minion, summon a 3/2 Ambusher with Taunt.', 'ambush', 'rare', 'secret');
+

@@ -128,7 +128,7 @@ CREATE TABLE cards (
     effect TEXT,
     image TEXT NOT NULL,
     rarity TEXT NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('unit', 'spell')),
+    type TEXT NOT NULL CHECK (type IN ('unit', 'spell', 'secret')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
