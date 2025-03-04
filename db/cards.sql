@@ -294,7 +294,12 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     -- Přidání nových karet
     ('Wisdom Seeker', 6, 5, 5, 'Draw a card if your hero has full health when played, otherwise gain Taunt', 'wisdomSeeker', 'epic', 'unit'),
     ('Echo Warrior', 5, 4, 4, 'When played, shuffle a copy of this card into your deck', 'echoWarrior', 'epic', 'unit'),
-    ('Chaos Imp', 2, 2, 1, 'Divine Shield. When played, destroy a random card in your hand', 'chaosImp', 'epic', 'unit');
+    ('Chaos Imp', 2, 2, 1, 'Divine Shield. When played, destroy a random card in your hand', 'chaosImp', 'epic', 'unit'),
+
+    -- Přidání nových epických tajných karet
+    ('Soul Guardian', 3, NULL, NULL, 'Secret: When an enemy minion attacks your hero and your hero has less than 10 health, restore 10 health to your hero.', 'soulGuardian', 'epic', 'secret'),
+    ('Phantom Mirage', 3, NULL, NULL, 'Secret: When your opponent plays a minion, take control of it until the end of your next turn.', 'phantomMirage', 'epic', 'secret'),
+    ('Spell Reflector', 2, NULL, NULL, 'Secret: When your opponent casts a spell, deal 3 damage to their hero and draw a card.', 'spellReflector', 'epic', 'secret');
 
 -- Upravit popisek karty Blind Assassin
 UPDATE cards 

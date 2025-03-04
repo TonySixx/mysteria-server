@@ -63,6 +63,62 @@ function startNextTurn(state, nextPlayer) {
         }
     });
 
+    // Zpracování jednotek s dočasnou změnou vlastníka (pro kartu Phantom Mirage)
+    // Musíme projít pole obou hráčů, protože ukradené jednotky mohou být kdekoliv
+    const unitsToReturn = [];
+    
+    // Funkce pro zpracování pole s jednotkami
+    const processField = (field, currentOwnerIndex) => {
+        field.forEach(unit => {
+            if (unit && unit.temporaryOwnerChange) {
+                unit.turnsUntilReturn--;
+                
+                // Pokud je čas na vrácení, přidáme jednotku do seznamu s informací o současném vlastníkovi
+                if (unit.turnsUntilReturn <= 0) {
+                    unitsToReturn.push({
+                        unit: unit,
+                        currentOwnerIndex: currentOwnerIndex
+                    });
+                }
+            }
+        });
+    };
+    
+    // Zpracujeme pole obou hráčů
+    processField(player.field, nextPlayer);
+    processField(opponent.field, 1 - nextPlayer);
+
+    if (unitsToReturn.length > 0) {
+        for (const item of unitsToReturn) {
+            const { unit, currentOwnerIndex } = item;
+            const currentOwner = newState.players[currentOwnerIndex];
+            const originalOwner = newState.players[unit.originalOwner];
+            
+            // Odstraníme jednotku z pole současného vlastníka
+            const unitIndex = currentOwner.field.indexOf(unit);
+            if (unitIndex !== -1) {
+                const returnedUnit = currentOwner.field.splice(unitIndex, 1)[0];
+                
+                // Resetujeme příznaky dočasné změny vlastníka
+                delete returnedUnit.temporaryOwnerChange;
+                delete returnedUnit.originalOwner;
+                delete returnedUnit.turnsUntilReturn;
+                
+                // Vrátíme jednotku původnímu majiteli, pokud má místo
+                if (originalOwner.field.length < 7) {
+                    originalOwner.field.push(returnedUnit);
+                    returnedUnit.hasAttacked = false;
+                    returnedUnit.attacksThisTurn = 0;
+                    returnedUnit.canAttack = true; // Výchozí hodnota
+                    addCombatLogMessage(newState, `<span class="spell-name">${returnedUnit.name}</span> returned to <span class="${unit.originalOwner === 0 ? 'player-name' : 'enemy-name'}">${originalOwner.username}</span>'s control`);
+                } else {
+                    addCombatLogMessage(newState, `<span class="spell-name">${returnedUnit.name}</span> was destroyed - no space on <span class="${unit.originalOwner === 0 ? 'player-name' : 'enemy-name'}">${originalOwner.username}</span>'s board`);
+                }
+            }
+        }
+    }
+
+
     if (player.deck.length > 0) {
         const drawnCard = player.deck.pop();
         if (player.hand.length < 10) {
@@ -1994,7 +2050,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                 addCombatLogMessage(state, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${player.username}'s</span> <span class="spell-name">Chaos Imp</span> destroyed <span class="spell-name">${destroyedCard.name}</span> from their hand`);
             }
             break;
-    }
+        } 
 
     return newState;
 }
@@ -2341,114 +2397,195 @@ module.exports = {
 // Přidám novou funkci pro kontrolu a aktivaci tajných karet
 function checkAndActivateSecrets(state, triggerType, data) {
     const newState = { ...state };
-    const { playerIndex,cardIndex } = data;
+    const { playerIndex, cardIndex } = data;
     const opponentIndex = 1 - playerIndex;
     const opponent = newState.players[opponentIndex];
+    const player = newState.players[playerIndex];
 
     var shouldContinue = true;
     
-    // Najdeme všechny tajné karty protihráče, které odpovídají danému typu triggeru
-    const matchingSecrets = opponent.secrets.filter(
+    // Najdeme tajné karty protihráče podle typu triggeru, ale aktivujeme jen jednu
+    const potentialSecrets = opponent.secrets.filter(
         secret => !secret.isRevealed && secret.triggerType === triggerType
     );
+    
+    if (potentialSecrets.length === 0) {
+        return {updatedState: newState, shouldContinue: shouldContinue};
+    }
+
+    // Filtrujeme secrets podle všech podmínek (nejen triggerType)
+    const matchingSecrets = [];
+    
+    for (const secret of potentialSecrets) {
+        let meetsAllConditions = true;
+        
+        // Kontrola specifických podmínek pro jednotlivé karty
+        switch (secret.name) {
+            case 'Soul Guardian':
+                // Secret se aktivuje pouze když má hrdina méně než 10 životů
+                if (triggerType === 'hero_attack' && opponent.hero.health >= 10) {
+                    meetsAllConditions = false;
+                }
+                break;
+            // Zde můžeme přidat další specifické podmínky pro jiné karty
+            // case 'OtherSecret':
+            //     if (someCondition) {
+            //         meetsAllConditions = false;
+            //     }
+            //     break;
+        }
+        
+        if (meetsAllConditions) {
+            matchingSecrets.push(secret);
+        }
+    }
     
     if (matchingSecrets.length === 0) {
         return {updatedState: newState, shouldContinue: shouldContinue};
     }
     
-    // Aktivujeme každou odpovídající tajnou kartu
-    for (const secret of matchingSecrets) {
-        secret.isRevealed = true;
-        
-        // Přidáme log zprávu o odhalení tajné karty
-        addCombatLogMessage(newState, `<span class="${opponentIndex === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">Secret</span> was revealed: <span class="spell-name">${secret.name}</span>!`);
-        
-        // Aplikujeme efekt tajné karty podle jejího jména
-        switch (secret.name) {
-            case 'Counterspell':
-                if (triggerType === 'spell_played') {
-                    // Pokud je to kouzlo, zrušíme jeho efekt
-                    addCombatLogMessage(newState, `<span class="${opponentIndex === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">Counterspell</span> negated the spell!`);
-                    shouldContinue = false;
-                    var player = newState.players[playerIndex];
-                    player.hand.splice(cardIndex, 1);
-                    // Přidáme notifikaci
-                    newState.notification = {
-                        message: 'Your spell was countered!',
-                        forPlayer: playerIndex
-                    };
-                }
-                break;
+    // Aktivujeme pouze první odpovídající tajnou kartu (FIFO)
+    const secret = matchingSecrets[0];
+    secret.isRevealed = true;
+    
+    // Přidáme log zprávu o odhalení tajné karty
+    addCombatLogMessage(newState, `<span class="${opponentIndex === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">Secret</span> was revealed: <span class="spell-name">${secret.name}</span>!`);
+    
+    // Aplikujeme efekt tajné karty podle jejího jména
+    switch (secret.name) {
+        case 'Counterspell':
+            if (triggerType === 'spell_played') {
+                // Pokud je to kouzlo, zrušíme jeho efekt
+                addCombatLogMessage(newState, `<span class="${opponentIndex === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">Counterspell</span> negated the spell!`);
+                shouldContinue = false;
+                player.hand.splice(cardIndex, 1);
+                // Přidáme notifikaci
+                newState.notification = {
+                    message: 'Your spell was countered!',
+                    forPlayer: playerIndex
+                };
+            }
+            break;
+            
+        case 'Explosive Trap':
+            if (triggerType === 'hero_attack') {
+                // Pokud někdo zaútočí na hrdinu, způsobíme 2 poškození všem nepřátelským jednotkám
+                // Způsobíme 2 poškození hrdinovi
+                player.hero.health = Math.max(0, player.hero.health - 2);
                 
-            case 'Explosive Trap':
-                if (triggerType === 'hero_attack') {
-                    // Pokud někdo zaútočí na hrdinu, způsobíme 2 poškození všem nepřátelským jednotkám
-                    var player = newState.players[playerIndex];
-                    
-                    // Způsobíme 2 poškození hrdinovi
-                    player.hero.health = Math.max(0, player.hero.health - 2);
-                    
-                    var afterEffectFuncs = [];
-                    player.field.forEach(unit => {
-                        var afterEffectFunc = handleUnitDamage(unit, 2, player, 1 - playerIndex, newState);
-                        if (afterEffectFunc) {
-                            afterEffectFuncs.push(afterEffectFunc);
-                        }
-                    });
-                    afterEffectFuncs.forEach(func => func());
-                    
-                    addCombatLogMessage(newState, `<span class="${opponentIndex === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">Explosive Trap</span> dealt <span class="damage">2 damage</span> to enemy hero and all enemy minions`);
-                    
-                    // Před odstraněním mrtvých jednotek spočítáme jejich počet
-                    newState.players.forEach(player => {
-                        const deadUnits = player.field.filter(unit => unit && unit.health <= 0).length;
-                        newState.deadMinionsCount = (newState.deadMinionsCount || 0) + deadUnits;
-
-                        // Aktualizujeme cenu Ancient Colossus ve všech místech
-                        updateAncientColossusManaCost(newState);
-
-                        // Odstraníme mrtvé jednotky
-                        player.field = player.field.filter(card => card.health > 0);
-                    });
-                }
-                break;
+                var afterEffectFuncs = [];
+                player.field.forEach(unit => {
+                    var afterEffectFunc = handleUnitDamage(unit, 2, player, 1 - playerIndex, newState);
+                    if (afterEffectFunc) {
+                        afterEffectFuncs.push(afterEffectFunc);
+                    }
+                });
+                afterEffectFuncs.forEach(func => func());
                 
-            case 'Ambush':
-                if (triggerType === 'unit_played') {
-                    // Pokud protihráč zahraje jednotku, přidáme na pole 2/1 jednotku s Stealth
-                    if (opponent.field.length < 7) {
-                        const { UnitCard } = require('./CardClasses');
-                        const ambusher = new UnitCard(
-                            `ambusher-${Date.now()}`,
-                            'Ambusher',
-                            0,
-                            3,
-                            2,
-                            'Taunt',
-                            'ambusher',
-                            'rare'
-                        );
-                        ambusher.hasTaunt = true;
-                        // Přidáme jednotku na pole
-                        opponent.field.push(ambusher);
+                addCombatLogMessage(newState, `<span class="${opponentIndex === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">Explosive Trap</span> dealt <span class="damage">2 damage</span> to enemy hero and all enemy minions`);
+                
+                // Před odstraněním mrtvých jednotek spočítáme jejich počet
+                newState.players.forEach(player => {
+                    const deadUnits = player.field.filter(unit => unit && unit.health <= 0).length;
+                    newState.deadMinionsCount = (newState.deadMinionsCount || 0) + deadUnits;
+
+                    // Aktualizujeme cenu Ancient Colossus ve všech místech
+                    updateAncientColossusManaCost(newState);
+
+                    // Odstraníme mrtvé jednotky
+                    player.field = player.field.filter(card => card.health > 0);
+                });
+            }
+            break;
+            
+        case 'Ambush':
+            if (triggerType === 'unit_played') {
+                // Pokud protihráč zahraje jednotku, přidáme na pole 2/1 jednotku s Stealth
+                if (opponent.field.length < 7) {
+                    const { UnitCard } = require('./CardClasses');
+                    const ambusher = new UnitCard(
+                        `ambusher-${Date.now()}`,
+                        'Ambusher',
+                        0,
+                        3,
+                        2,
+                        'Taunt',
+                        'ambusher',
+                        'rare'
+                    );
+                    ambusher.hasTaunt = true;
+                    // Přidáme jednotku na pole
+                    opponent.field.push(ambusher);
+                    
+                    addCombatLogMessage(newState, `<span class="${opponentIndex === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">Ambush</span> summoned a <span class="spell-name">3/2 Ambusher</span>`);
+                } else {
+                    addCombatLogMessage(newState, `<span class="${opponentIndex === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">Ambush</span> failed to summon a minion - board is full`);
+                }
+            }
+            break;
+
+        case 'Soul Guardian':
+            if (triggerType === 'hero_attack') {
+                // Pokud někdo zaútočí na hrdinu a hrdina má méně jak 10 životů, obnoví se mu 10 životů
+                // Tuto podmínku jsme již ověřili, takže víme, že opponent.hero.health < 10
+                const oldHealth = opponent.hero.health;
+                opponent.hero.health = Math.min(30, opponent.hero.health + 10);
+                const healAmount = opponent.hero.health - oldHealth;
+                
+                addCombatLogMessage(newState, `<span class="${opponentIndex === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">Soul Guardian</span> restored <span class="heal">${healAmount} health</span> to their hero`);
+            }
+            break;
+
+        case 'Phantom Mirage':
+            if (triggerType === 'unit_played') {
+                const playedUnit = player.field[player.field.length - 1];
+                if (playedUnit) {
+                    // Přemístíme jednotku na pole protihráče a označíme ji pro návrat zpět
+                    const unitIndex = player.field.indexOf(playedUnit);
+                    if (unitIndex !== -1 && opponent.field.length < 7) {
+                        const stolenUnit = player.field.splice(unitIndex, 1)[0];
+                        stolenUnit.temporaryOwnerChange = true;
+                        stolenUnit.originalOwner = playerIndex;
+                        stolenUnit.turnsUntilReturn = 2; // Vrátí se za 1 kolo
+                        opponent.field.push(stolenUnit);
                         
-                        addCombatLogMessage(newState, `<span class="${opponentIndex === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">Ambush</span> summoned a <span class="spell-name">3/2 Ambusher</span>`);
+                        addCombatLogMessage(newState, `<span class="${opponentIndex === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">Phantom Mirage</span> took control of <span class="spell-name">${stolenUnit.name}</span> until the end of their next turn`);
                     } else {
-                        addCombatLogMessage(newState, `<span class="${opponentIndex === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">Ambush</span> failed to summon a minion - board is full`);
+                        addCombatLogMessage(newState, `<span class="${opponentIndex === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">Phantom Mirage</span> failed to take control - board is full`);
                     }
                 }
-                break;
+            }
+            break;
+
+        case 'Spell Reflector':
+            if (triggerType === 'spell_played') {
+                // Způsobíme 3 poškození hrdinovi, který zahrál kouzlo, a táhneme kartu
+                player.hero.health = Math.max(0, player.hero.health - 3);
                 
-            default:
-                addCombatLogMessage(newState, `<span class="${opponentIndex === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">${secret.name}</span> was activated`);
-                break;
-        }
-        
-        // Odstraníme tajnou kartu po aktivaci
-        const secretIndex = opponent.secrets.findIndex(s => s.id === secret.id);
-        if (secretIndex !== -1) {
-            opponent.secrets.splice(secretIndex, 1);
-        }
+                // Táhneme kartu pro majitele tajné karty
+                if (opponent.deck.length > 0) {
+                    const drawnCard = opponent.deck.shift();
+                    if (opponent.hand.length < 10) {
+                        opponent.hand.push(drawnCard);
+                        addCombatLogMessage(newState, `<span class="${opponentIndex === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}</span> drew a card`);
+                    } else {
+                        addCombatLogMessage(newState, `<span class="${opponentIndex === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}</span> burned a card - hand is full`);
+                    }
+                }
+                
+                addCombatLogMessage(newState, `<span class="${opponentIndex === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">Spell Reflector</span> dealt <span class="damage">3 damage</span> to the enemy hero and drew a card`);
+            }
+            break;
+            
+        default:
+            addCombatLogMessage(newState, `<span class="${opponentIndex === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">${secret.name}</span> was activated`);
+            break;
+    }
+    
+    // Odstraníme tajnou kartu po aktivaci
+    const secretIndex = opponent.secrets.findIndex(s => s.id === secret.id);
+    if (secretIndex !== -1) {
+        opponent.secrets.splice(secretIndex, 1);
     }
     
     return {updatedState: checkGameOver(newState), shouldContinue: shouldContinue};

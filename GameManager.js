@@ -278,6 +278,12 @@ class GameManager {
                             triggerType = 'hero_attack';
                         } else if (card.name === 'Ambush') {
                             triggerType = 'unit_played';
+                        } else if (card.name === 'Soul Guardian') {
+                            triggerType = 'hero_attack';
+                        } else if (card.name === 'Phantom Mirage') {
+                            triggerType = 'unit_played';
+                        } else if (card.name === 'Spell Reflector') {
+                            triggerType = 'spell_played';
                         }
                         
                         playerDeck.push(new SecretCard(
