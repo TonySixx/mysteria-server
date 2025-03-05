@@ -493,9 +493,8 @@ class GameManager {
         const game = this.games.get(gameId);
         if (!game) return;
 
-        // Odešleme stav oběma hráčům
+        // Rozešleme aktuální stav hry oběma hráčům
         game.players.forEach((player, index) => {
-            // Přeskočíme odesílání pro AI hráče
             if (player.socket.isAI) return;
 
             const playerView = this.createPlayerView(game, index);
@@ -509,6 +508,15 @@ class GameManager {
                     targetIndex: index === 1 ? this.invertFieldIndex(game.animation.targetIndex) : game.animation.targetIndex
                 };
             }
+            
+            // Přidáme animaci aktivace secret karty, pokud existuje
+            if (game.secretAnimation) {
+                playerView.secretAnimation = {
+                    ...game.secretAnimation,
+                    // Předáme vlastnictví bez úpravy, aby klient sám mohl rozhodnout správný text
+                    owner: game.secretAnimation.owner
+                };
+            }
 
             player.socket.emit('gameState', playerView);
         });
@@ -516,6 +524,7 @@ class GameManager {
         // Vyčistíme combat log zprávy a animace
         game.combatLogMessages = [];
         game.animation = null;
+        game.secretAnimation = null;
     }
 
     createPlayerView(game, playerIndex) {

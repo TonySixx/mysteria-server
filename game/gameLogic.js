@@ -2451,6 +2451,13 @@ function checkAndActivateSecrets(state, triggerType, data) {
     // Přidáme log zprávu o odhalení tajné karty
     addCombatLogMessage(newState, `<span class="${opponentIndex === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">Secret</span> was revealed: <span class="spell-name">${secret.name}</span>!`);
     
+    // Přidáme animaci pro aktivaci secret karty
+    newState.secretAnimation = {
+        type: 'secretActivation',
+        secret: { ...secret },
+        owner: opponentIndex  // Nastavíme správně vlastníka jako opponentIndex
+    };
+    
     // Aplikujeme efekt tajné karty podle jejího jména
     switch (secret.name) {
         case 'Counterspell':
