@@ -21,8 +21,8 @@ class UnitCard extends Card {
         this.canAttack = false;
         this.hasAttacked = false;
         this.frozen = false;
-        this.hasTaunt = effect.toLowerCase().includes('taunt');
-        this.hasDivineShield = effect.toLowerCase().includes('divine shield');
+        this.hasTaunt = effect?.toLowerCase().includes('taunt');
+        this.hasDivineShield = effect?.toLowerCase().includes('divine shield');
     }
 }
 
@@ -33,11 +33,31 @@ class SpellCard extends Card {
     }
 }
 
+// Nová třída pro tajné karty
+class SecretCard extends SpellCard {
+    constructor(id, name, manaCost, effect, image, rarity, triggerType) {
+        super(id, name, manaCost, effect, image, rarity);
+        this.type = 'secret';
+        this.isSecret = true;
+        this.isRevealed = false;
+        this.triggerType = triggerType; // 'attack', 'spell', 'turn_start', 'turn_end', atd.
+    }
+}
+
 class Hero {
-    constructor(name, health) {
+    constructor(name, health, heroData = null) {
         this.name = name;
         this.health = health;
         this.maxHealth = health;
+        this.hasUsedAbility = false;
+        
+        if (heroData) {
+            this.id = heroData.id;
+            this.abilityName = heroData.ability_name;
+            this.abilityDescription = heroData.ability_description;
+            this.abilityCost = heroData.ability_cost;
+            this.image = heroData.image;
+        }
     }
 }
 
@@ -45,5 +65,6 @@ module.exports = {
     Card,
     UnitCard,
     SpellCard,
+    SecretCard,
     Hero
 };
