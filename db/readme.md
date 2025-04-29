@@ -1,0 +1,1 @@
+When initializing the database, first run mysteria_backup.sql, and then execute all the scripts in the migrations folder in chronological order.

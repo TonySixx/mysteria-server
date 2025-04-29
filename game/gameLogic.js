@@ -219,6 +219,12 @@ function startNextTurn(state, nextPlayer) {
                 unitId: card.id
             });
         }
+        else if (card.name === 'Mystic Chronicler') {
+            newState.endTurnEffects.push({
+                type: 'mysticChronicler',
+                owner: previousPlayer
+            });
+        }
     });
 
     // Přidáme efekty pro všechny Wolf Warriory na poli OBOU hráčů
@@ -327,6 +333,19 @@ function startNextTurn(state, nextPlayer) {
                 var owner = newState.players[previousPlayer];
                 owner.hero.health = Math.min(30, owner.hero.health + 1);
                 addCombatLogMessage(newState, `<span class="${previousPlayer === 0 ? 'player-name' : 'enemy-name'}">${owner.username}'s</span> <span class="spell-name">Healing Acolyte</span> restored <span class="heal">1 health</span> to their hero`);
+            }
+
+            else if (effect.type === 'mysticChronicler' && effect.owner === previousPlayer) {
+                const owner = newState.players[previousPlayer];
+                if (owner.deck.length > 0) {
+                    const drawnCard = owner.deck.pop();
+                    if (owner.hand.length < 10) {
+                        owner.hand.push(drawnCard);
+                        addCombatLogMessage(newState, `<span class="${previousPlayer === 0 ? 'player-name' : 'enemy-name'}">${owner.username}'s</span> <span class="spell-name">Mystic Chronicler</span> <span class="draw">drew a card</span>`);
+                    } else {
+                        addCombatLogMessage(newState, `<span class="${previousPlayer === 0 ? 'player-name' : 'enemy-name'}">${owner.username}'s</span> <span class="spell-name">Mystic Chronicler</span> <span class="draw">burned a card</span> because their hand was full`);
+                    }
+                }
             }
 
             else if (effect.type === 'spiritSummoner' && effect.owner === previousPlayer) {
@@ -1565,6 +1584,32 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                 forPlayer: playerIndex
             };
             addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Freezing Dragon</span> and <span class="freeze">froze all enemy units</span>`);
+            break;
+
+        case 'Celestial Healer':
+            player.hero.health = Math.min(30, player.hero.health + 10);
+            newState.notification = {
+                message: 'Celestial Healer restored 10 health to your hero!',
+                forPlayer: playerIndex
+            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Celestial Healer</span> restoring <span class="heal">10 health</span> to their hero`);
+            break;
+
+        case 'Arcane Scholar':
+            const arcaneScholarSpells = player.deck.filter(card => card.type === 'spell');
+            if (arcaneScholarSpells.length > 0) {
+                const randomSpell = arcaneScholarSpells[Math.floor(Math.random() * arcaneScholarSpells.length)];
+                const spellIndex = player.deck.indexOf(randomSpell);
+                player.deck.splice(spellIndex, 1);
+                if (player.hand.length < 10) {
+                    player.hand.push(randomSpell);
+                    newState.notification = {
+                        message: `Drew ${randomSpell.name}!`,
+                        forPlayer: playerIndex
+                    };
+                    addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Arcane Scholar</span> and <span class="draw">drew a random spell</span>`);
+                }
+            }
             break;
 
         case 'Elven Commander':
