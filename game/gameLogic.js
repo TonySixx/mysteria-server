@@ -336,9 +336,9 @@ function startNextTurn(state, nextPlayer) {
             }
 
             else if (effect.type === 'mysticChronicler' && effect.owner === previousPlayer) {
-                const owner = newState.players[previousPlayer];
+                var owner = newState.players[previousPlayer];
                 if (owner.deck.length > 0) {
-                    const drawnCard = owner.deck.pop();
+                    var drawnCard = owner.deck.pop();
                     if (owner.hand.length < 10) {
                         owner.hand.push(drawnCard);
                         addCombatLogMessage(newState, `<span class="${previousPlayer === 0 ? 'player-name' : 'enemy-name'}">${owner.username}'s</span> <span class="spell-name">Mystic Chronicler</span> <span class="draw">drew a card</span>`);
