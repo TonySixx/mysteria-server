@@ -1205,7 +1205,7 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                         cardToCopy.effect,
                         cardToCopy.image,
                         cardToCopy.rarity
-                    ) :
+                    ) : cardToCopy instanceof SpellCard ?
                     new SpellCard(
                         `copy-${Date.now()}-${Math.random()}`,
                         cardToCopy.name,
@@ -1213,6 +1213,14 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
                         cardToCopy.effect,
                         cardToCopy.image,
                         cardToCopy.rarity
+                    ) : new SecretCard(
+                        `copy-${Date.now()}-${Math.random()}`,
+                        cardToCopy.name,
+                        cardToCopy.manaCost,
+                        cardToCopy.effect,
+                        cardToCopy.image,
+                        cardToCopy.rarity,
+                        cardToCopy.triggerType
                     );
                 
                 player.hand.push(copiedCard);
@@ -1917,7 +1925,7 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                             cardToCopy.effect,
                             cardToCopy.image,
                             cardToCopy.rarity
-                        ) :
+                        ) : cardToCopy instanceof SpellCard ?
                         new SpellCard(
                             `copy-${Date.now()}-${Math.random()}`,
                             cardToCopy.name,
@@ -1925,8 +1933,15 @@ function handleUnitEffects(card, player, opponent, state, playerIndex) {
                             cardToCopy.effect,
                             cardToCopy.image,
                             cardToCopy.rarity
+                        ) : new SecretCard(
+                            `copy-${Date.now()}-${Math.random()}`,
+                            cardToCopy.name,
+                            cardToCopy.manaCost,
+                            cardToCopy.effect,
+                            cardToCopy.image,
+                            cardToCopy.rarity,
+                            cardToCopy.triggerType
                         );
-                    
                     player.hand.push(copiedCard);
                     addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> played <span class="spell-name">Mind Mimic</span> copying a card from opponent's hand`);
                 }
@@ -2448,6 +2463,7 @@ function checkAndActivateSecrets(state, triggerType, data) {
     const player = newState.players[playerIndex];
 
     var shouldContinue = true;
+    var attackerIsDead = false;
     
     // Najdeme tajné karty protihráče podle typu triggeru, ale aktivujeme jen jednu
     const potentialSecrets = opponent.secrets.filter(
@@ -2536,6 +2552,9 @@ function checkAndActivateSecrets(state, triggerType, data) {
                 
                 addCombatLogMessage(newState, `<span class="${opponentIndex === 0 ? 'player-name' : 'enemy-name'}">${opponent.username}'s</span> <span class="spell-name">Explosive Trap</span> dealt <span class="damage">2 damage</span> to enemy hero and all enemy minions`);
                 
+                if (player.field[data.attackerIndex] && player.field[data.attackerIndex].health <= 0) {
+                    attackerIsDead = true;
+                }
                 // Před odstraněním mrtvých jednotek spočítáme jejich počet
                 newState.players.forEach(player => {
                     const deadUnits = player.field.filter(unit => unit && unit.health <= 0).length;
@@ -2640,7 +2659,7 @@ function checkAndActivateSecrets(state, triggerType, data) {
         opponent.secrets.splice(secretIndex, 1);
     }
     
-    return {updatedState: checkGameOver(newState), shouldContinue: shouldContinue};
+    return {updatedState: checkGameOver(newState), shouldContinue: shouldContinue,attackerIsDead: attackerIsDead};
 }
 
 /**

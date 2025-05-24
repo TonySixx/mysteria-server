@@ -124,11 +124,13 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
         
         var stateAfterSecrets;
         var shouldContinue;
+        var attackerIsDead = false;
         // Kontrolujeme tajné karty před útokem
         if (isHeroAttack) {
             secretResult = checkAndActivateSecrets(newState, 'hero_attack', secretData);
             shouldContinue = secretResult.shouldContinue;
             stateAfterSecrets = secretResult.updatedState;
+            attackerIsDead = secretResult.attackerIsDead;
         }
         else {
             secretResult = checkAndActivateSecrets(newState, 'attack', secretData);
@@ -152,7 +154,7 @@ function attack(attackerIndex, targetIndex, isHeroAttack) {
         const updatedAttacker = updatedState.players[attackerPlayerIndex].field[attackerIndex];
         
         // Pokud útočník už neexistuje nebo je zmražený, ukončíme útok
-        if (!updatedAttacker || updatedAttacker.frozen) {
+        if (!updatedAttacker || updatedAttacker.frozen || attackerIsDead) {
             return updatedState;
         }
 
