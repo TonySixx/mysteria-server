@@ -1339,9 +1339,12 @@ class GameManager {
             let aiDeck;
             let aiHero;
 
+            let aiDeckType = '';
             switch (aiHeroChoice) {
                 case 1:
-                    aiDeck = this.createMageDeck();
+                    const deckInfo1 = this.createMageDeckWithInfo();
+                    aiDeck = deckInfo1.deck;
+                    aiDeckType = `Mage ${deckInfo1.variant}`;
                     aiHero = {
                         id: 1,
                         name: 'Mage',
@@ -1352,7 +1355,9 @@ class GameManager {
                     };
                     break;
                 case 2:
-                    aiDeck = this.createPriestDeck();
+                    const deckInfo2 = this.createPriestDeckWithInfo();
+                    aiDeck = deckInfo2.deck;
+                    aiDeckType = `Priest ${deckInfo2.variant}`;
                     aiHero = {
                         id: 2,
                         name: 'Priest',
@@ -1363,7 +1368,9 @@ class GameManager {
                     };
                     break;
                 case 3:
-                    aiDeck = this.createSeerDeck();
+                    const deckInfo3 = this.createSeerDeckWithInfo();
+                    aiDeck = deckInfo3.deck;
+                    aiDeckType = `Seer ${deckInfo3.variant}`;
                     aiHero = {
                         id: 3,
                         name: 'Seer',
@@ -1374,6 +1381,8 @@ class GameManager {
                     };
                     break;
             }
+
+            console.log(`AI hraje balíček: ${aiDeckType}`);
 
             // Vytvoříme mock socket pro AI
             const aiSocket = {
@@ -1581,75 +1590,337 @@ class GameManager {
         return true;
     }
 
-    // Přidáme nové metody pro AI balíčky
+    // Vylepšené metody pro AI balíčky s více variantami
     createMageDeck() {
-        // Původní agresivní balíček zůstává pro mága
-        return this.createDefaultDeck();
+        const deckInfo = this.createMageDeckWithInfo();
+        return deckInfo.deck;
+    }
+
+    createMageDeckWithInfo() {
+        const deckVariants = [
+            { deck: this.createMageAggroDeck(), variant: 'Aggro' },
+            { deck: this.createMageBurnDeck(), variant: 'Burn' },
+            { deck: this.createMageTempoDeck(), variant: 'Tempo' }
+        ];
+        
+        const randomVariant = Math.floor(Math.random() * deckVariants.length);
+        return deckVariants[randomVariant];
+    }
+
+    // Mage Aggro deck - rychlé jednotky a damage
+    createMageAggroDeck() {
+        const baseDeck = [
+            // Rychlé jednotky (2 kopie každé)
+            ...Array(2).fill({ id: 1, name: 'Fire Elemental', manaCost: 4, attack: 5, health: 6, effect: 'Deals 2 damage to enemy hero when played', image: 'fireElemental', rarity: 'rare' }),
+            ...Array(2).fill({ id: 16, name: 'Shadow Assassin', manaCost: 3, attack: 4, health: 2, effect: 'Deal 2 damage to enemy hero when played', image: 'shadowAssassin', rarity: 'rare' }),
+            ...Array(2).fill({ id: 9, name: 'Nimble Sprite', manaCost: 1, attack: 1, health: 2, effect: 'Draw a card when played', image: 'nimbleSprite', rarity: 'common' }),
+            ...Array(2).fill({ id: 10, name: 'Arcane Familiar', manaCost: 1, attack: 1, health: 3, effect: 'Gain +1 attack when you cast a spell', image: 'arcaneFamiliar', rarity: 'epic' }),
+            ...Array(2).fill({ id: 15, name: 'Mana Wyrm', manaCost: 2, attack: 2, health: 3, effect: 'Gain +1 attack when you cast a spell', image: 'manaWyrm', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Assassin Scout', manaCost: 3, attack: 3, health: 3, effect: 'Deals +2 damage when attacking the enemy hero', image: 'assassinScout', rarity: 'uncommon' }),
+            
+            // Damage kouzla (2 kopie každého)
+            ...Array(2).fill({ id: 3, name: 'Fireball', manaCost: 4, effect: 'Deal 6 damage to enemy hero', image: 'fireball', rarity: 'uncommon' }),
+            ...Array(2).fill({ id: 7, name: 'Lightning Bolt', manaCost: 2, effect: 'Deal 3 damage to enemy hero', image: 'lightningBolt', rarity: 'common' }),
+            ...Array(2).fill({ name: 'Frostbolt', manaCost: 2, effect: 'Deal 3 damage to a random enemy minion and freeze it', image: 'frostbolt', rarity: 'uncommon' }),
+            
+            // Utility kouzla
+            ...Array(2).fill({ name: 'Arcane Explosion', manaCost: 2, effect: 'Deal 1 damage to all enemy minions', image: 'arcaneExplosion', rarity: 'common' }),
+            ...Array(2).fill({ id: 8, name: 'Arcane Intellect', manaCost: 3, effect: 'Draw 2 cards', image: 'arcaneIntellect', rarity: 'rare' }),
+            
+            // Silnější jednotky pro mid-game
+            ...Array(2).fill({ id: 5, name: 'Water Elemental', manaCost: 3, attack: 3, health: 5, effect: 'Freeze random enemy minion when played', image: 'waterElemental', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Sneaky Infiltrator', manaCost: 1, attack: 3, health: 2, effect: 'Deals 2 less damage when attacking enemy hero', image: 'sneakyInfiltrator', rarity: 'rare' }),
+            
+            // Finisher
+            { id: 13, name: 'Inferno Wave', manaCost: 7, effect: 'Deal 4 damage to all enemy minions', image: 'infernoWave', rarity: 'epic' },
+            { name: 'Wise Oracle', manaCost: 5, attack: 3, health: 4, effect: 'Draw 2 cards when played', image: 'wiseOracle', rarity: 'legendary' }
+        ];
+
+        return this.createDeckFromTemplate(baseDeck);
+    }
+
+    // Mage Burn deck - více kouzel a damage
+    createMageBurnDeck() {
+        const baseDeck = [
+            // Spell synergy jednotky
+            ...Array(2).fill({ id: 10, name: 'Arcane Familiar', manaCost: 1, attack: 1, health: 3, effect: 'Gain +1 attack when you cast a spell', image: 'arcaneFamiliar', rarity: 'epic' }),
+            ...Array(2).fill({ id: 15, name: 'Mana Wyrm', manaCost: 2, attack: 2, health: 3, effect: 'Gain +1 attack when you cast a spell', image: 'manaWyrm', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Battle Mage', manaCost: 4, attack: 3, health: 5, effect: 'When you cast a spell, this minion gains +2 attack this turn', image: 'battleMage', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Spell Weaver', manaCost: 4, attack: 3, health: 3, effect: 'Gain +1/+1 for each spell in your hand when played', image: 'spellWeaver', rarity: 'epic' }),
+            
+            // Mnoho kouzel
+            ...Array(2).fill({ id: 3, name: 'Fireball', manaCost: 4, effect: 'Deal 6 damage to enemy hero', image: 'fireball', rarity: 'uncommon' }),
+            ...Array(2).fill({ id: 7, name: 'Lightning Bolt', manaCost: 2, effect: 'Deal 3 damage to enemy hero', image: 'lightningBolt', rarity: 'common' }),
+            ...Array(2).fill({ name: 'Frostbolt', manaCost: 2, effect: 'Deal 3 damage to a random enemy minion and freeze it', image: 'frostbolt', rarity: 'uncommon' }),
+            ...Array(2).fill({ name: 'Arcane Explosion', manaCost: 2, effect: 'Deal 1 damage to all enemy minions', image: 'arcaneExplosion', rarity: 'common' }),
+            ...Array(2).fill({ id: 11, name: 'Glacial Burst', manaCost: 3, effect: 'Freeze all enemy minions', image: 'glacialBurst', rarity: 'epic' }),
+            ...Array(2).fill({ name: 'Mirror Image', manaCost: 2, effect: 'Create two 0/2 Mirror Images with Taunt', image: 'mirrorImage', rarity: 'rare' }),
+            
+            // Card draw
+            ...Array(2).fill({ id: 8, name: 'Arcane Intellect', manaCost: 3, effect: 'Draw 2 cards', image: 'arcaneIntellect', rarity: 'rare' }),
+            ...Array(2).fill({ id: 9, name: 'Nimble Sprite', manaCost: 1, attack: 1, health: 2, effect: 'Draw a card when played', image: 'nimbleSprite', rarity: 'common' }),
+            
+            // Finishers
+            { id: 13, name: 'Inferno Wave', manaCost: 7, effect: 'Deal 4 damage to all enemy minions', image: 'infernoWave', rarity: 'epic' },
+            { name: 'Arcane Storm', manaCost: 7, effect: 'Deal 8 damage to all characters', image: 'arcaneStorm', rarity: 'epic' },
+            
+            // Doplnění
+            ...Array(2).fill({ name: 'Arcane Guardian', manaCost: 3, attack: 2, health: 4, effect: 'Has +1 health for each spell in your hand', image: 'arcaneGuardian', rarity: 'common' })
+        ];
+
+        return this.createDeckFromTemplate(baseDeck);
+    }
+
+    // Mage Tempo deck - kombinace jednotek a kouzel
+    createMageTempoDeck() {
+        const baseDeck = [
+            // Efektivní jednotky
+            ...Array(2).fill({ id: 9, name: 'Nimble Sprite', manaCost: 1, attack: 1, health: 2, effect: 'Draw a card when played', image: 'nimbleSprite', rarity: 'common' }),
+            ...Array(2).fill({ id: 5, name: 'Water Elemental', manaCost: 3, attack: 3, health: 5, effect: 'Freeze random enemy minion when played', image: 'waterElemental', rarity: 'rare' }),
+            ...Array(2).fill({ id: 1, name: 'Fire Elemental', manaCost: 4, attack: 5, health: 6, effect: 'Deals 2 damage to enemy hero when played', image: 'fireElemental', rarity: 'rare' }),
+            ...Array(2).fill({ id: 44, name: 'Light Champion', manaCost: 6, attack: 5, health: 5, effect: 'Divine Shield', image: 'lightChampion', rarity: 'uncommon' }),
+            
+            // Spell synergy
+            ...Array(2).fill({ id: 15, name: 'Mana Wyrm', manaCost: 2, attack: 2, health: 3, effect: 'Gain +1 attack when you cast a spell', image: 'manaWyrm', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Frost Knight', manaCost: 3, attack: 2, health: 4, effect: 'Divine Shield. Freeze any minion damaged by this unit', image: 'frostKnight', rarity: 'epic' }),
+            
+            // Removal kouzla
+            ...Array(2).fill({ id: 3, name: 'Fireball', manaCost: 4, effect: 'Deal 6 damage to enemy hero', image: 'fireball', rarity: 'uncommon' }),
+            ...Array(2).fill({ name: 'Frostbolt', manaCost: 2, effect: 'Deal 3 damage to a random enemy minion and freeze it', image: 'frostbolt', rarity: 'uncommon' }),
+            ...Array(2).fill({ name: 'Polymorph Wave', manaCost: 7, effect: 'Transform all minions into 1/1 Ducks', image: 'polymorphWave', rarity: 'epic' }),
+            
+            // Utility
+            ...Array(2).fill({ id: 8, name: 'Arcane Intellect', manaCost: 3, effect: 'Draw 2 cards', image: 'arcaneIntellect', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Mirror Image', manaCost: 2, effect: 'Create two 0/2 Mirror Images with Taunt', image: 'mirrorImage', rarity: 'rare' }),
+            
+            // Strong late game
+            ...Array(2).fill({ id: 43, name: 'Mountain Giant', manaCost: 7, attack: 6, health: 9, effect: 'Taunt', image: 'mountainGiant', rarity: 'rare' }),
+            { name: 'Time Weaver', manaCost: 8, attack: 6, health: 8, effect: 'At the end of your turn, restore 2 health to all friendly characters', image: 'timeWeaver', rarity: 'legendary' },
+            { name: 'Mirror Entity', manaCost: 4, attack: 3, health: 3, effect: 'Copy a random enemy minion stats when played', image: 'mirrorEntity', rarity: 'epic' }
+        ];
+
+        return this.createDeckFromTemplate(baseDeck);
     }
 
     createPriestDeck() {
+        const deckInfo = this.createPriestDeckWithInfo();
+        return deckInfo.deck;
+    }
+
+    createPriestDeckWithInfo() {
+        const deckVariants = [
+            { deck: this.createPriestHealingDeck(), variant: 'Healing' },
+            { deck: this.createPriestControlDeck(), variant: 'Control' },
+            { deck: this.createPriestDivineShieldDeck(), variant: 'Divine Shield' }
+        ];
+        
+        const randomVariant = Math.floor(Math.random() * deckVariants.length);
+        return deckVariants[randomVariant];
+    }
+
+    // Priest Healing deck - zaměřeno na léčení a survival
+    createPriestHealingDeck() {
         const baseDeck = [
-            // Defenzivní jednotky s Taunt (2 kopie každé)
-            ...Array(2).fill({ id: 2, name: 'Shield Bearer', manaCost: 2, attack: 1, health: 7, effect: 'Taunt', image: 'shieldBearer', rarity: 'common' }),
-            ...Array(2).fill({ id: 6, name: 'Earth Golem', manaCost: 5, attack: 4, health: 8, effect: 'Taunt', image: 'earthGolem', rarity: 'uncommon' }),
-            ...Array(2).fill({ id: 43, name: 'Mountain Giant', manaCost: 7, attack: 6, health: 9, effect: 'Taunt', image: 'mountainGiant', rarity: 'rare' }),
-            ...Array(2).fill({ id: 44, name: 'Light Champion', manaCost: 6, attack: 5, health: 5, effect: 'Divine Shield', image: 'lightChampion', rarity: 'uncommon' }),
-            
-            // Léčivé a kontrolní jednotky
-            ...Array(2).fill({ id: 9, name: 'Nimble Sprite', manaCost: 1, attack: 1, health: 2, effect: 'Draw a card when played', image: 'nimbleSprite', rarity: 'common' }),
-            ...Array(2).fill({ id: 5, name: 'Water Elemental', manaCost: 3, attack: 3, health: 5, effect: 'Freeze random enemy minion when played', image: 'waterElemental', rarity: 'rare' }),
-            ...Array(2).fill({ name: 'Crystal Guardian', manaCost: 5, attack: 3, health: 6, effect: 'Divine Shield, Taunt. When Divine Shield is broken, restore 3 health to your hero', image: 'crystalGuardian', rarity: 'rare' }),
+            // Healing jednotky
             ...Array(2).fill({ name: 'Spirit Healer', manaCost: 5, attack: 4, health: 4, effect: 'When you cast a spell, restore 2 health to your hero', image: 'spiritHealer', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Healing Acolyte', manaCost: 2, attack: 1, health: 4, effect: 'At the end of your turn, restore 1 health to your hero', image: 'healingAcolyte', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Life Drainer', manaCost: 5, attack: 4, health: 4, effect: 'When this minion attacks, restore 2 health to your hero', image: 'lifeDrainer', rarity: 'rare' }),
             
-            // Léčivá kouzla
+            // Taunt jednotky
+            ...Array(2).fill({ id: 2, name: 'Shield Bearer', manaCost: 2, attack: 1, health: 7, effect: 'Taunt', image: 'shieldBearer', rarity: 'common' }),
+            ...Array(2).fill({ name: 'Stone Guardian', manaCost: 3, attack: 2, health: 5, effect: 'Taunt', image: 'stoneGuardian', rarity: 'common' }),
+            ...Array(2).fill({ name: 'Crystal Guardian', manaCost: 5, attack: 3, health: 6, effect: 'Divine Shield, Taunt. When Divine Shield is broken, restore 3 health to your hero', image: 'crystalGuardian', rarity: 'rare' }),
+            
+            // Healing kouzla
             ...Array(2).fill({ id: 4, name: 'Healing Touch', manaCost: 3, effect: 'Restore 8 health', image: 'healingTouch', rarity: 'common' }),
             ...Array(2).fill({ name: 'Holy Nova', manaCost: 5, effect: 'Deal 2 damage to all enemies and restore 2 health to all friendly characters', image: 'holyNova', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Holy Strike', manaCost: 2, effect: 'Deal 2 damage to a random enemy minion and restore 2 health to your hero', image: 'holyStrike', rarity: 'uncommon' }),
+            ...Array(2).fill({ name: 'Source Healing', manaCost: 2, effect: 'Restore health to your hero equal to the total number of minions on the board', image: 'sourceHealing', rarity: 'rare' }),
             
-            // Kontrolní kouzla
-            ...Array(2).fill({ name: 'Mass Fortification', manaCost: 4, effect: 'Give all friendly minions Taunt and +0/+2', image: 'massFortification', rarity: 'rare' }),
-            ...Array(2).fill({ id: 11, name: 'Glacial Burst', manaCost: 3, effect: 'Freeze all enemy minions', image: 'glacialBurst', rarity: 'epic' }),
-            
-            // Legendární karta
-            { name: 'Ancient Protector', manaCost: 8, attack: 5, health: 9, effect: 'Divine Shield, Taunt. Adjacent minions also gain Divine Shield', image: 'ancientProtector', rarity: 'legendary' },
-            
-            // Doplnění do 30 karet
+            // Utility
+            ...Array(2).fill({ id: 9, name: 'Nimble Sprite', manaCost: 1, attack: 1, health: 2, effect: 'Draw a card when played', image: 'nimbleSprite', rarity: 'common' }),
             ...Array(2).fill({ name: 'Guardian Totem', manaCost: 4, attack: 2, health: 5, effect: 'Taunt. Adjacent minions gain Taunt', image: 'guardianTotem', rarity: 'rare' }),
-            ...Array(2).fill({ name: 'Stone Guardian', manaCost: 3, attack: 2, health: 5, effect: 'Taunt', image: 'stoneGuardian', rarity: 'common' })
+            
+            // Late game
+            ...Array(2).fill({ id: 43, name: 'Mountain Giant', manaCost: 7, attack: 6, health: 9, effect: 'Taunt', image: 'mountainGiant', rarity: 'rare' }),
+            { name: 'Ancient Protector', manaCost: 8, attack: 5, health: 9, effect: 'Divine Shield, Taunt. Adjacent minions also gain Divine Shield', image: 'ancientProtector', rarity: 'legendary' }
+        ];
+
+        return this.createDeckFromTemplate(baseDeck);
+    }
+
+    // Priest Control deck - removal a board control
+    createPriestControlDeck() {
+        const baseDeck = [
+            // Control jednotky
+            ...Array(2).fill({ id: 5, name: 'Water Elemental', manaCost: 3, attack: 3, health: 5, effect: 'Freeze random enemy minion when played', image: 'waterElemental', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Elendralis', manaCost: 5, attack: 4, health: 6, effect: 'If your hero has less than 10 health when played, gain Taunt and restore 3 health to your hero', image: 'elendralis', rarity: 'legendary' }),
+            ...Array(2).fill({ name: 'Silence Assassin', manaCost: 3, attack: 3, health: 4, effect: 'When this minion attacks a Taunt minion, remove its Taunt. Cannot attack the turn it is played', image: 'silenceAssassin', rarity: 'legendary' }),
+            
+            // Taunt wall
+            ...Array(2).fill({ id: 2, name: 'Shield Bearer', manaCost: 2, attack: 1, health: 7, effect: 'Taunt', image: 'shieldBearer', rarity: 'common' }),
+            ...Array(2).fill({ id: 6, name: 'Earth Golem', manaCost: 5, attack: 4, health: 8, effect: 'Taunt', image: 'earthGolem', rarity: 'uncommon' }),
+            ...Array(2).fill({ name: 'Angel Guardian', manaCost: 5, attack: 3, health: 8, effect: 'Taunt. At the end of your turn, gain +1/+1 if your hero has full health', image: 'angelGuardian', rarity: 'epic' }),
+            
+            // Removal spells
+            ...Array(2).fill({ name: 'Holy Nova', manaCost: 5, effect: 'Deal 2 damage to all enemies and restore 2 health to all friendly characters', image: 'holyNova', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Death Touch', manaCost: 4, effect: 'Destroy a random enemy minion', image: 'shadowWordDeath', rarity: 'rare' }),
+            ...Array(2).fill({ id: 11, name: 'Glacial Burst', manaCost: 3, effect: 'Freeze all enemy minions', image: 'glacialBurst', rarity: 'epic' }),
+            ...Array(2).fill({ name: 'Mass Dispel', manaCost: 3, effect: 'Remove Taunt from all minions', image: 'massDispel', rarity: 'epic' }),
+            
+            // Card draw and utility
+            ...Array(2).fill({ id: 8, name: 'Arcane Intellect', manaCost: 3, effect: 'Draw 2 cards', image: 'arcaneIntellect', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Soothing Return', manaCost: 3, effect: 'Return a random enemy minion to their hand and restore 3 health to your hero', image: 'soothingReturn', rarity: 'uncommon' }),
+            
+            // Big finishers
+            ...Array(2).fill({ id: 44, name: 'Light Champion', manaCost: 6, attack: 5, health: 5, effect: 'Divine Shield', image: 'lightChampion', rarity: 'uncommon' }),
+            { name: 'Time Weaver', manaCost: 8, attack: 6, health: 8, effect: 'At the end of your turn, restore 2 health to all friendly characters', image: 'timeWeaver', rarity: 'legendary' }
+        ];
+
+        return this.createDeckFromTemplate(baseDeck);
+    }
+
+    // Priest Divine Shield deck - Divine Shield synergy
+    createPriestDivineShieldDeck() {
+        const baseDeck = [
+            // Divine Shield jednotky
+            ...Array(2).fill({ id: 44, name: 'Light Champion', manaCost: 6, attack: 5, health: 5, effect: 'Divine Shield', image: 'lightChampion', rarity: 'uncommon' }),
+            ...Array(2).fill({ id: 45, name: 'Radiant Protector', manaCost: 6, attack: 4, health: 5, effect: 'Taunt, Divine Shield', image: 'radiantProtector', rarity: 'legendary' }),
+            ...Array(2).fill({ name: 'Divine Squire', manaCost: 1, attack: 1, health: 1, effect: 'Divine Shield', image: 'divineSquire', rarity: 'legendary' }),
+            ...Array(2).fill({ name: 'Divine Protector', manaCost: 4, attack: 5, health: 5, effect: 'Gain Divine Shield if your hero has full health when played', image: 'divineProtector', rarity: 'uncommon' }),
+            ...Array(2).fill({ name: 'Frost Knight', manaCost: 3, attack: 2, health: 4, effect: 'Divine Shield. Freeze any minion damaged by this unit', image: 'frostKnight', rarity: 'epic' }),
+            
+            // Divine Shield support
+            ...Array(2).fill({ name: 'Crystal Guardian', manaCost: 5, attack: 3, health: 6, effect: 'Divine Shield, Taunt. When Divine Shield is broken, restore 3 health to your hero', image: 'crystalGuardian', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Twilight Guardian', manaCost: 7, attack: 4, health: 7, effect: 'Taunt. At the end of your turn, give a random friendly minion Divine Shield', image: 'twilightGuardian', rarity: 'legendary' }),
+            
+            // Divine Shield synergy spells
+            ...Array(2).fill({ name: 'Divine Formation', manaCost: 1, effect: 'Give Taunt to all friendly minions with Divine Shield', image: 'divineFormation', rarity: 'uncommon' }),
+            ...Array(2).fill({ name: 'Shield Breaker', manaCost: 2, effect: 'Destroy all enemy Divine Shields. Restore 1 health to your hero for each shield destroyed', image: 'shieldBreaker', rarity: 'uncommon' }),
+            
+            // Support jednotky
+            ...Array(2).fill({ id: 2, name: 'Shield Bearer', manaCost: 2, attack: 1, health: 7, effect: 'Taunt', image: 'shieldBearer', rarity: 'common' }),
+            ...Array(2).fill({ id: 9, name: 'Nimble Sprite', manaCost: 1, attack: 1, health: 2, effect: 'Draw a card when played', image: 'nimbleSprite', rarity: 'common' }),
+            
+            // Healing a utility
+            ...Array(2).fill({ id: 4, name: 'Healing Touch', manaCost: 3, effect: 'Restore 8 health', image: 'healingTouch', rarity: 'common' }),
+            ...Array(2).fill({ name: 'Mass Fortification', manaCost: 4, effect: 'Give all friendly minions Taunt and +0/+2', image: 'massFortification', rarity: 'rare' }),
+            
+            // Big threats
+            ...Array(2).fill({ name: 'Ancient Protector', manaCost: 8, attack: 5, health: 9, effect: 'Divine Shield, Taunt. Adjacent minions also gain Divine Shield', image: 'ancientProtector', rarity: 'legendary' })
         ];
 
         return this.createDeckFromTemplate(baseDeck);
     }
 
     createSeerDeck() {
+        const deckInfo = this.createSeerDeckWithInfo();
+        return deckInfo.deck;
+    }
+
+    createSeerDeckWithInfo() {
+        const deckVariants = [
+            { deck: this.createSeerSpellDeck(), variant: 'Spell' },
+            { deck: this.createSeerManaRampDeck(), variant: 'Mana Ramp' },
+            { deck: this.createSeerComboDeck(), variant: 'Combo' }
+        ];
+        
+        const randomVariant = Math.floor(Math.random() * deckVariants.length);
+        return deckVariants[randomVariant];
+    }
+
+    // Seer Spell deck - spell synergy a card draw
+    createSeerSpellDeck() {
         const baseDeck = [
-            // Karty s efekty při seslání kouzel (2 kopie každé)
+            // Spell synergy jednotky
             ...Array(2).fill({ id: 10, name: 'Arcane Familiar', manaCost: 1, attack: 1, health: 3, effect: 'Gain +1 attack when you cast a spell', image: 'arcaneFamiliar', rarity: 'epic' }),
             ...Array(2).fill({ id: 15, name: 'Mana Wyrm', manaCost: 2, attack: 2, health: 3, effect: 'Gain +1 attack when you cast a spell', image: 'manaWyrm', rarity: 'rare' }),
             ...Array(2).fill({ name: 'Battle Mage', manaCost: 4, attack: 3, health: 5, effect: 'When you cast a spell, this minion gains +2 attack this turn', image: 'battleMage', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Spell Weaver', manaCost: 4, attack: 3, health: 3, effect: 'Gain +1/+1 for each spell in your hand when played', image: 'spellWeaver', rarity: 'epic' }),
             
-            // Karty pro manipulaci s manou
+            // Card draw
             ...Array(2).fill({ id: 9, name: 'Nimble Sprite', manaCost: 1, attack: 1, health: 2, effect: 'Draw a card when played', image: 'nimbleSprite', rarity: 'common' }),
-
-            ...Array(2).fill({ name: 'Mana Collector', manaCost: 5, attack: 3, health: 6, effect: 'At the start of your turn, gain mana equal to this minions attack', image: 'manaCollector', rarity: 'uncommon' }),
-            
-            // Kouzla pro lízání karet
-            ...Array(2).fill({ id: 8, name: 'Arcane Intellect', manaCost: 3, effect: 'Draw 2 cards', image: 'arcaneIntellect', rarity: 'rare' }),
             ...Array(2).fill({ name: 'Spell Seeker', manaCost: 2, attack: 2, health: 3, effect: 'Draw a random spell from your deck when played', image: 'spellSeeker', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Wise Oracle', manaCost: 5, attack: 3, health: 4, effect: 'Draw 2 cards when played', image: 'wiseOracle', rarity: 'legendary' }),
             
-            // Kontrolní kouzla
+            // Utility kouzla
+            ...Array(2).fill({ id: 8, name: 'Arcane Intellect', manaCost: 3, effect: 'Draw 2 cards', image: 'arcaneIntellect', rarity: 'rare' }),
             ...Array(2).fill({ name: 'Mirror Image', manaCost: 2, effect: 'Create two 0/2 Mirror Images with Taunt', image: 'mirrorImage', rarity: 'rare' }),
             ...Array(2).fill({ name: 'Arcane Explosion', manaCost: 2, effect: 'Deal 1 damage to all enemy minions', image: 'arcaneExplosion', rarity: 'common' }),
+            ...Array(2).fill({ name: 'Mind Copy', manaCost: 1, effect: 'Create a copy of a random card from your opponent hand', image: 'mindCopy', rarity: 'epic' }),
             
-            // Silná kouzla
+            // Finisher kouzla
             ...Array(2).fill({ name: 'Mana Surge', manaCost: 3, effect: 'Restore your mana crystals to maximum available this turn', image: 'manaSurge', rarity: 'epic' }),
             ...Array(2).fill({ name: 'Arcane Storm', manaCost: 7, effect: 'Deal 8 damage to all characters', image: 'arcaneStorm', rarity: 'epic' }),
             
-            // Legendární karta
-            { name: 'Time Weaver', manaCost: 8, attack: 6, health: 8, effect: 'At the end of your turn, restore 2 health to all friendly characters', image: 'timeWeaver', rarity: 'legendary' },
+            // Support
+            ...Array(2).fill({ name: 'Arcane Guardian', manaCost: 3, attack: 2, health: 4, effect: 'Has +1 health for each spell in your hand', image: 'arcaneGuardian', rarity: 'common' }),
+            { name: 'Time Weaver', manaCost: 8, attack: 6, health: 8, effect: 'At the end of your turn, restore 2 health to all friendly characters', image: 'timeWeaver', rarity: 'legendary' }
+        ];
+
+        return this.createDeckFromTemplate(baseDeck);
+    }
+
+    // Seer Mana Ramp deck - mana acceleration a big threats
+    createSeerManaRampDeck() {
+        const baseDeck = [
+            // Mana manipulation
+            ...Array(2).fill({ name: 'Mana Collector', manaCost: 5, attack: 3, health: 6, effect: 'At the start of your turn, gain mana equal to this minions attack', image: 'manaCollector', rarity: 'uncommon' }),
+            ...Array(2).fill({ name: 'Mana Crystal', manaCost: 1, attack: 1, health: 3, effect: 'When this minion dies, gain 1 mana crystal', image: 'manaCrystal', rarity: 'common' }),
+            ...Array(2).fill({ name: 'Mana Siphon', manaCost: 2, attack: 2, health: 2, effect: 'When this minion attacks, gain 1 mana crystal this turn only', image: 'manaSiphon', rarity: 'common' }),
             
-            // Doplnění do 30 karet
-            ...Array(2).fill({ name: 'Spell Weaver', manaCost: 4, attack: 3, health: 3, effect: 'Gain +1/+1 for each spell in your hand when played', image: 'spellWeaver', rarity: 'epic' }),
-            ...Array(2).fill({ name: 'Arcane Guardian', manaCost: 3, attack: 2, health: 4, effect: 'Has +1 health for each spell in your hand', image: 'arcaneGuardian', rarity: 'common' })
+            // Early game
+            ...Array(2).fill({ id: 9, name: 'Nimble Sprite', manaCost: 1, attack: 1, health: 2, effect: 'Draw a card when played', image: 'nimbleSprite', rarity: 'common' }),
+            ...Array(2).fill({ id: 15, name: 'Mana Wyrm', manaCost: 2, attack: 2, health: 3, effect: 'Gain +1 attack when you cast a spell', image: 'manaWyrm', rarity: 'rare' }),
+            
+            // Ramp spells
+            ...Array(2).fill({ name: 'Mana Surge', manaCost: 3, effect: 'Restore your mana crystals to maximum available this turn', image: 'manaSurge', rarity: 'epic' }),
+            ...Array(2).fill({ name: 'Mana Fusion', manaCost: 0, effect: 'Gain 2 Mana Crystals this turn only. Overload (2)', image: 'manaFusion', rarity: 'epic' }),
+            
+            // Card draw
+            ...Array(2).fill({ id: 8, name: 'Arcane Intellect', manaCost: 3, effect: 'Draw 2 cards', image: 'arcaneIntellect', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Spell Seeker', manaCost: 2, attack: 2, health: 3, effect: 'Draw a random spell from your deck when played', image: 'spellSeeker', rarity: 'rare' }),
+            
+            // Big threats
+            ...Array(2).fill({ name: 'Mana Leech', manaCost: 6, attack: 5, health: 5, effect: 'When this minion deals damage, restore that much mana to you', image: 'manaLeech', rarity: 'legendary' }),
+            ...Array(2).fill({ name: 'Ancient Colossus', manaCost: 20, attack: 12, health: 12, effect: 'Costs (1) less for each minion that died this game', image: 'ancientColossus', rarity: 'legendary' }),
+            ...Array(2).fill({ id: 43, name: 'Mountain Giant', manaCost: 7, attack: 6, health: 9, effect: 'Taunt', image: 'mountainGiant', rarity: 'rare' }),
+            
+            // Utility
+            ...Array(2).fill({ name: 'Mirror Image', manaCost: 2, effect: 'Create two 0/2 Mirror Images with Taunt', image: 'mirrorImage', rarity: 'rare' }),
+            { name: 'Time Weaver', manaCost: 8, attack: 6, health: 8, effect: 'At the end of your turn, restore 2 health to all friendly characters', image: 'timeWeaver', rarity: 'legendary' },
+            { name: 'Overloading Giant', manaCost: 4, attack: 7, health: 7, effect: 'Overload (2)', image: 'overloadingGiant', rarity: 'epic' }
+        ];
+
+        return this.createDeckFromTemplate(baseDeck);
+    }
+
+    // Seer Combo deck - card generation a synergies
+    createSeerComboDeck() {
+        const baseDeck = [
+            // Combo pieces
+            ...Array(2).fill({ id: 10, name: 'Arcane Familiar', manaCost: 1, attack: 1, health: 3, effect: 'Gain +1 attack when you cast a spell', image: 'arcaneFamiliar', rarity: 'epic' }),
+            ...Array(2).fill({ name: 'Battle Mage', manaCost: 4, attack: 3, health: 5, effect: 'When you cast a spell, this minion gains +2 attack this turn', image: 'battleMage', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Arcane Summoner', manaCost: 4, attack: 3, health: 3, effect: 'When this minion dies, shuffle two Arcane Wisps into your deck', image: 'arcaneSummoner', rarity: 'epic' }),
+            ...Array(2).fill({ name: 'Mind Mimic', manaCost: 5, attack: 4, health: 4, effect: 'When played, create a copy of a random card from your opponent hand', image: 'mindMimic', rarity: 'epic' }),
+            
+            // Card generation
+            ...Array(2).fill({ name: 'Spell Seeker', manaCost: 2, attack: 2, health: 3, effect: 'Draw a random spell from your deck when played', image: 'spellSeeker', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Mirror Entity', manaCost: 4, attack: 3, health: 3, effect: 'Copy a random enemy minion stats when played', image: 'mirrorEntity', rarity: 'epic' }),
+            ...Array(2).fill({ name: 'Mind Theft', manaCost: 4, effect: 'Steal a random card from your opponent hand', image: 'mindTheft', rarity: 'legendary' }),
+            
+            // Utility spells
+            ...Array(2).fill({ id: 8, name: 'Arcane Intellect', manaCost: 3, effect: 'Draw 2 cards', image: 'arcaneIntellect', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Mirror Image', manaCost: 2, effect: 'Create two 0/2 Mirror Images with Taunt', image: 'mirrorImage', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Mind Copy', manaCost: 1, effect: 'Create a copy of a random card from your opponent hand', image: 'mindCopy', rarity: 'epic' }),
+            
+            // Support
+            ...Array(2).fill({ id: 9, name: 'Nimble Sprite', manaCost: 1, attack: 1, health: 2, effect: 'Draw a card when played', image: 'nimbleSprite', rarity: 'common' }),
+            ...Array(2).fill({ name: 'Eternal Wanderer', manaCost: 6, attack: 5, health: 5, effect: 'Cannot attack the turn it is played. When this minion dies, return it to your hand', image: 'eternalWanderer', rarity: 'epic' }),
+            
+            // Finishers
+            ...Array(2).fill({ name: 'Legion Commander', manaCost: 9, attack: 6, health: 6, effect: 'When played, fill your board with 1/1 minions that cannot attack this turn', image: 'legionCommander', rarity: 'legendary' }),
+            { name: 'Time Weaver', manaCost: 8, attack: 6, health: 8, effect: 'At the end of your turn, restore 2 health to all friendly characters', image: 'timeWeaver', rarity: 'legendary' }
         ];
 
         return this.createDeckFromTemplate(baseDeck);
