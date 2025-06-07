@@ -857,6 +857,9 @@ class AIPlayer {
         
         // Hodnocení synergií
         value += this.evaluateCardSynergies(card);
+        
+        // Speciální taktiky pro konkrétní karty
+        value += this.evaluateSpecialCardTactics(card);
 
         // Základní hodnota podle efektů (snížené bonusy pro lepší balance)
         if (card.hasTaunt) value += this.strategy === 'defensive' ? 3 : 1;
@@ -1028,6 +1031,197 @@ class AIPlayer {
         const unitsOnField = player.field.filter(unit => unit).length;
         // Maximálně 2 sousedi (vlevo a vpravo)
         return Math.min(unitsOnField, 2);
+    }
+    
+    // Speciální taktiky pro konkrétní karty
+    evaluateSpecialCardTactics(card) {
+        let bonus = 0;
+        const player = this.gameState.players[this.playerIndex];
+        const opponent = this.gameState.players[1 - this.playerIndex];
+        const playerHealth = player.hero.health;
+        const opponentHealth = opponent.hero.health;
+        const spellsInHand = player.hand.filter(c => c instanceof SpellCard).length;
+        const unitsOnField = player.field.filter(unit => unit).length;
+        const opponentUnits = opponent.field.filter(unit => unit).length;
+        
+        switch (card.name) {
+            // === SPELL SYNERGY KARTY ===
+            case 'Arcane Familiar':
+            case 'Mana Wyrm':
+                // Vyšší hodnota pokud máme kouzla v ruce
+                bonus += spellsInHand * 2;
+                // Bonus pokud plánujeme hrát kouzla tento tah
+                if (spellsInHand > 0 && player.mana >= card.manaCost + 2) bonus += 3;
+                break;
+                
+            case 'Battle Mage':
+                // Velmi vysoká hodnota pokud máme levná kouzla
+                const cheapSpells = player.hand.filter(c => c instanceof SpellCard && c.manaCost <= 3).length;
+                bonus += cheapSpells * 3;
+                if (cheapSpells >= 2) bonus += 5; // Extra bonus za combo potenciál
+                break;
+                
+            case 'Spell Weaver':
+                // Hodnota roste s počtem kouzel v ruce
+                bonus += spellsInHand * 1.5;
+                if (spellsInHand >= 3) bonus += 4; // Bonus za silný efekt
+                break;
+                
+            // === DEFENSIVE KARTY ===
+            case 'Shield Bearer':
+            case 'Stone Guardian':
+            case 'Sacred Defender':
+                // Vyšší hodnota pokud potřebujeme obranu
+                if (playerHealth < 20) bonus += 2;
+                if (playerHealth < 15) bonus += 3;
+                if (opponent.field.some(unit => unit && unit.attack >= 4)) bonus += 3;
+                break;
+                
+            case 'Crystal Guardian':
+                // Extra bonus za Divine Shield + Taunt kombinaci
+                bonus += 3;
+                if (playerHealth < 15) bonus += 4; // Healing efekt je cenný
+                break;
+                
+            // === HEALING KARTY ===
+            case 'Spirit Healer':
+            case 'Life Drainer':
+            case 'Healing Sentinel':
+                // Vyšší hodnota pokud máme nízké zdraví
+                if (playerHealth < 20) bonus += 3;
+                if (playerHealth < 15) bonus += 5;
+                if (playerHealth < 10) bonus += 8;
+                break;
+                
+            case 'Holy Elemental':
+            case 'Divine Healer':
+                // Immediate healing je cenné při nízkém zdraví
+                if (playerHealth < 15) bonus += 4;
+                if (playerHealth < 10) bonus += 6;
+                break;
+                
+            // === CARD DRAW KARTY ===
+            case 'Nimble Sprite':
+            case 'Wise Oracle':
+            case 'Spell Seeker':
+                // Vyšší hodnota pokud máme málo karet
+                if (player.hand.length <= 3) bonus += 4;
+                if (player.hand.length <= 2) bonus += 6;
+                if (player.hand.length <= 1) bonus += 8;
+                break;
+                
+            // === MANA MANIPULATION ===
+            case 'Mana Crystal':
+            case 'Mana Collector':
+            case 'Mana Siphon':
+                // Vyšší hodnota v early/mid game pro ramp
+                if (this.gamePhase === 'early' || this.gamePhase === 'mid') bonus += 3;
+                if (player.maxMana < 7) bonus += 2; // Ramp je důležitý před late game
+                break;
+                
+            case 'Mana Leech':
+                // Silná karta pro late game
+                if (this.gamePhase === 'late') bonus += 4;
+                if (player.mana >= 6) bonus += 3;
+                break;
+                
+            // === FREEZE KARTY ===
+            case 'Water Elemental':
+            case 'Frost Knight':
+            case 'Freezing Dragon':
+                // Vyšší hodnota proti silným jednotkám
+                const strongEnemies = opponent.field.filter(unit => unit && unit.attack >= 4).length;
+                bonus += strongEnemies * 2;
+                if (opponent.field.some(unit => unit && unit.attack >= 6)) bonus += 3;
+                break;
+                
+            // === DIVINE SHIELD SYNERGY ===
+            case 'Divine Squire':
+            case 'Spirit Guardian':
+                // Bonus pokud máme Divine Shield support
+                if (player.hand.some(c => c.name === 'Divine Formation')) bonus += 3;
+                if (player.field.some(unit => unit && unit.hasDivineShield)) bonus += 2;
+                break;
+                
+            case 'Twilight Guardian':
+                // Vyšší hodnota pokud máme jednotky bez Divine Shield
+                const unitsWithoutDS = player.field.filter(unit => unit && !unit.hasDivineShield).length;
+                bonus += unitsWithoutDS * 1.5;
+                break;
+                
+            // === COMBO KARTY ===
+            case 'Mind Mimic':
+            case 'Mirror Entity':
+                // Vyšší hodnota pokud má soupeř dobré karty
+                if (opponent.hand.length >= 3) bonus += 2;
+                if (opponent.field.some(unit => unit && unit.attack + unit.health >= 8)) bonus += 3;
+                break;
+                
+            case 'Legion Commander':
+                // Finisher karta - vyšší hodnota v late game
+                if (this.gamePhase === 'late') bonus += 5;
+                if (player.field.length <= 2) bonus += 4; // Potřebujeme místo na poli
+                break;
+                
+            // === SITUAČNÍ KARTY ===
+            case 'Elendralis':
+                // Bonus pokud máme nízké zdraví (aktivuje efekt)
+                if (playerHealth < 10) bonus += 6;
+                if (playerHealth < 15) bonus += 3;
+                break;
+                
+            case 'Divine Protector':
+                // Bonus pokud máme plné zdraví
+                if (playerHealth >= 30) bonus += 4;
+                break;
+                
+            case 'Pride Hunter':
+                // Bonus pokud má soupeř plné zdraví
+                if (opponentHealth >= 30) bonus += 3;
+                break;
+                
+            case 'Silence Assassin':
+                // Vyšší hodnota proti Taunt jednotkám
+                if (opponent.field.some(unit => unit && unit.hasTaunt)) bonus += 5;
+                break;
+                
+            // === REMOVAL SPELLS ===
+            case 'Death Touch':
+            case 'Polymorph Wave':
+                // Vyšší hodnota pokud má soupeř silné jednotky
+                if (opponent.field.some(unit => unit && unit.attack + unit.health >= 8)) bonus += 5;
+                if (opponentUnits >= 3) bonus += 3; // AoE je lepší proti více jednotkám
+                break;
+                
+            case 'Mass Dispel':
+                // Vyšší hodnota pokud má soupeř Taunt jednotky
+                const tauntUnits = opponent.field.filter(unit => unit && unit.hasTaunt).length;
+                bonus += tauntUnits * 3;
+                break;
+                
+            // === LEGENDARY FINISHERS ===
+            case 'Ancient Colossus':
+                // Hodnota klesá s cenou (více mrtvých jednotek = levnější)
+                const deadMinions = this.gameState.deadMinionsCount || 0;
+                const actualCost = Math.max(1, 20 - deadMinions);
+                if (actualCost <= player.mana) bonus += 8;
+                if (actualCost <= 10) bonus += 4;
+                break;
+                
+            case 'Time Weaver':
+                // Silný late game finisher
+                if (this.gamePhase === 'late') bonus += 6;
+                if (playerHealth < 20) bonus += 3; // Healing efekt
+                break;
+                
+            case 'Sacred Dragon':
+                // Ultimate healing finisher
+                if (playerHealth < 15) bonus += 10;
+                if (this.gamePhase === 'late') bonus += 5;
+                break;
+        }
+        
+        return bonus;
     }
 
     evaluateSpell(card) {
@@ -1224,6 +1418,126 @@ class AIPlayer {
                 if (opponent.field.some(unit => unit && unit.hasTaunt)) {
                     value += 3;
                 }
+                break;
+                
+            case 'Frostbolt':
+                // Hodnotnější pokud může zmrazit silnou jednotku
+                const strongTargets = opponent.field.filter(unit => 
+                    unit && unit.attack >= 4
+                ).length;
+                value = strongTargets > 0 ? 4 : 2;
+                // Bonus pokud může zabít jednotku
+                if (opponent.field.some(unit => unit && unit.health <= 3)) {
+                    value += 2;
+                }
+                break;
+                
+            case 'Shield Breaker':
+                // Hodnotnější pokud má soupeř Divine Shield jednotky
+                const divineShieldEnemies = opponent.field.filter(unit => 
+                    unit && unit.hasDivineShield
+                ).length;
+                if (divineShieldEnemies === 0) return -1;
+                value = divineShieldEnemies * 3;
+                // Bonus za healing
+                if (player.hero.health < 20) value += 2;
+                break;
+                
+            case 'Mind Theft':
+            case 'Mind Copy':
+                // Hodnotnější pokud má soupeř více karet
+                if (opponent.hand.length < 2) return -1;
+                value = opponent.hand.length;
+                // Bonus v late game kdy karty jsou cennější
+                if (this.gamePhase === 'late') value += 2;
+                break;
+                
+            case 'Holy Strike':
+                // Kombinuje damage a healing
+                value = 3; // Základní hodnota
+                // Bonus pokud může zabít jednotku
+                if (opponent.field.some(unit => unit && unit.health <= 2)) {
+                    value += 2;
+                }
+                // Bonus pokud potřebujeme healing
+                if (player.hero.health < 20) value += 2;
+                break;
+                
+            case 'Source Healing':
+                // Healing podle počtu jednotek na poli
+                const totalUnits = player.field.filter(unit => unit).length + 
+                                 opponent.field.filter(unit => unit).length;
+                const missingHP = 30 - player.hero.health;
+                if (missingHP < 3) return -1; // Neléčit pokud není potřeba
+                value = Math.min(totalUnits, missingHP) * 0.5;
+                // Bonus pokud jsme v ohrožení
+                if (player.hero.health < 15) value += 3;
+                break;
+                
+            case 'Unity Strike':
+                // Damage podle počtu našich jednotek
+                const friendlyUnits = player.field.filter(unit => unit).length;
+                if (friendlyUnits === 0) return -1;
+                value = friendlyUnits * 1.5;
+                // Bonus pokud může zabít protivníka
+                if (opponent.hero.health <= friendlyUnits) {
+                    value += 10;
+                }
+                break;
+                
+            case 'Battle Cry':
+                // Buff všech jednotek
+                const buffableUnitsCount = player.field.filter(unit => unit).length;
+                if (buffableUnitsCount === 0) return -1;
+                value = buffableUnitsCount * 2;
+                // Bonus pokud plánujeme útočit
+                if (this.strategy === 'aggressive') value += 2;
+                break;
+                
+            case 'Polymorph Wave':
+                // AoE transform - hodnotnější proti silným jednotkám
+                const strongEnemyUnits = opponent.field.filter(unit => 
+                    unit && unit.attack + unit.health >= 6
+                ).length;
+                if (strongEnemyUnits === 0) return -1;
+                value = strongEnemyUnits * 4;
+                // Malus pokud máme silné jednotky
+                const ourStrongUnits = player.field.filter(unit => 
+                    unit && unit.attack + unit.health >= 6
+                ).length;
+                value -= ourStrongUnits * 2;
+                break;
+                
+            case 'Mana Fusion':
+                // Overload kouzlo - použít jen pokud máme drahé karty
+                const expensiveCards = player.hand.filter(c => 
+                    c.manaCost > player.mana + 2
+                ).length;
+                if (expensiveCards === 0) return -1;
+                value = expensiveCards * 2;
+                // Malus pokud už máme overload
+                if (player.overload && player.overload > 0) value -= 5;
+                break;
+                
+            case 'Soothing Return':
+                // Return + healing
+                if (opponent.field.length === 0) return -1;
+                // Prioritizovat silné jednotky
+                const strongestEnemy = Math.max(...opponent.field
+                    .filter(unit => unit)
+                    .map(unit => unit.attack + unit.health));
+                value = strongestEnemy >= 6 ? 4 : 2;
+                // Bonus za healing
+                if (player.hero.health < 20) value += 2;
+                break;
+                
+            case 'Death Touch':
+                // Destroy spell - hodnotnější proti silným jednotkám
+                if (opponent.field.length === 0) return -1;
+                const strongestEnemyUnit = Math.max(...opponent.field
+                    .filter(unit => unit)
+                    .map(unit => unit.attack + unit.health));
+                value = strongestEnemyUnit >= 6 ? 6 : 3;
                 break;
         }
 
