@@ -8,11 +8,95 @@ class AIPlayer {
         
         // Určíme typ balíčku podle hrdiny
         this.deckType = this.determineDeckType();
+        
+        // Přidáme nové vlastnosti pro strategické plánování
+        this.gamePhase = this.determineGamePhase();
+        this.strategy = this.determineStrategy();
+        this.threatLevel = this.calculateThreatLevel();
     }
 
     determineDeckType() {
         const hero = this.gameState.players[this.playerIndex].hero;
         return hero.id; // 1 = Mage, 2 = Priest, 3 = Seer
+    }
+
+    // Nová metoda pro určení fáze hry
+    determineGamePhase() {
+        const turn = this.gameState.turn;
+        const player = this.gameState.players[this.playerIndex];
+        const opponent = this.gameState.players[1 - this.playerIndex];
+        
+        if (turn <= 3) return 'early';
+        if (turn <= 6) return 'mid';
+        if (player.hero.health <= 10 || opponent.hero.health <= 10) return 'late';
+        return 'mid';
+    }
+
+    // Nová metoda pro určení strategie
+    determineStrategy() {
+        const player = this.gameState.players[this.playerIndex];
+        const opponent = this.gameState.players[1 - this.playerIndex];
+        
+        // Pokud máme výraznou převahu na poli, hraj agresivně
+        const fieldAdvantage = this.calculateFieldAdvantage();
+        if (fieldAdvantage > 3) return 'aggressive';
+        
+        // Pokud jsme v ohrožení, hraj defenzivně
+        if (player.hero.health < 15) return 'defensive';
+        
+        // Pokud soupeř má převahu, hraj kontrolně
+        if (fieldAdvantage < -2) return 'control';
+        
+        // Jinak hraj tempo
+        return 'tempo';
+    }
+
+    // Nová metoda pro výpočet úrovně hrozby
+    calculateThreatLevel() {
+        const opponent = this.gameState.players[1 - this.playerIndex];
+        
+        let threatLevel = 0;
+        
+        // Hrozba z nepřátelského pole
+        opponent.field.forEach(unit => {
+            if (unit) {
+                threatLevel += unit.attack;
+                if (unit.effect.includes('at the end of your turn')) threatLevel += 3;
+                if (unit.effect.includes('when you cast a spell')) threatLevel += 2;
+            }
+        });
+        
+        // Hrozba z karet v ruce (odhadneme)
+        threatLevel += opponent.hand.length * 1.5;
+        
+        return threatLevel;
+    }
+
+    // Nová metoda pro výpočet převahy na poli
+    calculateFieldAdvantage() {
+        const player = this.gameState.players[this.playerIndex];
+        const opponent = this.gameState.players[1 - this.playerIndex];
+        
+        let playerStrength = 0;
+        let opponentStrength = 0;
+        
+        player.field.forEach(unit => {
+            if (unit) {
+                playerStrength += unit.attack + unit.health;
+                if (unit.hasTaunt) playerStrength += 2;
+                if (unit.hasDivineShield) playerStrength += 3;
+            }
+        });
+        
+        opponent.field.forEach(unit => {
+            if (unit) {
+                opponentStrength += unit.attack + unit.health;
+                if (unit.hasTaunt) opponentStrength += 2;
+                if (unit.hasDivineShield) opponentStrength += 3;
+            }
+        });
+        
+        return playerStrength - opponentStrength;
     }
 
     async makeMove() {
@@ -21,6 +105,11 @@ class AIPlayer {
             console.log('Hra je ukončena, AI již neprovádí žádné tahy');
             return null;
         }
+
+        // Aktualizujeme strategické informace na začátku tahu
+        this.gamePhase = this.determineGamePhase();
+        this.strategy = this.determineStrategy();
+        this.threatLevel = this.calculateThreatLevel();
 
         // Simulujeme "přemýšlení" AI
         await new Promise(resolve => setTimeout(resolve, this.thinkingTime));
@@ -34,6 +123,8 @@ class AIPlayer {
             return null;
         }
 
+        console.log(`AI Strategy: ${this.strategy}, Game Phase: ${this.gamePhase}, Threat Level: ${this.threatLevel}`);
+
         // 1. Použít hrdinskou schopnost, pokud je to výhodné
         if (this.shouldUseHeroAbility(player, opponent)) {
             return {
@@ -41,7 +132,7 @@ class AIPlayer {
             };
         }
 
-        // 2. Zahrát kartu, pokud je to možné
+        // 2. Zahrát karty podle strategie (může hrát více karet za tah)
         const cardPlay = this.findBestCardPlay(player, opponent);
         if (cardPlay) {
             return cardPlay;
@@ -170,6 +261,212 @@ class AIPlayer {
     }
 
     findBestCardPlay(player, opponent) {
+        if (player.hand.length === 0) {
+            return null;
+        }
+
+        // Najdeme nejlepší kombinaci karet k zahrání
+        const bestCombination = this.findBestCardCombination(player, opponent);
+        
+        if (bestCombination && bestCombination.length > 0) {
+            // Vrátíme první kartu z kombinace
+            const cardToPlay = bestCombination[0];
+            const cardIndex = player.hand.findIndex(card => card.id === cardToPlay.id);
+            
+            if (cardIndex !== -1) {
+                console.log(`Hraju kartu: ${cardToPlay.name} (kombinace ${bestCombination.length} karet)`);
+                
+                return {
+                    type: 'playCard',
+                    cardIndex: cardIndex,
+                    position: this.findBestPosition(player, cardToPlay)
+                };
+            }
+        }
+
+        return null;
+    }
+
+    // Nová metoda pro hledání nejlepší kombinace karet
+    findBestCardCombination(player, opponent) {
+        const playableCards = player.hand.filter(card => card.manaCost <= player.mana);
+        
+        if (playableCards.length === 0) {
+            return null;
+        }
+
+        // Generujeme možné kombinace karet podle dostupné many
+        const combinations = this.generateCardCombinations(playableCards, player.mana);
+        
+        // Hodnotíme každou kombinaci
+        let bestCombination = null;
+        let bestValue = -1;
+        
+        combinations.forEach(combination => {
+            const value = this.evaluateCardCombination(combination, player, opponent);
+            if (value > bestValue) {
+                bestValue = value;
+                bestCombination = combination;
+            }
+        });
+        
+        return bestCombination;
+    }
+
+    // Nová metoda pro generování kombinací karet
+    generateCardCombinations(playableCards, availableMana) {
+        const combinations = [];
+        
+        // Seřadíme karty podle priority
+        const sortedCards = playableCards.sort((a, b) => {
+            const valueA = this.evaluateCard(a);
+            const valueB = this.evaluateCard(b);
+            
+            // The Coin má nižší prioritu
+            if (a.name === 'The Coin' && b.name !== 'The Coin') return 1;
+            if (b.name === 'The Coin' && a.name !== 'The Coin') return -1;
+            
+            return valueB - valueA;
+        });
+
+        // Generujeme kombinace (jednoduchý greedy algoritmus)
+        for (let i = 0; i < sortedCards.length; i++) {
+            const combination = [];
+            let remainingMana = availableMana;
+            
+            // Začneme s kartou i
+            if (sortedCards[i].manaCost <= remainingMana) {
+                combination.push(sortedCards[i]);
+                remainingMana -= sortedCards[i].manaCost;
+                
+                // Přidáme další karty pokud se vejdou
+                for (let j = 0; j < sortedCards.length; j++) {
+                    if (j !== i && sortedCards[j].manaCost <= remainingMana) {
+                        // Kontrola field space pro jednotky
+                        const unitsInCombination = combination.filter(card => card.type === 'unit').length;
+                        const currentFieldSize = this.gameState.players[this.playerIndex].field.filter(unit => unit).length;
+                        
+                        if (sortedCards[j].type === 'unit' && currentFieldSize + unitsInCombination >= 7) {
+                            continue; // Přeskočíme pokud by se nevešla na pole
+                        }
+                        
+                        combination.push(sortedCards[j]);
+                        remainingMana -= sortedCards[j].manaCost;
+                    }
+                }
+            }
+            
+            if (combination.length > 0) {
+                combinations.push(combination);
+            }
+        }
+        
+        // Přidáme také jednotlivé karty
+        sortedCards.forEach(card => {
+            if (card.manaCost <= availableMana) {
+                const currentFieldSize = this.gameState.players[this.playerIndex].field.filter(unit => unit).length;
+                if (card.type === 'spell' || currentFieldSize < 7) {
+                    combinations.push([card]);
+                }
+            }
+        });
+        
+        return combinations;
+    }
+
+    // Nová metoda pro hodnocení kombinace karet
+    evaluateCardCombination(combination, player, opponent) {
+        let totalValue = 0;
+        let manaEfficiency = 0;
+        const totalManaCost = combination.reduce((sum, card) => sum + card.manaCost, 0);
+        
+        // Základní hodnota karet
+        combination.forEach(card => {
+            totalValue += this.evaluateCard(card);
+        });
+        
+        // Bonus za efektivní využití many
+        manaEfficiency = totalManaCost / Math.max(player.mana, 1);
+        totalValue += manaEfficiency * 2;
+        
+        // Strategické bonusy
+        totalValue += this.evaluateCombinationStrategy(combination, player, opponent);
+        
+        // Synergické bonusy
+        totalValue += this.evaluateCombinationSynergies(combination, player);
+        
+        return totalValue;
+    }
+
+    // Nová metoda pro strategické hodnocení kombinace
+    evaluateCombinationStrategy(combination, player, opponent) {
+        let bonus = 0;
+        
+        switch (this.strategy) {
+            case 'aggressive':
+                // Agresivní: preferuj rychlé jednotky a damage
+                combination.forEach(card => {
+                    if (card.type === 'unit' && card.attack > card.health) bonus += 2;
+                    if (card.effect && card.effect.includes('damage')) bonus += 3;
+                });
+                break;
+                
+            case 'defensive':
+                // Defenzivní: preferuj Taunt a léčení
+                combination.forEach(card => {
+                    if (card.hasTaunt) bonus += 3;
+                    if (card.effect && (card.effect.includes('restore') || card.effect.includes('heal'))) bonus += 3;
+                });
+                break;
+                
+            case 'control':
+                // Kontrolní: preferuj removal a card draw
+                combination.forEach(card => {
+                    if (card.effect && card.effect.includes('Deal damage to all')) bonus += 4;
+                    if (card.effect && card.effect.includes('Draw')) bonus += 3;
+                });
+                break;
+                
+            case 'tempo':
+                // Tempo: preferuj efektivní stats
+                combination.forEach(card => {
+                    if (card.type === 'unit' && card.attack + card.health >= card.manaCost * 2) bonus += 2;
+                });
+                break;
+        }
+        
+        return bonus;
+    }
+
+    // Nová metoda pro hodnocení synergií v kombinaci
+    evaluateCombinationSynergies(combination, player) {
+        let bonus = 0;
+        
+        // Spell synergies
+        const spellsInCombination = combination.filter(card => card instanceof SpellCard).length;
+        const spellSynergyUnits = combination.filter(card => 
+            card.type === 'unit' && card.effect && card.effect.includes('cast a spell')
+        ).length;
+        
+        bonus += spellsInCombination * spellSynergyUnits * 2;
+        
+        // Taunt synergies
+        const tauntUnits = combination.filter(card => card.hasTaunt).length;
+        if (tauntUnits >= 2) bonus += 3; // Bonus za více Taunt jednotek
+        
+        // Healing synergies pro Priest
+        if (this.deckType === 2) {
+            const healingCards = combination.filter(card => 
+                card.effect && (card.effect.includes('restore') || card.effect.includes('heal'))
+            ).length;
+            if (healingCards >= 2) bonus += 4;
+        }
+        
+        return bonus;
+    }
+
+    // Upravená původní metoda (pro zpětnou kompatibilitu)
+    findBestCardPlayOld(player, opponent) {
         if (player.hand.length === 0 || player.field.length >= 7) {
             return null;
         }
@@ -259,89 +556,15 @@ class AIPlayer {
                 return null;
             }
 
-            // Vrátíme JEDEN nejlepší útok místo procházení všech útočníků
-            const bestAttacker = this.findBestAttacker(availableAttackers);
-            if (!bestAttacker) {
-                console.log('Nenalezen vhodný útočník');
-                return null;
+            // Nejdřív zkontrolujeme lethal možnosti
+            const lethalAttack = this.findLethalAttack(availableAttackers, opponent);
+            if (lethalAttack) {
+                console.log('Nalezen lethal útok!');
+                return lethalAttack;
             }
 
-            const attackerIndex = player.field.findIndex(unit => unit && unit.id === bestAttacker.id);
-            if (attackerIndex === -1) {
-                console.log('Útočník již není na poli');
-                return null;
-            }
-
-            // Nejdřív zkontrolujeme, zda můžeme útočit na hrdinu
-            const canAttackHero = !opponent.field.some(unit => unit && unit.hasTaunt);
-
-            // Kontrola Taunt jednotek
-            const tauntTargets = opponent.field.filter(unit => unit && unit.hasTaunt);
-            
-            // Pokud jsou Taunt jednotky, musíme na ně útočit
-            if (tauntTargets.length > 0) {
-                const bestTauntTarget = this.findBestTarget(bestAttacker, tauntTargets);
-                if (bestTauntTarget) {
-                    const targetIndex = opponent.field.findIndex(unit => 
-                        unit && unit.id === bestTauntTarget.id);
-                    
-                    if (targetIndex !== -1) {
-                        console.log(`Útok na Taunt jednotku: ${bestTauntTarget.name} na indexu ${targetIndex}`);
-                        return {
-                            type: 'attack',
-                            attackerIndex,
-                            targetIndex,
-                            isHeroTarget: false
-                        };
-                    }
-                }
-                return null; // Pokud nemůžeme zaútočit na Taunt, končíme
-            }
-
-            // Pokud můžeme zabít hrdinu, uděláme to
-            if (canAttackHero && bestAttacker.attack >= opponent.hero.health) {
-                console.log('Smrtící útok na hrdinu');
-                return {
-                    type: 'attack',
-                    attackerIndex,
-                    targetIndex: null,
-                    isHeroTarget: true
-                };
-            }
-
-            // Hledáme nejvýhodnější výměnu
-            const validTargets = opponent.field.filter(unit => unit !== null);
-            if (validTargets.length > 0) {
-                const bestTarget = this.findBestTarget(bestAttacker, validTargets);
-                if (bestTarget && this.isGoodTrade(bestAttacker, bestTarget)) {
-                    const targetIndex = opponent.field.findIndex(unit => 
-                        unit && unit.id === bestTarget.id);
-                    
-                    if (targetIndex !== -1) {
-                        console.log(`Výhodný útok: ${bestAttacker.name} -> ${bestTarget.name}`);
-                        return {
-                            type: 'attack',
-                            attackerIndex,
-                            targetIndex,
-                            isHeroTarget: false
-                        };
-                    }
-                }
-            }
-
-            // Pokud nemáme lepší možnost a můžeme útočit na hrdinu
-            if (canAttackHero) {
-                console.log('Útok na hrdinu (žádný lepší cíl)');
-                return {
-                    type: 'attack',
-                    attackerIndex,
-                    targetIndex: null,
-                    isHeroTarget: true
-                };
-            }
-
-            console.log('Nenalezen žádný vhodný útok');
-            return null;
+            // Strategické rozhodnutí o útoku podle aktuální strategie
+            return this.findStrategicAttack(availableAttackers, player, opponent);
 
         } catch (error) {
             console.error('Chyba při hledání nejlepšího útoku:', error);
@@ -349,18 +572,295 @@ class AIPlayer {
         }
     }
 
+    // Nová metoda pro hledání lethal útoků
+    findLethalAttack(availableAttackers, opponent) {
+        const canAttackHero = !opponent.field.some(unit => unit && unit.hasTaunt);
+        
+        if (!canAttackHero) return null;
+        
+        // Spočítáme celkový damage na hrdinu
+        const totalDamage = availableAttackers.reduce((total, unit) => total + unit.attack, 0);
+        
+        if (totalDamage >= opponent.hero.health) {
+            // Vrátíme první útočník pro lethal sekvenci
+            const attackerIndex = this.gameState.players[this.playerIndex].field.findIndex(
+                unit => unit && unit.id === availableAttackers[0].id
+            );
+            
+            return {
+                type: 'attack',
+                attackerIndex,
+                targetIndex: null,
+                isHeroTarget: true
+            };
+        }
+        
+        return null;
+    }
+
+    // Nová metoda pro strategické útoky
+    findStrategicAttack(availableAttackers, player, opponent) {
+        const bestAttacker = this.findBestStrategicAttacker(availableAttackers, opponent);
+        if (!bestAttacker) {
+            console.log('Nenalezen vhodný útočník');
+            return null;
+        }
+
+        const attackerIndex = player.field.findIndex(unit => unit && unit.id === bestAttacker.id);
+        if (attackerIndex === -1) {
+            console.log('Útočník již není na poli');
+            return null;
+        }
+
+        // Kontrola Taunt jednotek
+        const tauntTargets = opponent.field.filter(unit => unit && unit.hasTaunt);
+        
+        // Pokud jsou Taunt jednotky, musíme na ně útočit
+        if (tauntTargets.length > 0) {
+            const bestTauntTarget = this.findBestStrategicTarget(bestAttacker, tauntTargets);
+            if (bestTauntTarget) {
+                const targetIndex = opponent.field.findIndex(unit => 
+                    unit && unit.id === bestTauntTarget.id);
+                
+                if (targetIndex !== -1) {
+                    console.log(`Strategický útok na Taunt: ${bestTauntTarget.name}`);
+                    return {
+                        type: 'attack',
+                        attackerIndex,
+                        targetIndex,
+                        isHeroTarget: false
+                    };
+                }
+            }
+            return null;
+        }
+
+        // Rozhodnutí podle strategie
+        const attackDecision = this.makeStrategicAttackDecision(bestAttacker, opponent);
+        
+        if (attackDecision.isHeroTarget) {
+            console.log(`Strategický útok na hrdinu (${this.strategy})`);
+            return {
+                type: 'attack',
+                attackerIndex,
+                targetIndex: null,
+                isHeroTarget: true
+            };
+        } else if (attackDecision.target) {
+            const targetIndex = opponent.field.findIndex(unit => 
+                unit && unit.id === attackDecision.target.id);
+            
+            if (targetIndex !== -1) {
+                console.log(`Strategický útok na jednotku: ${attackDecision.target.name}`);
+                return {
+                    type: 'attack',
+                    attackerIndex,
+                    targetIndex,
+                    isHeroTarget: false
+                };
+            }
+        }
+
+        console.log('Nenalezen žádný vhodný útok');
+        return null;
+    }
+
+    // Nová metoda pro výběr nejlepšího strategického útočníka
+    findBestStrategicAttacker(availableAttackers, opponent) {
+        return availableAttackers.reduce((best, current) => {
+            if (!best) return current;
+
+            const bestValue = this.evaluateAttackerStrategically(best, opponent);
+            const currentValue = this.evaluateAttackerStrategically(current, opponent);
+
+            return currentValue > bestValue ? current : best;
+        }, null);
+    }
+
+    // Nová metoda pro strategické hodnocení útočníka
+    evaluateAttackerStrategically(attacker, opponent) {
+        let value = attacker.attack;
+        
+        // Bonus podle strategie
+        switch (this.strategy) {
+            case 'aggressive':
+                value += attacker.attack * 0.5;
+                // Preferuj rychlé jednotky
+                if (attacker.attack > attacker.health) value += 2;
+                break;
+                
+            case 'defensive':
+                // V defenzivě útočíme jen když musíme
+                value -= 2;
+                if (attacker.hasTaunt) value -= 1; // Taunt jednotky raději necháváme
+                break;
+                
+            case 'control':
+                // Kontrolní útok - odstraň hrozby
+                const threateningTargets = opponent.field.filter(unit => 
+                    unit && (unit.attack >= 4 || unit.effect.includes('at the end of your turn'))
+                );
+                if (threateningTargets.some(target => attacker.attack >= target.health)) {
+                    value += 5;
+                }
+                break;
+                
+            case 'tempo':
+                // Tempo - efektivní výměny
+                value += this.calculateTempoValue(attacker, opponent);
+                break;
+        }
+        
+        return value;
+    }
+
+    // Pomocná metoda pro výpočet tempo hodnoty
+    calculateTempoValue(attacker, opponent) {
+        let tempoValue = 0;
+        
+        opponent.field.forEach(target => {
+            if (target && attacker.attack >= target.health) {
+                // Můžeme zabít cíl
+                const tradeCost = attacker.health <= target.attack ? attacker.attack + attacker.health : 0;
+                const tradeGain = target.attack + target.health;
+                tempoValue += Math.max(0, tradeGain - tradeCost);
+            }
+        });
+        
+        return tempoValue;
+    }
+
+    // Nová metoda pro strategické rozhodnutí o útoku
+    makeStrategicAttackDecision(attacker, opponent) {
+        const validTargets = opponent.field.filter(unit => unit !== null);
+        const canAttackHero = !opponent.field.some(unit => unit && unit.hasTaunt);
+        
+        // Podle strategie rozhodni
+        switch (this.strategy) {
+            case 'aggressive':
+                // Agresivní: útočit na hrdinu pokud možno
+                if (canAttackHero) {
+                    return { isHeroTarget: true };
+                }
+                break;
+                
+            case 'defensive':
+                // Defenzivní: útočit jen na hrozby
+                const threats = validTargets.filter(target => 
+                    target.attack >= 4 || target.effect.includes('at the end of your turn')
+                );
+                if (threats.length > 0) {
+                    const bestThreat = this.findBestStrategicTarget(attacker, threats);
+                    if (bestThreat && this.isGoodTrade(attacker, bestThreat)) {
+                        return { target: bestThreat };
+                    }
+                }
+                return { isHeroTarget: false }; // Neútočit
+                
+            case 'control':
+                // Kontrolní: odstraň největší hrozby
+                if (validTargets.length > 0) {
+                    const bestTarget = this.findBestStrategicTarget(attacker, validTargets);
+                    if (bestTarget && this.isGoodTrade(attacker, bestTarget)) {
+                        return { target: bestTarget };
+                    }
+                }
+                break;
+                
+            case 'tempo':
+                // Tempo: nejefektivnější výměna nebo face damage
+                if (validTargets.length > 0) {
+                    const bestTarget = this.findBestStrategicTarget(attacker, validTargets);
+                    if (bestTarget && this.isGoodTrade(attacker, bestTarget)) {
+                        return { target: bestTarget };
+                    }
+                }
+                if (canAttackHero) {
+                    return { isHeroTarget: true };
+                }
+                break;
+        }
+        
+        // Fallback: útok na hrdinu pokud možno
+        return canAttackHero ? { isHeroTarget: true } : { isHeroTarget: false };
+    }
+
+    // Vylepšená metoda pro hledání nejlepšího strategického cíle
+    findBestStrategicTarget(attacker, targets) {
+        if (!targets || targets.length === 0) return null;
+        
+        return targets.reduce((best, current) => {
+            if (!best) return current;
+            if (!current) return best;
+            
+            const bestScore = this.calculateTargetScore(attacker, best);
+            const currentScore = this.calculateTargetScore(attacker, current);
+            
+            return currentScore > bestScore ? current : best;
+        }, null);
+    }
+
+    // Nová metoda pro výpočet skóre cíle
+    calculateTargetScore(attacker, target) {
+        let score = 0;
+        
+        // Základní skóre podle stats
+        score += target.attack + target.health;
+        
+        // Bonus za zabití cíle
+        if (attacker.attack >= target.health) {
+            score += 5;
+            
+            // Extra bonus pokud přežijeme
+            if (attacker.health > target.attack) {
+                score += 3;
+            }
+        }
+        
+        // Bonus za důležité efekty
+        if (target.effect.includes('at the end of your turn')) score += 4;
+        if (target.effect.includes('when you cast a spell')) score += 3;
+        if (target.hasTaunt) score += 2;
+        if (target.hasDivineShield) score += 2;
+        
+        // Strategické bonusy
+        switch (this.strategy) {
+            case 'aggressive':
+                // Preferuj slabší cíle pro rychlé zabití
+                if (target.health <= 3) score += 2;
+                break;
+                
+            case 'control':
+                // Preferuj silné hrozby
+                if (target.attack >= 4) score += 3;
+                break;
+        }
+        
+        return score;
+    }
+
     evaluateCard(card) {
         if (card instanceof SpellCard) {
             return this.evaluateSpell(card);
         }
 
+        // Základní hodnota stats
         let value = card.attack + card.health;
         const player = this.gameState.players[this.playerIndex];
         const opponent = this.gameState.players[1 - this.playerIndex];
 
-        // Základní hodnota podle efektů
-        if (card.hasTaunt) value += 2;
-        if (card.hasDivineShield) value += 3;
+        // Kontextové hodnocení podle fáze hry
+        value += this.evaluateCardByGamePhase(card);
+        
+        // Strategické hodnocení
+        value += this.evaluateCardByStrategy(card);
+        
+        // Hodnocení synergií
+        value += this.evaluateCardSynergies(card);
+
+        // Základní hodnota podle efektů (snížené bonusy pro lepší balance)
+        if (card.hasTaunt) value += this.strategy === 'defensive' ? 3 : 1;
+        if (card.hasDivineShield) value += 2;
         if (card.effect.includes('Draw')) value += 2;
         if (card.effect.includes('Freeze')) value += 2;
         if (card.effect.includes('Deal damage')) value += 2;
@@ -413,6 +913,121 @@ class AIPlayer {
         }
 
         return value;
+    }
+
+    // Nová metoda pro hodnocení podle fáze hry
+    evaluateCardByGamePhase(card) {
+        let bonus = 0;
+        
+        switch (this.gamePhase) {
+            case 'early':
+                // V raných fázích preferujeme nízko-cost karty s dobrými stats
+                if (card.manaCost <= 3) bonus += 2;
+                if (card.attack >= card.manaCost) bonus += 1;
+                if (card.effect.includes('Draw')) bonus += 2;
+                break;
+                
+            case 'mid':
+                // Ve střední fázi preferujeme tempo a value
+                if (card.manaCost >= 3 && card.manaCost <= 6) bonus += 1;
+                if (card.attack + card.health >= card.manaCost * 2) bonus += 2;
+                if (card.hasTaunt) bonus += 1;
+                break;
+                
+            case 'late':
+                // V pozdní fázi preferujeme immediate impact a léčení
+                if (card.effect.includes('Deal damage')) bonus += 3;
+                if (card.effect.includes('restore') || card.effect.includes('heal')) bonus += 3;
+                if (card.hasTaunt && card.health >= 5) bonus += 2;
+                if (card.manaCost >= 6) bonus += 1;
+                break;
+        }
+        
+        return bonus;
+    }
+    
+    // Nová metoda pro hodnocení podle strategie
+    evaluateCardByStrategy(card) {
+        let bonus = 0;
+        
+        switch (this.strategy) {
+            case 'aggressive':
+                bonus += card.attack * 0.5;
+                if (card.attack > card.health) bonus += 1;
+                if (card.effect.includes('damage')) bonus += 2;
+                if (card.hasTaunt) bonus -= 1; // Taunt není pro agro
+                break;
+                
+            case 'defensive':
+                bonus += card.health * 0.3;
+                if (card.hasTaunt) bonus += 3;
+                if (card.effect.includes('restore') || card.effect.includes('heal')) bonus += 3;
+                if (card.hasDivineShield) bonus += 2;
+                break;
+                
+            case 'control':
+                if (card.effect.includes('Deal damage to all')) bonus += 4;
+                if (card.effect.includes('Draw')) bonus += 3;
+                if (card.manaCost >= 5) bonus += 1;
+                if (card.effect.includes('remove') || card.effect.includes('destroy')) bonus += 3;
+                break;
+                
+            case 'tempo':
+                if (card.attack + card.health >= card.manaCost * 2) bonus += 2;
+                if (card.effect.includes('when played')) bonus += 1;
+                if (card.manaCost >= 2 && card.manaCost <= 5) bonus += 1;
+                break;
+        }
+        
+        return bonus;
+    }
+    
+    // Nová metoda pro hodnocení synergií
+    evaluateCardSynergies(card) {
+        let bonus = 0;
+        const player = this.gameState.players[this.playerIndex];
+        
+        // Synergies se jménem karet na poli
+        const fieldNames = player.field.filter(unit => unit).map(unit => unit.name);
+        
+        // Spell synergies
+        if (card.effect.includes('cast a spell')) {
+            const spellsInHand = player.hand.filter(c => c instanceof SpellCard).length;
+            bonus += spellsInHand * 1.5;
+        }
+        
+        // Death synergies
+        if (card.effect.includes('any minion dies') || card.name === 'Soul Harvester') {
+            // Více jednotek = více úmrtí = větší hodnota
+            bonus += (player.field.filter(unit => unit).length + 
+                     this.gameState.players[1 - this.playerIndex].field.filter(unit => unit).length) * 0.5;
+        }
+        
+        // Healing synergies pro Priest
+        if (this.deckType === 2 && card.effect.includes('restore')) {
+            if (fieldNames.includes('Spirit Healer')) bonus += 2;
+        }
+        
+        // Mana synergies pro Seer
+        if (this.deckType === 3) {
+            if (card.name === 'Mana Wyrm' && player.hand.some(c => c instanceof SpellCard)) bonus += 2;
+            if (card.name === 'Arcane Familiar' && player.hand.some(c => c instanceof SpellCard)) bonus += 2;
+        }
+        
+        // Taunt synergies
+        if (card.name === 'Guardian Totem') {
+            const adjacentUnits = this.countPotentialAdjacentUnits(player);
+            bonus += adjacentUnits * 1.5;
+        }
+        
+        return bonus;
+    }
+    
+    // Pomocná metoda pro počítání sousedních jednotek
+    countPotentialAdjacentUnits(player) {
+        const unitsOnField = player.field.filter(unit => unit).length;
+        // Maximálně 2 sousedi (vlevo a vpravo)
+        return Math.min(unitsOnField, 2);
     }
 
     evaluateSpell(card) {
