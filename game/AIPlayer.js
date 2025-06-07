@@ -462,6 +462,18 @@ class AIPlayer {
             if (healingCards >= 2) bonus += 4;
         }
         
+        // Mana synergies pro Seer
+        if (this.deckType === 3) {
+            if (card.name === 'Mana Wyrm' && player.hand.some(c => c instanceof SpellCard)) bonus += 2;
+            if (card.name === 'Arcane Familiar' && player.hand.some(c => c instanceof SpellCard)) bonus += 2;
+        }
+        
+        // Taunt synergies
+        if (card.name === 'Guardian Totem') {
+            const adjacentUnits = this.countPotentialAdjacentUnits(player);
+            bonus += adjacentUnits * 1.5;
+        }
+        
         return bonus;
     }
 
@@ -817,22 +829,62 @@ class AIPlayer {
             }
         }
         
+        // Speciální logika pro Silence Assassin
+        if (attacker.name === 'Silence Assassin' && target.hasTaunt) {
+            score += 8; // Vysoká priorita pro odstraňování tauntu
+            
+            // Extra bonus pokud za tauntem jsou slabé jednotky které můžeme pak atakovat
+            const opponent = this.gameState.players[1 - this.playerIndex];
+            const nonTauntUnits = opponent.field.filter(unit => unit && !unit.hasTaunt);
+            if (nonTauntUnits.length > 0) {
+                score += 4;
+            }
+            
+            console.log(`AI: Silence Assassin targeting taunt ${target.name}, score: ${score}`);
+        }
+        
         // Bonus za důležité efekty
-        if (target.effect.includes('at the end of your turn')) score += 4;
-        if (target.effect.includes('when you cast a spell')) score += 3;
-        if (target.hasTaunt) score += 2;
+        if (target.effect.includes('at the end of your turn') || target.effect.includes('At the end of each turn')) {
+            score += 8; // Vysoká priorita pro scaling jednotky
+        }
+        if (target.effect.includes('when you cast a spell')) score += 4;
+        if (target.hasTaunt) score += 3;
         if (target.hasDivineShield) score += 2;
+        
+        // Speciální priorita pro kritické jednotky
+        switch (target.name) {
+            case 'Zoxus':
+                score += 15; // Musí být eliminován okamžitě
+                break;
+            case 'Ancient Colossus':
+                score += 10; // Velmi nebezpečný
+                break;
+            case 'Time Weaver':
+                score += 8; // Léčící hrozba
+                break;
+            case 'Mana Wyrm':
+                score += 6; // Může rychle růst
+                break;
+        }
         
         // Strategické bonusy
         switch (this.strategy) {
             case 'aggressive':
                 // Preferuj slabší cíle pro rychlé zabití
                 if (target.health <= 3) score += 2;
+                // Priorita pro jednotky které blokují přístup k hrdinovi
+                if (target.hasTaunt) score += 3;
                 break;
                 
             case 'control':
                 // Preferuj silné hrozby
                 if (target.attack >= 4) score += 3;
+                if (target.health >= 6) score += 2;
+                break;
+                
+            case 'defensive':
+                // Priorita pro jednotky které nás ohrožují
+                if (target.attack >= 4) score += 4;
                 break;
         }
         
@@ -857,6 +909,9 @@ class AIPlayer {
         
         // Hodnocení synergií
         value += this.evaluateCardSynergies(card);
+
+        // Speciální vyhodnocení klíčových strategických karet
+        value += this.evaluateSpecialCards(card, player, opponent);
 
         // Základní hodnota podle efektů (snížené bonusy pro lepší balance)
         if (card.hasTaunt) value += this.strategy === 'defensive' ? 3 : 1;
@@ -913,6 +968,136 @@ class AIPlayer {
         }
 
         return value;
+    }
+
+    // Nová metoda pro vyhodnocení speciálních karet
+    evaluateSpecialCards(card, player, opponent) {
+        let specialValue = 0;
+
+        switch (card.name) {
+            case 'Ancient Colossus':
+                // Dynamicky přepočítané hodnocení podle počtu mrtvých jednotek
+                const deadMinions = this.gameState.deadMinionsCount || 0;
+                const currentCost = Math.max(1, 20 - deadMinions);
+                
+                // Pokud je levná, má extrémně vysokou hodnotu
+                if (currentCost <= 3) specialValue += 15;
+                else if (currentCost <= 6) specialValue += 10;
+                else if (currentCost <= 10) specialValue += 5;
+                
+                // V pozdní hře ještě více cenná
+                if (this.gamePhase === 'late') specialValue += 5;
+                
+                console.log(`AI: Ancient Colossus aktuální cena: ${currentCost}, hodnota: ${specialValue}`);
+                break;
+
+            case 'Zoxus':
+                // Extrémně vysoká priorita pro scaling jednotku
+                specialValue += 12; // Velmi vysoké base hodnocení
+                
+                // Pokud je na poli nepřítele, je to kritická hrozba
+                if (this.isOnOpponentField(card, opponent)) {
+                    specialValue += 20; // Musí být eliminován okamžitě
+                }
+                
+                // V pozdní hře je ještě nebezpečnější
+                if (this.gamePhase === 'late') specialValue += 8;
+                break;
+
+            case 'Elendralis':
+                // Situační hodnocení podle zdraví
+                if (player.hero.health < 10) {
+                    specialValue += 12; // Velmi silná pokud potřebujeme léčení + taunt
+                } else if (player.hero.health < 15) {
+                    specialValue += 6; // Stále dobrá jako pojistka
+                } else if (player.hero.health < 20) {
+                    specialValue += 3; // Mírně užitečná
+                }
+                
+                // Vyšší hodnota pokud čelíme agresivní strategii
+                if (this.threatLevel > 15) specialValue += 4;
+                break;
+
+            case 'Silence Assassin':
+                // Hodnocení podle přítomnosti taunt jednotek
+                const enemyTaunts = opponent.field.filter(unit => unit && unit.hasTaunt).length;
+                specialValue += enemyTaunts * 4; // Každý nepřátelský taunt zvyšuje hodnotu
+                
+                // Extra hodnota pokud nepřítel má silné taunt jednotky
+                const strongTaunts = opponent.field.filter(unit => 
+                    unit && unit.hasTaunt && (unit.attack >= 4 || unit.health >= 6)
+                ).length;
+                specialValue += strongTaunts * 3;
+                
+                // V aggresivní strategii je velmi cenný
+                if (this.strategy === 'aggressive') specialValue += 3;
+                break;
+
+            case 'Divine Formation':
+                const divineShieldUnits = player.field.filter(unit => 
+                    unit && unit.hasDivineShield && !unit.hasTaunt
+                ).length;
+                specialValue += divineShieldUnits * 3; // Zvýšená hodnota za jednotku
+                
+                // Extra hodnota pokud máme silné divine shield jednotky
+                const strongDivineShields = player.field.filter(unit => 
+                    unit && unit.hasDivineShield && !unit.hasTaunt && (unit.attack >= 3 || unit.health >= 4)
+                ).length;
+                specialValue += strongDivineShields * 2;
+                
+                // Extra hodnota pokud máme málo životů a potřebujeme obranu
+                if (player.hero.health < 15) specialValue += 4;
+                if (player.hero.health < 10) specialValue += 6;
+                
+                // Defensive strategy bonus
+                if (this.strategy === 'defensive') specialValue += 3;
+                
+                // Pokud nemáme divine shield jednotky, snížíme hodnotu
+                if (divineShieldUnits === 0) specialValue -= 5;
+                
+                console.log(`AI: Divine Formation - divine shield jednotky: ${divineShieldUnits}, hodnota: ${specialValue}`);
+                break;
+
+            case 'Time Weaver':
+                // Velmi silná endgame karta pro healing
+                if (this.gamePhase === 'late') specialValue += 8;
+                if (player.hero.health < 20) specialValue += 4;
+                
+                // Pokud máme více jednotek, je healing efektivnější
+                const fieldUnits = player.field.filter(unit => unit).length;
+                specialValue += fieldUnits * 1;
+                break;
+
+            case 'Twilight Guardian':
+                // Hodnota podle počtu jednotek na poli pro divine shield distribution
+                const friendlyUnits = player.field.filter(unit => unit && !unit.hasDivineShield).length;
+                specialValue += friendlyUnits * 2;
+                
+                // V control strategii je velmi cenný
+                if (this.strategy === 'control') specialValue += 4;
+                break;
+
+            case 'Ancient Protector':
+                // Hodnota podle potenciálních sousedních jednotek
+                const adjacentPotential = this.countPotentialAdjacentUnits(player);
+                specialValue += adjacentPotential * 3;
+                break;
+
+            case 'Mana Leech':
+                // Seer specific - hodnota podle útoku pro mana recovery
+                if (this.deckType === 3) {
+                    specialValue += card.attack * 2;
+                    if (this.strategy === 'tempo') specialValue += 4;
+                }
+                break;
+        }
+
+        return specialValue;
+    }
+
+    // Pomocná metoda pro kontrolu, zda je karta na nepřátelském poli
+    isOnOpponentField(card, opponent) {
+        return opponent.field.some(unit => unit && unit.name === card.name);
     }
 
     // Nová metoda pro hodnocení podle fáze hry
@@ -1206,15 +1391,6 @@ class AIPlayer {
 
                 return value;
 
-            case 'Divine Formation':
-                const divineShieldUnits = player.field.filter(unit => 
-                    unit && unit.hasDivineShield && !unit.hasTaunt
-                ).length;
-                value = divineShieldUnits * 2;
-                // Extra hodnota pokud máme málo životů a potřebujeme obranu
-                if (player.hero.health < 15) value += 2;
-                break;
-
             case 'Mass Dispel':
                 const totalTaunts = [...player.field, ...opponent.field].filter(
                     unit => unit && unit.hasTaunt
@@ -1458,12 +1634,60 @@ class AIPlayer {
     evaluateUnitThreat(unit) {
         let threat = unit.attack;
         
+        // Speciální hodnocení pro kritické rostoucí jednotky
+        switch (unit.name) {
+            case 'Zoxus':
+                // Extrémně nebezpečná rostoucí jednotka
+                threat += 15; // Velmi vysoká priorita
+                
+                // Čím déle na poli, tím nebezpečnější (odhad podle stats)
+                const estimatedTurns = Math.max(0, (unit.attack + unit.health - 2) / 2);
+                threat += estimatedTurns * 3;
+                
+                console.log(`AI: Zoxus hrozba: ${threat}, odhadované tahy: ${estimatedTurns}`);
+                break;
+                
+            case 'Ancient Colossus':
+                // Masivní hrozba pokud byla úspěšně zahraná
+                threat += 8;
+                break;
+                
+            case 'Time Weaver':
+                // Léčící jednotka která prodlužuje hru
+                threat += 6;
+                break;
+                
+            case 'Mana Wyrm':
+                // Může růst rychle s kouzly
+                threat += 4;
+                break;
+                
+            case 'Battle Mage':
+                // Dočasné ale silné posílení s kouzly
+                threat += 3;
+                break;
+        }
+        
         // Přidáme hodnotu za speciální efekty
-        if (unit.effect.includes('at the end of your turn')) threat += 3;
-        if (unit.effect.includes('when you cast a spell')) threat += 2;
-        if (unit.hasDivineShield) threat += 2;
-        if (unit.hasTaunt) threat += 1;
-        if (unit.effect.includes('Draw')) threat += 2;
+        if (unit.effect.includes('at the end of your turn') || unit.effect.includes('At the end of each turn')) {
+            threat += 8; // Rostoucí hrozby jsou prioritní
+        }
+        if (unit.effect.includes('when you cast a spell')) threat += 4;
+        if (unit.effect.includes('when this minion attacks')) threat += 3;
+        if (unit.effect.includes('when this minion dies')) threat += 2;
+        if (unit.hasDivineShield) threat += 3;
+        if (unit.hasTaunt) threat += 2;
+        if (unit.effect.includes('Draw')) threat += 3;
+        if (unit.effect.includes('restore') || unit.effect.includes('heal')) threat += 2;
+        
+        // Vyšší hrozba pro jednotky s vysokými stats
+        if (unit.attack >= 6) threat += 2;
+        if (unit.health >= 8) threat += 2;
+        
+        // Kombinace attack + health pro obecnou sílu
+        const totalStats = unit.attack + unit.health;
+        if (totalStats >= 10) threat += 2;
+        if (totalStats >= 15) threat += 3;
         
         return threat;
     }

@@ -1617,6 +1617,7 @@ class GameManager {
             ...Array(2).fill({ id: 10, name: 'Arcane Familiar', manaCost: 1, attack: 1, health: 3, effect: 'Gain +1 attack when you cast a spell', image: 'arcaneFamiliar', rarity: 'epic' }),
             ...Array(2).fill({ id: 15, name: 'Mana Wyrm', manaCost: 2, attack: 2, health: 3, effect: 'Gain +1 attack when you cast a spell', image: 'manaWyrm', rarity: 'rare' }),
             ...Array(2).fill({ name: 'Assassin Scout', manaCost: 3, attack: 3, health: 3, effect: 'Deals +2 damage when attacking the enemy hero', image: 'assassinScout', rarity: 'uncommon' }),
+            ...Array(2).fill({ name: 'Flame Warrior', manaCost: 4, attack: 6, health: 6, effect: 'Takes 2 damage whenever this minion attacks', image: 'flameWarrior', rarity: 'uncommon' }),
             
             // Damage kouzla (2 kopie každého)
             ...Array(2).fill({ id: 3, name: 'Fireball', manaCost: 4, effect: 'Deal 6 damage to enemy hero', image: 'fireball', rarity: 'uncommon' }),
@@ -1631,9 +1632,9 @@ class GameManager {
             ...Array(2).fill({ id: 5, name: 'Water Elemental', manaCost: 3, attack: 3, health: 5, effect: 'Freeze random enemy minion when played', image: 'waterElemental', rarity: 'rare' }),
             ...Array(2).fill({ name: 'Sneaky Infiltrator', manaCost: 1, attack: 3, health: 2, effect: 'Deals 2 less damage when attacking enemy hero', image: 'sneakyInfiltrator', rarity: 'rare' }),
             
-            // Finisher
+            // Finisher (legendární - pouze 1 kopie)
             { id: 13, name: 'Inferno Wave', manaCost: 7, effect: 'Deal 4 damage to all enemy minions', image: 'infernoWave', rarity: 'epic' },
-            { name: 'Wise Oracle', manaCost: 5, attack: 3, health: 4, effect: 'Draw 2 cards when played', image: 'wiseOracle', rarity: 'legendary' }
+            { name: 'Wise Oracle', manaCost: 5, attack: 4, health: 4, effect: 'Draw 2 cards when played', image: 'wiseOracle', rarity: 'legendary' }
         ];
 
         return this.createDeckFromTemplate(baseDeck);
@@ -1647,6 +1648,7 @@ class GameManager {
             ...Array(2).fill({ id: 15, name: 'Mana Wyrm', manaCost: 2, attack: 2, health: 3, effect: 'Gain +1 attack when you cast a spell', image: 'manaWyrm', rarity: 'rare' }),
             ...Array(2).fill({ name: 'Battle Mage', manaCost: 4, attack: 3, health: 5, effect: 'When you cast a spell, this minion gains +2 attack this turn', image: 'battleMage', rarity: 'rare' }),
             ...Array(2).fill({ name: 'Spell Weaver', manaCost: 4, attack: 3, health: 3, effect: 'Gain +1/+1 for each spell in your hand when played', image: 'spellWeaver', rarity: 'epic' }),
+            ...Array(2).fill({ name: 'Death Prophet', manaCost: 1, attack: 1, health: 1, effect: 'When this minion dies, draw a card', image: 'deathProphet', rarity: 'common' }),
             
             // Mnoho kouzel
             ...Array(2).fill({ id: 3, name: 'Fireball', manaCost: 4, effect: 'Deal 6 damage to enemy hero', image: 'fireball', rarity: 'uncommon' }),
@@ -1659,13 +1661,11 @@ class GameManager {
             // Card draw
             ...Array(2).fill({ id: 8, name: 'Arcane Intellect', manaCost: 3, effect: 'Draw 2 cards', image: 'arcaneIntellect', rarity: 'rare' }),
             ...Array(2).fill({ id: 9, name: 'Nimble Sprite', manaCost: 1, attack: 1, health: 2, effect: 'Draw a card when played', image: 'nimbleSprite', rarity: 'common' }),
+            ...Array(2).fill({ name: 'Arcane Guardian', manaCost: 3, attack: 2, health: 4, effect: 'Has +1 health for each spell in your hand', image: 'arcaneGuardian', rarity: 'common' }),
             
-            // Finishers
+            // Finishers (legendary pouze 1x)
             { id: 13, name: 'Inferno Wave', manaCost: 7, effect: 'Deal 4 damage to all enemy minions', image: 'infernoWave', rarity: 'epic' },
-            { name: 'Arcane Storm', manaCost: 7, effect: 'Deal 8 damage to all characters', image: 'arcaneStorm', rarity: 'epic' },
-            
-            // Doplnění
-            ...Array(2).fill({ name: 'Arcane Guardian', manaCost: 3, attack: 2, health: 4, effect: 'Has +1 health for each spell in your hand', image: 'arcaneGuardian', rarity: 'common' })
+            { name: 'Fire Dragon', manaCost: 7, attack: 6, health: 7, effect: 'Taunt. When this minion dies, shuffle a Fireball into your deck', image: 'fireDragon', rarity: 'legendary' }
         ];
 
         return this.createDeckFromTemplate(baseDeck);
@@ -1696,7 +1696,7 @@ class GameManager {
             // Strong late game
             ...Array(2).fill({ id: 43, name: 'Mountain Giant', manaCost: 7, attack: 6, health: 9, effect: 'Taunt', image: 'mountainGiant', rarity: 'rare' }),
             { name: 'Time Weaver', manaCost: 8, attack: 6, health: 8, effect: 'At the end of your turn, restore 2 health to all friendly characters', image: 'timeWeaver', rarity: 'legendary' },
-            { name: 'Mirror Entity', manaCost: 4, attack: 3, health: 3, effect: 'Copy a random enemy minion stats when played', image: 'mirrorEntity', rarity: 'epic' }
+            { name: 'Mirror Entity', manaCost: 3, attack: 3, health: 3, effect: 'Copy a random enemy minion stats when played', image: 'mirrorEntity', rarity: 'epic' }
         ];
 
         return this.createDeckFromTemplate(baseDeck);
@@ -1754,8 +1754,8 @@ class GameManager {
         const baseDeck = [
             // Control jednotky
             ...Array(2).fill({ id: 5, name: 'Water Elemental', manaCost: 3, attack: 3, health: 5, effect: 'Freeze random enemy minion when played', image: 'waterElemental', rarity: 'rare' }),
-            ...Array(2).fill({ name: 'Elendralis', manaCost: 5, attack: 4, health: 6, effect: 'If your hero has less than 10 health when played, gain Taunt and restore 3 health to your hero', image: 'elendralis', rarity: 'legendary' }),
-            ...Array(2).fill({ name: 'Silence Assassin', manaCost: 3, attack: 3, health: 4, effect: 'When this minion attacks a Taunt minion, remove its Taunt. Cannot attack the turn it is played', image: 'silenceAssassin', rarity: 'legendary' }),
+            ...Array(2).fill({ name: 'Shadow Priest', manaCost: 3, attack: 2, health: 4, effect: 'hen this minion attacks, restore health equal to the damage dealt to your hero', image: 'shadowPriest', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Ancient Guardian', manaCost: 3, attack: 4, health: 5, effect: 'Taunt. Cannot attack', image: 'ancientGuardian', rarity: 'rare' }),
             
             // Taunt wall
             ...Array(2).fill({ id: 2, name: 'Shield Bearer', manaCost: 2, attack: 1, health: 7, effect: 'Taunt', image: 'shieldBearer', rarity: 'common' }),
@@ -1771,10 +1771,11 @@ class GameManager {
             // Card draw and utility
             ...Array(2).fill({ id: 8, name: 'Arcane Intellect', manaCost: 3, effect: 'Draw 2 cards', image: 'arcaneIntellect', rarity: 'rare' }),
             ...Array(2).fill({ name: 'Soothing Return', manaCost: 3, effect: 'Return a random enemy minion to their hand and restore 3 health to your hero', image: 'soothingReturn', rarity: 'uncommon' }),
-            
-            // Big finishers
             ...Array(2).fill({ id: 44, name: 'Light Champion', manaCost: 6, attack: 5, health: 5, effect: 'Divine Shield', image: 'lightChampion', rarity: 'uncommon' }),
-            { name: 'Time Weaver', manaCost: 8, attack: 6, health: 8, effect: 'At the end of your turn, restore 2 health to all friendly characters', image: 'timeWeaver', rarity: 'legendary' }
+            
+            // Legendary finisher (pouze 1x)
+            { name: 'Elendralis', manaCost: 5, attack: 4, health: 6, effect: 'If your hero has less than 10 health when played, gain Taunt and restore 3 health to your hero', image: 'elendralis', rarity: 'legendary' },
+            { name: 'Silence Assassin', manaCost: 3, attack: 3, health: 4, effect: 'When this minion attacks a Taunt minion, remove its Taunt. Cannot attack the turn it is played', image: 'silenceAssassin', rarity: 'legendary' }
         ];
 
         return this.createDeckFromTemplate(baseDeck);
@@ -1785,29 +1786,35 @@ class GameManager {
         const baseDeck = [
             // Divine Shield jednotky
             ...Array(2).fill({ id: 44, name: 'Light Champion', manaCost: 6, attack: 5, health: 5, effect: 'Divine Shield', image: 'lightChampion', rarity: 'uncommon' }),
-            ...Array(2).fill({ id: 45, name: 'Radiant Protector', manaCost: 6, attack: 4, health: 5, effect: 'Taunt, Divine Shield', image: 'radiantProtector', rarity: 'legendary' }),
-            ...Array(2).fill({ name: 'Divine Squire', manaCost: 1, attack: 1, health: 1, effect: 'Divine Shield', image: 'divineSquire', rarity: 'legendary' }),
             ...Array(2).fill({ name: 'Divine Protector', manaCost: 4, attack: 5, health: 5, effect: 'Gain Divine Shield if your hero has full health when played', image: 'divineProtector', rarity: 'uncommon' }),
             ...Array(2).fill({ name: 'Frost Knight', manaCost: 3, attack: 2, health: 4, effect: 'Divine Shield. Freeze any minion damaged by this unit', image: 'frostKnight', rarity: 'epic' }),
+            ...Array(1).fill({ name: 'Friendly Spirit', manaCost: 3, attack: 2, health: 3, effect: 'Divine Shield. At the end of each turn, gain +1 health', image: 'friendlySpirit', rarity: 'uncommon' }),
             
             // Divine Shield support
             ...Array(2).fill({ name: 'Crystal Guardian', manaCost: 5, attack: 3, health: 6, effect: 'Divine Shield, Taunt. When Divine Shield is broken, restore 3 health to your hero', image: 'crystalGuardian', rarity: 'rare' }),
-            ...Array(2).fill({ name: 'Twilight Guardian', manaCost: 7, attack: 4, health: 7, effect: 'Taunt. At the end of your turn, give a random friendly minion Divine Shield', image: 'twilightGuardian', rarity: 'legendary' }),
+            ...Array(2).fill({ name: 'Charging Knight', manaCost: 4, attack: 5, health: 3, effect: 'Divine Shield', image: 'chargingKnight', rarity: 'rare' }),
             
             // Divine Shield synergy spells
             ...Array(2).fill({ name: 'Divine Formation', manaCost: 1, effect: 'Give Taunt to all friendly minions with Divine Shield', image: 'divineFormation', rarity: 'uncommon' }),
-            ...Array(2).fill({ name: 'Shield Breaker', manaCost: 2, effect: 'Destroy all enemy Divine Shields. Restore 1 health to your hero for each shield destroyed', image: 'shieldBreaker', rarity: 'uncommon' }),
             
             // Support jednotky
             ...Array(2).fill({ id: 2, name: 'Shield Bearer', manaCost: 2, attack: 1, health: 7, effect: 'Taunt', image: 'shieldBearer', rarity: 'common' }),
             ...Array(2).fill({ id: 9, name: 'Nimble Sprite', manaCost: 1, attack: 1, health: 2, effect: 'Draw a card when played', image: 'nimbleSprite', rarity: 'common' }),
+            ...Array(2).fill({ name: 'Frost Spirit', manaCost: 1, attack: 2, health: 2, effect: 'When this minion dies, freeze a random enemy minion', image: 'frostSpirit', rarity: 'uncommon' }),
             
             // Healing a utility
             ...Array(2).fill({ id: 4, name: 'Healing Touch', manaCost: 3, effect: 'Restore 8 health', image: 'healingTouch', rarity: 'common' }),
             ...Array(2).fill({ name: 'Mass Fortification', manaCost: 4, effect: 'Give all friendly minions Taunt and +0/+2', image: 'massFortification', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Glacial Burst', manaCost: 3, effect: 'Freeze all enemy minions', image: 'glacialBurst', rarity: 'epic' }),
+            ...Array(2).fill({ name: 'Mana Surge', manaCost: 3, effect: 'Restore your mana crystals to maximum available this turn', image: 'manaSurge', rarity: 'epic' }),
+           
             
-            // Big threats
-            ...Array(2).fill({ name: 'Ancient Protector', manaCost: 8, attack: 5, health: 9, effect: 'Divine Shield, Taunt. Adjacent minions also gain Divine Shield', image: 'ancientProtector', rarity: 'legendary' })
+            // Legendary threats (pouze 1x)
+            { id: 45, name: 'Radiant Protector', manaCost: 6, attack: 4, health: 5, effect: 'Taunt, Divine Shield', image: 'radiantProtector', rarity: 'legendary' },
+            { name: 'Divine Squire', manaCost: 1, attack: 1, health: 1, effect: 'Divine Shield', image: 'divineSquire', rarity: 'legendary' },
+            { name: 'Twilight Guardian', manaCost: 7, attack: 4, health: 7, effect: 'Taunt. At the end of your turn, give a random friendly minion Divine Shield', image: 'twilightGuardian', rarity: 'legendary' },
+            { name: 'Ancient Protector', manaCost: 8, attack: 5, health: 9, effect: 'Divine Shield, Taunt. Adjacent minions also gain Divine Shield', image: 'ancientProtector', rarity: 'legendary' },
+            { name:'Zoxus', manaCost: 2, attack: 1, health: 1, effect: 'Divine Shield. At the end of each turn, gain +1/+1', image: 'zoxus', rarity: 'legendary'}
         ];
 
         return this.createDeckFromTemplate(baseDeck);
@@ -1868,6 +1875,7 @@ class GameManager {
             ...Array(2).fill({ name: 'Mana Collector', manaCost: 5, attack: 3, health: 6, effect: 'At the start of your turn, gain mana equal to this minions attack', image: 'manaCollector', rarity: 'uncommon' }),
             ...Array(2).fill({ name: 'Mana Crystal', manaCost: 1, attack: 1, health: 3, effect: 'When this minion dies, gain 1 mana crystal', image: 'manaCrystal', rarity: 'common' }),
             ...Array(2).fill({ name: 'Mana Siphon', manaCost: 2, attack: 2, health: 2, effect: 'When this minion attacks, gain 1 mana crystal this turn only', image: 'manaSiphon', rarity: 'common' }),
+            ...Array(2).fill({ name: 'Mana Golem Elite', manaCost: 6, attack: 0, health: 7, effect: 'Attack equals your maximum mana crystals. Taunt', image: 'manaGolemElite', rarity: 'epic' }),
             
             // Early game
             ...Array(2).fill({ id: 9, name: 'Nimble Sprite', manaCost: 1, attack: 1, health: 2, effect: 'Draw a card when played', image: 'nimbleSprite', rarity: 'common' }),
@@ -1881,15 +1889,18 @@ class GameManager {
             ...Array(2).fill({ id: 8, name: 'Arcane Intellect', manaCost: 3, effect: 'Draw 2 cards', image: 'arcaneIntellect', rarity: 'rare' }),
             ...Array(2).fill({ name: 'Spell Seeker', manaCost: 2, attack: 2, health: 3, effect: 'Draw a random spell from your deck when played', image: 'spellSeeker', rarity: 'rare' }),
             
-            // Big threats
-            ...Array(2).fill({ name: 'Mana Leech', manaCost: 6, attack: 5, health: 5, effect: 'When this minion deals damage, restore that much mana to you', image: 'manaLeech', rarity: 'legendary' }),
-            ...Array(2).fill({ name: 'Ancient Colossus', manaCost: 20, attack: 12, health: 12, effect: 'Costs (1) less for each minion that died this game', image: 'ancientColossus', rarity: 'legendary' }),
+            // Mid-range threats
             ...Array(2).fill({ id: 43, name: 'Mountain Giant', manaCost: 7, attack: 6, health: 9, effect: 'Taunt', image: 'mountainGiant', rarity: 'rare' }),
+            ...Array(2).fill({ name: 'Overloading Giant', manaCost: 4, attack: 7, health: 7, effect: 'Overload (2)', image: 'overloadingGiant', rarity: 'epic' }),
             
             // Utility
             ...Array(2).fill({ name: 'Mirror Image', manaCost: 2, effect: 'Create two 0/2 Mirror Images with Taunt', image: 'mirrorImage', rarity: 'rare' }),
-            { name: 'Time Weaver', manaCost: 8, attack: 6, health: 8, effect: 'At the end of your turn, restore 2 health to all friendly characters', image: 'timeWeaver', rarity: 'legendary' },
-            { name: 'Overloading Giant', manaCost: 4, attack: 7, health: 7, effect: 'Overload (2)', image: 'overloadingGiant', rarity: 'epic' }
+            ...Array(2).fill({ name: 'Armored Elephant', manaCost: 4, attack: 2, health: 6, effect: 'Taunt', image: 'armoredElephant', rarity: 'uncommon' }),
+            
+            // Legendary threats (pouze 1x)
+            { name: 'Mana Leech', manaCost: 7, attack: 4, health: 5, effect: 'When this minion deals damage, restore that much mana to you', image: 'manaLeech', rarity: 'legendary' },
+            { name: 'Ancient Colossus', manaCost: 20, attack: 12, health: 12, effect: 'Costs (1) less for each minion that died this game', image: 'ancientColossus', rarity: 'legendary' },
+            { name: 'Time Weaver', manaCost: 8, attack: 6, health: 8, effect: 'At the end of your turn, restore 2 health to all friendly characters', image: 'timeWeaver', rarity: 'legendary' }
         ];
 
         return this.createDeckFromTemplate(baseDeck);
@@ -1903,23 +1914,25 @@ class GameManager {
             ...Array(2).fill({ name: 'Battle Mage', manaCost: 4, attack: 3, health: 5, effect: 'When you cast a spell, this minion gains +2 attack this turn', image: 'battleMage', rarity: 'rare' }),
             ...Array(2).fill({ name: 'Arcane Summoner', manaCost: 4, attack: 3, health: 3, effect: 'When this minion dies, shuffle two Arcane Wisps into your deck', image: 'arcaneSummoner', rarity: 'epic' }),
             ...Array(2).fill({ name: 'Mind Mimic', manaCost: 5, attack: 4, health: 4, effect: 'When played, create a copy of a random card from your opponent hand', image: 'mindMimic', rarity: 'epic' }),
+            ...Array(2).fill({ name: 'Arcane Wisp', manaCost: 1, attack: 1, health: 1, effect: 'When this minion dies, add a copy of The Coin to your hand', image: 'arcaneWisp', rarity: 'uncommon' }),
             
             // Card generation
             ...Array(2).fill({ name: 'Spell Seeker', manaCost: 2, attack: 2, health: 3, effect: 'Draw a random spell from your deck when played', image: 'spellSeeker', rarity: 'rare' }),
             ...Array(2).fill({ name: 'Mirror Entity', manaCost: 4, attack: 3, health: 3, effect: 'Copy a random enemy minion stats when played', image: 'mirrorEntity', rarity: 'epic' }),
-            ...Array(2).fill({ name: 'Mind Theft', manaCost: 4, effect: 'Steal a random card from your opponent hand', image: 'mindTheft', rarity: 'legendary' }),
             
             // Utility spells
             ...Array(2).fill({ id: 8, name: 'Arcane Intellect', manaCost: 3, effect: 'Draw 2 cards', image: 'arcaneIntellect', rarity: 'rare' }),
             ...Array(2).fill({ name: 'Mirror Image', manaCost: 2, effect: 'Create two 0/2 Mirror Images with Taunt', image: 'mirrorImage', rarity: 'rare' }),
             ...Array(2).fill({ name: 'Mind Copy', manaCost: 1, effect: 'Create a copy of a random card from your opponent hand', image: 'mindCopy', rarity: 'epic' }),
+            ...Array(2).fill({ name: 'Glacial Burst', manaCost: 3, effect: 'Freeze all enemy minions', image: 'glacialBurst', rarity: 'epic' }),
             
             // Support
             ...Array(2).fill({ id: 9, name: 'Nimble Sprite', manaCost: 1, attack: 1, health: 2, effect: 'Draw a card when played', image: 'nimbleSprite', rarity: 'common' }),
             ...Array(2).fill({ name: 'Eternal Wanderer', manaCost: 6, attack: 5, health: 5, effect: 'Cannot attack the turn it is played. When this minion dies, return it to your hand', image: 'eternalWanderer', rarity: 'epic' }),
             
-            // Finishers
-            ...Array(2).fill({ name: 'Legion Commander', manaCost: 9, attack: 6, health: 6, effect: 'When played, fill your board with 1/1 minions that cannot attack this turn', image: 'legionCommander', rarity: 'legendary' }),
+            // Legendary finishers (pouze 1x)
+            { name: 'Mind Theft', manaCost: 4, effect: 'Steal a random card from your opponent hand', image: 'mindTheft', rarity: 'legendary' },
+            { name: 'Legion Commander', manaCost: 9, attack: 6, health: 6, effect: 'When played, fill your board with 1/1 minions that cannot attack this turn', image: 'legionCommander', rarity: 'legendary' },
             { name: 'Time Weaver', manaCost: 8, attack: 6, health: 8, effect: 'At the end of your turn, restore 2 health to all friendly characters', image: 'timeWeaver', rarity: 'legendary' }
         ];
 
