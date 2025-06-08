@@ -761,6 +761,18 @@ class AIPlayer {
             }
         }
         
+        // Buff spells (targetují friendly miniony)
+        if (this.isBuffSpell(spell)) {
+            const player = this.gameState.players[this.playerIndex];
+            const friendlyUnits = player.field.filter(unit => unit).length;
+            
+            if (friendlyUnits === 0) {
+                priority = -400; // Velmi špatný tah bez cílů
+            } else {
+                priority += friendlyUnits * 50; // Bonus za více cílů
+            }
+        }
+        
         return priority;
     }
 
@@ -1006,6 +1018,10 @@ class AIPlayer {
             case 'Polymorph Wave':
                 return situation.opponentBoardSize >= 3; // Transform all jen při hodně jednotkách
                 
+            case 'Mass Fortification':
+            case 'Divine Formation':
+                return situation.playerBoardSize > 0; // Jen pokud máme vlastní miniony
+                
             case 'Fireball':
             case 'Lightning Bolt':
             case 'Magic Arrows':
@@ -1041,6 +1057,15 @@ class AIPlayer {
     isSituationalSpell(spell) {
         const situational = ['Shield Breaker', 'Mass Dispel', 'Glacial Burst', 'Soothing Return'];
         return situational.includes(spell.name);
+    }
+
+    isBuffSpell(spell) {
+        const buffSpells = ['Mass Fortification', 'Divine Formation'];
+        return buffSpells.includes(spell.name) || 
+               (spell.effect && (
+                   spell.effect.includes('Give all friendly') || 
+                   spell.effect.includes('all friendly minions')
+               ));
     }
 
     /**
