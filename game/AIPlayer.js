@@ -12,6 +12,9 @@ class AIPlayer {
         this.deckArchetype = this.determineDeckArchetype();
         this.gamePhase = this.determineGamePhase();
         
+        // Analyzujeme balíček pro lepší strategické rozhodování
+        this.deckAnalysis = this.analyzeDeck();
+        
         // Konstanty pro hodnocení
         this.LETHAL_PRIORITY = 10000;
         this.THREAT_REMOVAL_PRIORITY = 1000;
@@ -28,6 +31,9 @@ class AIPlayer {
      */
     async makeMove() {
         try {
+            // Simulujeme "přemýšlení" AI
+            await new Promise(resolve => setTimeout(resolve, 1300));
+
             const startTime = Date.now();
             const maxThinkTime = 3000; // 3 sekundy max
             
@@ -341,11 +347,14 @@ class AIPlayer {
     calculateUnitValue(unit) {
         let value = unit.attack + unit.health;
         
-        // Bonusy za speciální schopnosti
+        // Bonusy za speciální schopnosti - rozpoznáváme z effect textu
         if (unit.hasTaunt) value += 2;
         if (unit.hasDivineShield) value += 3;
-        if (unit.hasLifesteal) value += 2;
-        if (unit.hasWindfury) value += unit.attack * 0.5;
+        if (this.hasEffectKeyword(unit, 'Lifesteal') || this.hasEffectKeyword(unit, 'restore') || this.hasEffectKeyword(unit, 'heal')) value += 2;
+        if (this.hasEffectKeyword(unit, 'Windfury') || (unit.effect && unit.effect.includes('attack twice'))) value += unit.attack * 0.5;
+        
+        // Bonusy za draw effects
+        if (this.hasEffectKeyword(unit, 'draw')) value += 1.5;
         
         // Penalty za negative effects
         if (unit.frozen) value *= 0.5;
@@ -498,11 +507,7 @@ class AIPlayer {
      * Vypočítá damage kouzla na hrdinu
      */
     getSpellDamageToHero(spell) {
-        // Jednoduchá implementace - v reálné hře by bylo komplexnější
-        if (spell.name === 'Fireball') return 6;
-        if (spell.name === 'Lightning Bolt') return 3;
-        if (spell.name === 'Magic Arrows') return 3; // 1 damage 3x
-        return 0;
+        return this.getSpellDamageValue(spell);
     }
 
     /**
@@ -518,19 +523,42 @@ class AIPlayer {
      */
     calculateCardPlayPriority(card) {
         let priority = this.TEMPO_PLAY_PRIORITY;
+        const situation = this.analyzeCurrentSituation();
         
-        // Mana efficiency
-        const efficiency = this.calculateManaEfficiency({ hand: [card], mana: card.manaCost });
-        priority += efficiency * 10;
+        // Base mana efficiency
+        const statSum = (card.attack || 0) + (card.health || 0);
+        const efficiency = statSum / Math.max(1, card.manaCost);
+        priority += efficiency * 20;
         
         // Curve considerations
         if (this.isOnCurve(card)) {
             priority += 50;
         }
         
+        // Situational bonuses
+        if (this.hasEffectKeyword(card, 'Taunt')) {
+            if (situation.isPlayerLowHealth || situation.opponentBoardSize > situation.playerBoardSize) {
+                priority += 100; // Taunt je dobrý pro obranu
+            }
+        }
+        
+        if (this.hasEffectKeyword(card, 'Divine Shield')) {
+            priority += 30; // Divine Shield je obecně dobrý
+        }
+        
+        if (this.hasEffectKeyword(card, 'draw')) {
+            if (situation.handSize <= 3) {
+                priority += 80; // Card draw při malé ruce
+            }
+        }
+        
         // Archetype bonuses
-        if (this.deckArchetype === 'aggro' && card.attack > card.health) {
+        if (this.deckArchetype === 'aggro' && (card.attack || 0) > (card.health || 0)) {
             priority += 30;
+        }
+        
+        if (this.deckArchetype === 'control' && this.hasEffectKeyword(card, 'Taunt')) {
+            priority += 40;
         }
         
         return priority;
@@ -548,21 +576,39 @@ class AIPlayer {
      * Vypočítá prioritu hrdinské schopnosti
      */
     calculateHeroAbilityPriority() {
+        const player = this.gameState.players[this.playerIndex];
+        const opponent = this.gameState.players[this.opponentIndex];
         let priority = 100;
         
         if (this.heroType === 'mage') {
-            // Fireblast - damage ability
-            const opponent = this.gameState.players[this.opponentIndex];
+            // Fireblast - 2 damage
             if (opponent.hero.health <= 10) {
                 priority += 200; // Vysoká priorita pokud je protivník low
             }
+            // Lethal check
+            if (opponent.hero.health <= 2) {
+                priority += this.LETHAL_PRIORITY;
+            }
         } else if (this.heroType === 'priest') {
-            // Heal ability
-            const player = this.gameState.players[this.playerIndex];
+            // Lesser Heal - 2 health
             if (player.hero.health < player.hero.maxHealth - 2) {
                 priority += 150; // Heal pokud potřebujeme
             } else {
                 priority = 10; // Nízká priorita pokud jsme full health
+            }
+        } else if (this.heroType === 'seer') {
+            // Fortune Draw - draw card
+            if (player.hand.length <= 3) {
+                priority += 200; // Vysoká priorita s málo kartami
+            } else if (player.hand.length >= 8) {
+                priority = 10; // Nízká priorita s plnou rukou
+            } else {
+                priority += 100; // Střední priorita
+            }
+            
+            // Bonus pokud máme dobrý balíček
+            if (this.deckAnalysis && this.deckAnalysis.utilityCards > 3) {
+                priority += 50;
             }
         }
         
@@ -589,34 +635,96 @@ class AIPlayer {
      */
     findSpellTargets(spell) {
         const targets = [];
+        const opponent = this.gameState.players[this.opponentIndex];
+        const player = this.gameState.players[this.playerIndex];
         
-        // Jednoduchá implementace - damage spells na hrdinu
-        if (spell.effect && spell.effect.includes('damage')) {
-            targets.push({ isHero: true });
+        // Pro damage kouzla
+        if (this.isDamageSpell(spell)) {
+            // AoE kouzla nepotřebují specifický cíl
+            if (this.isAOESpell(spell)) {
+                targets.push({}); // Prázdný target pro AoE
+            } else {
+                // Single target damage - preferujeme hero pokud je low health
+                if (opponent.hero.health <= this.getSpellDamageValue(spell) + 5) {
+                    targets.push({ isHero: true, priority: 1000 });
+                } else {
+                    targets.push({ isHero: true, priority: 200 });
+                }
+                
+                // Nebo vysoké threat jednotky
+                for (let i = 0; i < opponent.field.length; i++) {
+                    const unit = opponent.field[i];
+                    if (unit) {
+                        const threatLevel = this.calculateThreatLevel(unit);
+                        targets.push({ 
+                            isHero: false, 
+                            unitIndex: i, 
+                            priority: threatLevel + 100 
+                        });
+                    }
+                }
+            }
         }
         
-        // Healing spells na vlastního hrdinu
-        if (spell.effect && spell.effect.includes('health')) {
-            targets.push({ isHero: true, friendly: true });
+        // Pro healing kouzla
+        if (this.isHealingSpell(spell)) {
+            if (player.hero.health < player.hero.maxHealth) {
+                targets.push({ isHero: true, friendly: true });
+            }
         }
         
-        return targets.length > 0 ? targets : [{}]; // Default empty target
+        return targets.length > 0 ? targets : [{}];
     }
 
     /**
      * Vypočítá prioritu kouzla
      */
     calculateSpellPriority(spell, target) {
+        // Základní kontrola zda kouzlo má smysl zahrát
+        if (!this.shouldPlaySpell(spell)) {
+            return -1000; // Velmi nízká priorita
+        }
+        
         let priority = this.TEMPO_PLAY_PRIORITY;
         
-        if (spell.effect && spell.effect.includes('damage') && target.isHero) {
-            priority = this.FACE_DAMAGE_PRIORITY;
+        // Damage spells
+        if (this.isDamageSpell(spell)) {
+            const damage = this.getSpellDamageValue(spell);
             
-            // Bonus pro lethal setup
+            if (target.isHero) {
+                priority = this.FACE_DAMAGE_PRIORITY;
+                const opponent = this.gameState.players[this.opponentIndex];
+                
+                // Lethal check
+                if (opponent.hero.health <= damage) {
+                    priority += this.LETHAL_PRIORITY;
+                } else if (opponent.hero.health <= damage + 5) {
+                    priority += 300; // Close to lethal
+                }
+                
+                // Archetype bonus
+                if (this.deckArchetype === 'aggro') {
+                    priority += 100;
+                }
+            } else if (target.unitIndex !== undefined) {
+                // Targeting enemy unit
+                const opponent = this.gameState.players[this.opponentIndex];
+                const targetUnit = opponent.field[target.unitIndex];
+                if (targetUnit && targetUnit.health <= damage) {
+                    priority += this.THREAT_REMOVAL_PRIORITY;
+                    priority += this.calculateThreatLevel(targetUnit);
+                }
+            }
+        }
+        
+        // AoE spells
+        if (this.isAOESpell(spell)) {
             const opponent = this.gameState.players[this.opponentIndex];
-            const damage = this.getSpellDamageToHero(spell);
-            if (opponent.hero.health <= damage + 5) {
-                priority += 300;
+            const enemyUnits = opponent.field.filter(unit => unit).length;
+            if (enemyUnits >= 2) {
+                priority += enemyUnits * 100; // Bonus za více cílů
+            } else {
+                priority -= 200; // Penalty za málo cílů
             }
         }
         
@@ -677,22 +785,30 @@ class AIPlayer {
      * Určí archetyp balíčku
      */
     determineDeckArchetype() {
-        const player = this.gameState.players[this.playerIndex];
-        
-        // Jednoduchá heuristika podle karet v ruce
-        let aggroCards = 0;
-        let controlCards = 0;
-        
-        for (const card of player.hand) {
-            if (card.manaCost <= 3) aggroCards++;
-            if (card.manaCost >= 6) controlCards++;
-            if (card.effect && card.effect.includes('Taunt')) controlCards++;
-            if (card.effect && card.effect.includes('damage')) aggroCards++;
+        if (!this.deckAnalysis) {
+            this.deckAnalysis = this.analyzeDeck();
         }
         
-        if (aggroCards > controlCards) return 'aggro';
-        if (controlCards > aggroCards) return 'control';
-        return 'midrange';
+        const analysis = this.deckAnalysis;
+        
+        // Aggro deck - více damage a agresivních jednotek
+        const aggroScore = analysis.damageSpells + analysis.aggressiveUnits;
+        
+        // Control deck - více healingu, taunts a removal
+        const controlScore = analysis.healingSpells + analysis.defensiveUnits + analysis.situationalSpells;
+        
+        // Utility/combo deck - více card draw a utility
+        const utilityScore = analysis.utilityCards + analysis.aoeSpells;
+        
+        if (aggroScore > controlScore && aggroScore > utilityScore) {
+            return 'aggro';
+        } else if (controlScore > aggroScore && controlScore > utilityScore) {
+            return 'control';
+        } else if (utilityScore > aggroScore && utilityScore > controlScore) {
+            return 'combo';
+        } else {
+            return 'midrange';
+        }
     }
 
     /**
@@ -755,11 +871,189 @@ class AIPlayer {
     }
 
     /**
+     * Analyzuje balíček pro strategické rozhodování
+     */
+    analyzeDeck() {
+        const player = this.gameState.players[this.playerIndex];
+        const allCards = [...player.hand, ...player.deck];
+        
+        let analysis = {
+            damageSpells: 0,
+            healingSpells: 0,
+            aoeSpells: 0,
+            situationalSpells: 0,
+            aggressiveUnits: 0,
+            defensiveUnits: 0,
+            utilityCards: 0
+        };
+        
+        for (const card of allCards) {
+            if (card.type === 'spell') {
+                if (this.isDamageSpell(card)) analysis.damageSpells++;
+                if (this.isHealingSpell(card)) analysis.healingSpells++;
+                if (this.isAOESpell(card)) analysis.aoeSpells++;
+                if (this.isSituationalSpell(card)) analysis.situationalSpells++;
+            } else if (card.type === 'unit') {
+                if ((card.attack || 0) > (card.health || 0)) analysis.aggressiveUnits++;
+                if (this.hasEffectKeyword(card, 'Taunt')) analysis.defensiveUnits++;
+                if (this.hasEffectKeyword(card, 'draw')) analysis.utilityCards++;
+            }
+        }
+        
+        return analysis;
+    }
+
+    /**
+     * Analyzuje aktuální situaci na boardu
+     */
+    analyzeCurrentSituation() {
+        const player = this.gameState.players[this.playerIndex];
+        const opponent = this.gameState.players[this.opponentIndex];
+        
+        return {
+            // Health situation
+            isOpponentLowHealth: opponent.hero.health <= 10,
+            isPlayerLowHealth: player.hero.health <= 10,
+            
+            // Board control
+            playerBoardSize: player.field.filter(unit => unit).length,
+            opponentBoardSize: opponent.field.filter(unit => unit).length,
+            
+            // Threats
+            hasOpponentTaunt: opponent.field.some(unit => unit && this.hasEffectKeyword(unit, 'Taunt')),
+            hasOpponentDivineShield: opponent.field.some(unit => unit && this.hasEffectKeyword(unit, 'Divine Shield')),
+            opponentThreats: opponent.field.filter(unit => unit && this.calculateThreatLevel(unit) > 10).length,
+            
+            // Resources
+            handSize: player.hand.length,
+            manaEfficiency: player.mana / Math.max(1, player.maxMana),
+            
+            // Game phase
+            isEarlyGame: this.gameState.turn <= 3,
+            isMidGame: this.gameState.turn > 3 && this.gameState.turn <= 7,
+            isLateGame: this.gameState.turn > 7
+        };
+    }
+
+    /**
+     * Rozhoduje zda má smysl zahrát kouzlo v aktuální situaci
+     */
+    shouldPlaySpell(spell) {
+        const situation = this.analyzeCurrentSituation();
+        const player = this.gameState.players[this.playerIndex];
+        
+        switch(spell.name) {
+            case 'Shield Breaker':
+                return situation.hasOpponentDivineShield;
+                
+            case 'Mass Dispel':
+                return situation.hasOpponentTaunt && situation.playerBoardSize > 0;
+                
+            case 'Glacial Burst':
+                return situation.opponentThreats > 0 || situation.opponentBoardSize >= 2;
+                
+            case 'Healing Touch':
+            case 'Holy Nova':
+                return situation.isPlayerLowHealth || player.hero.health < player.hero.maxHealth - 5;
+                
+            case 'Arcane Intellect':
+                return situation.handSize <= 4; // Jen pokud máme málo karet
+                
+            case 'Mirror Image':
+                return situation.opponentBoardSize > situation.playerBoardSize || situation.isPlayerLowHealth;
+                
+            case 'Inferno Wave':
+            case 'Arcane Explosion':
+                return situation.opponentBoardSize >= 2; // AoE jen pokud má více jednotek
+                
+            case 'Fireball':
+            case 'Lightning Bolt':
+            case 'Magic Arrows':
+            case 'Frostbolt':
+                return true; // Damage spells jsou skoro vždy OK
+                
+            default:
+                return true; // Neznámé kouzla necháme projít
+        }
+    }
+
+    /**
+     * Utility metody pro rozpoznávání efektů karet
+     */
+    hasEffectKeyword(card, keyword) {
+        if (!card || !card.effect) return false;
+        return card.effect.toLowerCase().includes(keyword.toLowerCase());
+    }
+
+    isDamageSpell(spell) {
+        if (!spell.effect) return false;
+        return this.hasEffectKeyword(spell, 'damage') || this.hasEffectKeyword(spell, 'deal');
+    }
+
+    isHealingSpell(spell) {
+        return this.hasEffectKeyword(spell, 'heal') || this.hasEffectKeyword(spell, 'restore');
+    }
+
+    isAOESpell(spell) {
+        return this.hasEffectKeyword(spell, 'all') || this.hasEffectKeyword(spell, 'enemies') || this.hasEffectKeyword(spell, 'minions');
+    }
+
+    isSituationalSpell(spell) {
+        const situational = ['Shield Breaker', 'Mass Dispel', 'Glacial Burst', 'Soothing Return'];
+        return situational.includes(spell.name);
+    }
+
+    /**
+     * Získá damage value kouzla
+     */
+    getSpellDamageValue(spell) {
+        // Pro jednotlivé známé kouzla
+        const knownSpells = {
+            'Fireball': 6,
+            'Lightning Bolt': 3,
+            'Magic Arrows': 3,
+            'Frostbolt': 3,
+            'Arcane Explosion': 1, // AoE
+            'Inferno Wave': 4, // AoE
+            'Arcane Storm': 8, // All characters
+            'Holy Strike': 2
+        };
+        
+        return knownSpells[spell.name] || this.parseDamageFromEffect(spell.effect);
+    }
+
+    /**
+     * Parsuje damage z effect textu
+     */
+    parseDamageFromEffect(effect) {
+        if (!effect) return 0;
+        const match = effect.match(/Deal (\d+) damage/i);
+        return match ? parseInt(match[1]) : 0;
+    }
+
+    /**
      * Logging pro debugging
      */
     log(...args) {
         if (this.debugMode) {
             console.log("[AI]", ...args);
+        }
+    }
+
+    logMove(move, reason) {
+        if (this.debugMode) {
+            console.log(`[AI MOVE] ${move.type}: ${reason}`);
+            if (move.type === 'playCard') {
+                const card = this.gameState.players[this.playerIndex].hand[move.cardIndex];
+                console.log(`  Card: ${card?.name} (${card?.manaCost} mana)`);
+            }
+        }
+    }
+
+    logSituation() {
+        if (this.debugMode) {
+            const situation = this.analyzeCurrentSituation();
+            console.log("[AI SITUATION]", situation);
         }
     }
 }

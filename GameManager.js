@@ -1802,7 +1802,7 @@ class GameManager {
             ...Array(2).fill({ name: 'Shield Bearer', manaCost: 2, attack: 1, health: 7, effect: 'Taunt', image: 'shieldBearer', rarity: 'common' }),
             
             // Mid-game Divine Shield units (10 karet)
-            ...Array(2).fill({ name: 'Friendly Spirit', manaCost: 3, attack: 2, health: 3, effect: 'Divine Shield. At the end of each turn, gain +1 health', image: 'growingShield', rarity: 'uncommon' }),
+            ...Array(2).fill({ name: 'Friendly Spirit', manaCost: 3, attack: 2, health: 3, effect: 'Divine Shield. At the end of each turn, gain +1 health', image: 'friendlySpirit', rarity: 'uncommon' }),
             ...Array(2).fill({ name: 'Sacred Defender', manaCost: 3, attack: 2, health: 5, effect: 'Taunt, Divine Shield. Cannot attack the turn it is played', image: 'sacredDefender', rarity: 'rare' }),
             ...Array(2).fill({ name: 'Divine Protector', manaCost: 4, attack: 5, health: 5, effect: 'Gain Divine Shield if your hero has full health when played', image: 'divineProtector', rarity: 'uncommon' }),
             ...Array(2).fill({ name: 'Charging Knight', manaCost: 4, attack: 5, health: 3, effect: 'Divine Shield', image: 'chargingKnight', rarity: 'rare' }),
