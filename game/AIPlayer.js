@@ -594,7 +594,7 @@ class AIPlayer {
             if (player.hero.health < player.hero.maxHealth - 2) {
                 priority += 150; // Heal pokud potřebujeme
             } else {
-                priority = 10; // Nízká priorita pokud jsme full health
+                priority = -500; // Záporná priorita pro heal na full health - je to špatný tah
             }
         } else if (this.heroType === 'seer') {
             // Fortune Draw - draw card
@@ -621,9 +621,15 @@ class AIPlayer {
     calculateEndTurnPriority() {
         const player = this.gameState.players[this.playerIndex];
         
-        // Nízká priorita pokud máme ještě manu a karty
-        if (player.mana > 0 && player.hand.length > 0) {
+        // Nízká priorita pokud máme ještě manu a karty k zahrání
+        const playableCards = player.hand.filter(card => card.manaCost <= player.mana);
+        if (player.mana > 0 && playableCards.length > 0) {
             return 10;
+        }
+        
+        // Střední priorita pokud máme manu ale žádné karty k zahrání
+        if (player.mana > 0 && playableCards.length === 0) {
+            return 150;
         }
         
         // Vysoká priorita pokud nemáme co dělat
@@ -725,6 +731,33 @@ class AIPlayer {
                 priority += enemyUnits * 100; // Bonus za více cílů
             } else {
                 priority -= 200; // Penalty za málo cílů
+            }
+        }
+        
+        // Healing spells
+        if (this.isHealingSpell(spell)) {
+            const player = this.gameState.players[this.playerIndex];
+            const healthMissing = player.hero.maxHealth - player.hero.health;
+            
+            if (healthMissing <= 0) {
+                priority = -500; // Velmi špatný tah na full health
+            } else if (healthMissing <= 3) {
+                priority = -200; // Stále špatný tah při malém damage
+            } else {
+                priority += healthMissing * 20; // Bonus podle potřeby healu
+            }
+        }
+        
+        // Card draw spells
+        if (this.hasEffectKeyword(spell, 'draw')) {
+            const player = this.gameState.players[this.playerIndex];
+            
+            if (player.hand.length >= 8) {
+                priority = -300; // Špatný tah při plné ruce (overdraw)
+            } else if (player.hand.length >= 6) {
+                priority -= 100; // Penalty při skoro plné ruce
+            } else if (player.hand.length <= 2) {
+                priority += 150; // Bonus při malé ruce
             }
         }
         
@@ -954,17 +987,24 @@ class AIPlayer {
                 
             case 'Healing Touch':
             case 'Holy Nova':
-                return situation.isPlayerLowHealth || player.hero.health < player.hero.maxHealth - 5;
+            case 'Source Healing':
+            case 'Holy Strike':
+                // Healing kouzla pouze pokud skutečně potřebujeme heal
+                return player.hero.health < player.hero.maxHealth - 3;
                 
             case 'Arcane Intellect':
-                return situation.handSize <= 4; // Jen pokud máme málo karet
+                return situation.handSize <= 6; // Jen pokud nemáme skoro plnou ruku
                 
             case 'Mirror Image':
                 return situation.opponentBoardSize > situation.playerBoardSize || situation.isPlayerLowHealth;
                 
             case 'Inferno Wave':
             case 'Arcane Explosion':
+            case 'Arcane Storm':
                 return situation.opponentBoardSize >= 2; // AoE jen pokud má více jednotek
+                
+            case 'Polymorph Wave':
+                return situation.opponentBoardSize >= 3; // Transform all jen při hodně jednotkách
                 
             case 'Fireball':
             case 'Lightning Bolt':
