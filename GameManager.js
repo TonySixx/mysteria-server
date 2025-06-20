@@ -1733,7 +1733,7 @@ class GameManager {
             // Healing jednotky (8 karet)
             ...Array(2).fill({ name: 'Spirit Healer', manaCost: 5, attack: 4, health: 4, effect: 'When you cast a spell, restore 2 health to your hero', image: 'spiritHealer', rarity: 'rare' }),
             ...Array(2).fill({ name: 'Life Drainer', manaCost: 5, attack: 4, health: 4, effect: 'When this minion attacks, restore 2 health to your hero', image: 'lifeDrainer', rarity: 'rare' }),
-            ...Array(2).fill({ name: 'Holy Elemental', manaCost: 3, attack: 3, health: 4, effect: 'Restore 2 health to your hero when played', image: 'holyElemental', rarity: 'uncommon' }),
+            ...Array(2).fill({ name: 'Holy Elemental', manaCost: 3, attack: 3, health: 5, effect: 'Restore 2 health to your hero when played', image: 'holyElemental', rarity: 'uncommon' }),
             ...Array(2).fill({ name: 'Healing Sentinel', manaCost: 5, attack: 4, health: 5, effect: 'Restore 4 health to your hero when played', image: 'healingSentinel', rarity: 'uncommon' }),
             
             // Taunt jednotky (8 karet)
