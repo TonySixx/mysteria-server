@@ -23,7 +23,7 @@ class AIPlayer {
         this.FACE_DAMAGE_PRIORITY = 200;
         
         // Debugging - zapnuto pro lepší sledování chování
-        this.debugMode = true;
+        this.debugMode = false;
     }
 
     /**
@@ -206,16 +206,20 @@ class AIPlayer {
         // 2. Útoky jednotek
         for (let i = 0; i < player.field.length; i++) {
             const unit = player.field[i];
-            if (unit && !unit.hasAttacked && !unit.frozen) {
+            if (unit && !unit.hasAttacked && !unit.frozen && this.shouldUnitAttack(unit)) {
                 const attackTargets = this.findAttackTargets(unit, i);
                 for (const target of attackTargets) {
-                    actions.push({
-                        type: 'attack',
-                        attackerIndex: i,
-                        targetIndex: target.index,
-                        isHeroTarget: target.isHero,
-                        priority: this.calculateAttackPriority(unit, target)
-                    });
+                    const attackPriority = this.calculateAttackPriority(unit, target);
+                    // Přeskočíme útoky s velmi nízkou prioritou
+                    if (attackPriority > -500) {
+                        actions.push({
+                            type: 'attack',
+                            attackerIndex: i,
+                            targetIndex: target.index,
+                            isHeroTarget: target.isHero,
+                            priority: attackPriority
+                        });
+                    }
                 }
             }
         }
@@ -504,11 +508,20 @@ class AIPlayer {
      * Vypočítá prioritu útoku
      */
     calculateAttackPriority(attacker, target) {
+        // Kontrola základní logiky útoku
+        if (attacker.attack <= 0) {
+            this.log(`ATTACK: ${attacker.name || 'Unit'} has 0 attack - useless attack`);
+            return -1000; // Velmi nízká priorita pro 0 attack
+        }
+        
         let priority = 0;
         
         if (target.isHero) {
             // Útok na hrdinu
             priority = this.FACE_DAMAGE_PRIORITY;
+            
+            // Škálujeme podle damage
+            priority += attacker.attack * 20;
             
             // Bonus pro aggro decky
             if (this.deckArchetype === 'aggro') {
@@ -516,48 +529,43 @@ class AIPlayer {
             }
             
             // Bonus pokud je protivník low health
-            if (target.hero.health <= 10) {
+            if (target.hero && target.hero.health <= 10) {
                 priority += 200;
+            }
+            
+            // Penalty pro slabé útoky na zdravého protivníka
+            if (attacker.attack <= 2 && target.hero && target.hero.health > 20) {
+                priority -= 100;
+                this.log(`ATTACK: Weak attack (${attacker.attack}) on healthy hero - reduced priority`);
             }
         } else {
             // Útok na jednotku - hodnotíme trade
-            const tradeValue = this.evaluateTrade(attacker, target.unit);
+            const tradeValue = this.evaluateTradeEnhanced(attacker, target.unit);
             priority = this.VALUE_TRADE_PRIORITY + tradeValue;
             
             // Bonus za odstranění vysokých hrozeb
             const threatLevel = this.calculateThreatLevel(target.unit);
             priority += threatLevel;
+            
+            // Penalty pro velmi špatné trades
+            if (tradeValue < -200) {
+                this.log(`ATTACK: Very bad trade (${tradeValue}) - strongly discouraged`);
+                priority -= 300;
+            }
         }
+        
+        // Archetype-specific adjustments
+        priority += this.getAttackArchetypeBonus(attacker, target);
         
         return priority;
     }
 
     /**
-     * Hodnotí kvalitu trade (výměny jednotek)
+     * Hodnotí kvalitu trade (výměny jednotek) - původní metoda
      */
     evaluateTrade(attacker, defender) {
-        const attackerValue = this.calculateUnitValue(attacker);
-        const defenderValue = this.calculateUnitValue(defender);
-        
-        // Základní trade value
-        let tradeValue = defenderValue - attackerValue;
-        
-        // Pokud náš útočník přežije
-        if (attacker.health > defender.attack) {
-            tradeValue += attackerValue * 0.5; // Bonus za přežití
-        }
-        
-        // Pokud zabijeme defender jedním útokem
-        if (attacker.attack >= defender.health) {
-            tradeValue += 20; // Bonus za clean kill
-        }
-        
-        // Penalty za špatné trades
-        if (tradeValue < -10) {
-            tradeValue -= 50; // Velká penalty za velmi špatný trade
-        }
-        
-        return tradeValue;
+        // Delegujeme na vylepšenou verzi
+        return this.evaluateTradeEnhanced(attacker, defender);
     }
 
     /**
@@ -2290,6 +2298,127 @@ class AIPlayer {
                 // Taunt jednotky jsou lepší v center positions
                 if (i >= 2 && i <= 4) {
                     bonus += 2;
+                }
+            }
+        }
+        
+        return bonus;
+    }
+
+    /**
+     * Kontroluje zda má smysl s jednotkou útočit
+     */
+    shouldUnitAttack(unit) {
+        // Základní kontroly
+        if (!unit || unit.hasAttacked || unit.frozen) {
+            return false;
+        }
+        
+        // Jednotky s 0 attack jsou obvykle utility (Mirror Image, Guard Totems)
+        if (unit.attack <= 0) {
+            this.log(`UNIT CHECK: ${unit.name || 'Unit'} has ${unit.attack} attack - should not attack`);
+            return false;
+        }
+      
+        return true;
+    }
+
+    /**
+     * Vylepšené hodnocení trade
+     */
+    evaluateTradeEnhanced(attacker, defender) {
+        const attackerValue = this.calculateUnitValueEnhanced(attacker);
+        const defenderValue = this.calculateUnitValueEnhanced(defender);
+        
+        // Základní trade value
+        let tradeValue = defenderValue - attackerValue;
+        
+        // Kontrola survival attacker
+        const attackerSurvives = attacker.health > defender.attack;
+        const defenderDies = attacker.attack >= defender.health;
+        
+        if (attackerSurvives && defenderDies) {
+            // Ideální trade - zabijeme a přežijeme
+            tradeValue += attackerValue * 0.7; // Bonus za survival
+            this.log(`TRADE: Ideal trade - kill and survive (${attacker.name} vs ${defender.name})`);
+        } else if (!attackerSurvives && defenderDies) {
+            // Mutual destruction - OK pokud zabíjíme dražší jednotku
+            if (defenderValue > attackerValue * 1.2) {
+                tradeValue += 50; // Bonus za dobrý sacrifice
+                this.log(`TRADE: Good sacrifice trade (${attacker.name} vs ${defender.name})`);
+            } else {
+                tradeValue -= 50; // Penalty za špatný sacrifice
+                this.log(`TRADE: Poor sacrifice trade (${attacker.name} vs ${defender.name})`);
+            }
+        } else if (attackerSurvives && !defenderDies) {
+            // Damage bez kill - obvykle špatné
+            tradeValue -= 100;
+            this.log(`TRADE: Damage without kill - poor trade (${attacker.name} vs ${defender.name})`);
+        } else {
+            // Attacker zemře a defender přežije - velmi špatné
+            tradeValue -= 200;
+            this.log(`TRADE: Attacker dies, defender survives - very bad trade (${attacker.name} vs ${defender.name})`);
+        }
+        
+        // Bonus za odstranění key threats
+        if (this.calculateThreatLevel(defender) > 15) {
+            tradeValue += 100;
+            this.log(`TRADE: Removing high threat worth extra value`);
+        }
+        
+        // Penalty za ztrátu key units
+        if (this.calculateUnitValueEnhanced(attacker) > 10) {
+            tradeValue -= 50;
+            this.log(`TRADE: Losing valuable unit - penalty`);
+        }
+        
+        // Archetype considerations
+        if (this.deckArchetype === 'aggro') {
+            // Aggro nechce tradovat, chce face damage
+            tradeValue -= 30;
+        } else if (this.deckArchetype === 'control') {
+            // Control chce dobré trades
+            tradeValue += 20;
+        }
+        
+        return tradeValue;
+    }
+
+    /**
+     * Archetype bonusy pro útoky
+     */
+    getAttackArchetypeBonus(attacker, target) {
+        let bonus = 0;
+        
+        if (this.deckArchetype === 'aggro') {
+            if (target.isHero) {
+                // Aggro chce face damage
+                bonus += 150;
+                
+                // Extra bonus pro damage per turn
+                bonus += attacker.attack * 15;
+            } else {
+                // Aggro nechce tradovat pokud to není nutné
+                const opponent = this.gameState.players[this.opponentIndex];
+                const hasTaunt = opponent.field.some(unit => unit && unit.hasTaunt);
+                
+                if (!hasTaunt && !target.unit.hasTaunt) {
+                    // Pokud můžeme jít na face, trade má penalty
+                    bonus -= 100;
+                    this.log(`AGGRO: Penalty for trading when face is available`);
+                }
+            }
+        } else if (this.deckArchetype === 'control') {
+            if (target.isHero) {
+                // Control nespěchá s face damage
+                bonus -= 50;
+            } else {
+                // Control chce dobré trades
+                bonus += 50;
+                
+                // Extra bonus za odstranění threats
+                if (this.calculateThreatLevel(target.unit) > 10) {
+                    bonus += 80;
                 }
             }
         }
