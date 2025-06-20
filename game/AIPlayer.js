@@ -22,8 +22,8 @@ class AIPlayer {
         this.TEMPO_PLAY_PRIORITY = 300;
         this.FACE_DAMAGE_PRIORITY = 200;
         
-        // Debugging
-        this.debugMode = false;
+        // Debugging - zapnuto pro lepší sledování chování
+        this.debugMode = true;
     }
 
     /**
@@ -35,7 +35,7 @@ class AIPlayer {
             await new Promise(resolve => setTimeout(resolve, 1300));
 
             const startTime = Date.now();
-            const maxThinkTime = 3000; // 3 sekundy max
+            const maxThinkTime = 5000; // Zvýšeno na 5 sekund pro lepší plánování
             
             this.log("=== AI TURN START ===");
             this.log(`Game phase: ${this.gamePhase}, Hero: ${this.heroType}, Archetype: ${this.deckArchetype}`);
@@ -47,8 +47,22 @@ class AIPlayer {
                 return lethalMove;
             }
             
-            // 2. Najdi nejlepší kombinaci akcí
-            const bestMove = this.findOptimalMove(maxThinkTime - (Date.now() - startTime));
+            // 2. Kontrola kritických hrozeb které musíme řešit
+            const urgentMove = this.findUrgentResponse();
+            if (urgentMove) {
+                this.log("URGENT RESPONSE NEEDED:", urgentMove);
+                return urgentMove;
+            }
+            
+            // 3. Hledání combo možností
+            const comboMove = this.findComboOpportunity();
+            if (comboMove && comboMove.priority > 800) {
+                this.log("HIGH VALUE COMBO FOUND:", comboMove);
+                return comboMove;
+            }
+            
+            // 4. Look-ahead search pro nejlepší tah
+            const bestMove = this.findOptimalMoveWithLookahead(maxThinkTime - (Date.now() - startTime));
             
             this.log("Selected move:", bestMove);
             this.log("=== AI TURN END ===");
@@ -63,10 +77,51 @@ class AIPlayer {
     }
 
     /**
-     * Najde optimální kombinaci akcí pro tento tah
+     * Najde optimální kombinaci akcí s look-ahead search
+     */
+    findOptimalMoveWithLookahead(timeLimit) {
+        const startTime = Date.now();
+        const possibleActions = this.generatePossibleActions();
+        
+        if (possibleActions.length === 0) {
+            return { type: 'endTurn' };
+        }
+        
+        let bestAction = null;
+        let bestScore = -Infinity;
+        
+        // Pro kritické situace použijeme look-ahead search
+        const needsDeepSearch = this.shouldUseDeepSearch();
+        
+        for (const action of possibleActions) {
+            let score;
+            
+            if (needsDeepSearch && (Date.now() - startTime) < timeLimit * 0.7) {
+                // Použijeme minimax s look-ahead pro důležité rozhodnutí
+                score = this.minimaxSearch(action, 2, true, -Infinity, Infinity);
+            } else {
+                // Rychlé vyhodnocení pro běžné tahy
+                score = this.evaluateActionEnhanced(action);
+            }
+            
+            if (score > bestScore) {
+                bestScore = score;
+                bestAction = action;
+            }
+            
+            // Kontrola časového limitu
+            if (Date.now() - startTime > timeLimit) {
+                break;
+            }
+        }
+        
+        return bestAction || { type: 'endTurn' };
+    }
+
+    /**
+     * Najde optimální kombinaci akcí pro tento tah (původní metoda)
      */
     findOptimalMove(timeLimit) {
-        const player = this.gameState.players[this.playerIndex];
         const possibleActions = this.generatePossibleActions();
         
         if (possibleActions.length === 0) {
@@ -78,7 +133,7 @@ class AIPlayer {
         
         // Hodnotíme každou možnou akci
         for (const action of possibleActions) {
-            const score = this.evaluateAction(action);
+            const score = this.evaluateActionEnhanced(action);
             
             if (score > bestScore) {
                 bestScore = score;
@@ -116,15 +171,27 @@ class AIPlayer {
                         });
                     }
                 } else if (card.type === 'spell') {
-                    // Pro kouzla určíme nejlepší target
-                    const targets = this.findSpellTargets(card);
-                    for (const target of targets) {
-                        actions.push({
-                            type: 'playCard',
-                            cardIndex: i,
-                            target: target,
-                            priority: this.calculateSpellPriority(card, target)
-                        });
+                    // Kontrola zda má kouzlo smysl zahrát
+                    if (this.shouldPlaySpell(card)) {
+                        // Pro kouzla určíme nejlepší target
+                        const targets = this.findSpellTargets(card);
+                        for (const target of targets) {
+                            let priority = this.calculateSpellPriority(card, target);
+                            
+                            // Speciální bonus pro combo actions
+                            if (card.name === 'The Coin') {
+                                priority = this.calculateCoinPriority();
+                                // Pokud coin má negativní prioritu, přeskočíme
+                                if (priority <= 0) continue;
+                            }
+                            
+                            actions.push({
+                                type: 'playCard',
+                                cardIndex: i,
+                                target: target,
+                                priority: priority
+                            });
+                        }
                     }
                 } else if (card.type === 'secret') {
                     actions.push({
@@ -519,49 +586,446 @@ class AIPlayer {
     }
 
     /**
-     * Vypočítá prioritu zahrání karty
+     * Vypočítá prioritu zahrání karty (vylepšeno)
      */
     calculateCardPlayPriority(card) {
         let priority = this.TEMPO_PLAY_PRIORITY;
         const situation = this.analyzeCurrentSituation();
         
-        // Base mana efficiency
+        // Enhanced mana efficiency s archetype awareness
         const statSum = (card.attack || 0) + (card.health || 0);
         const efficiency = statSum / Math.max(1, card.manaCost);
-        priority += efficiency * 20;
+        priority += efficiency * 25;
         
-        // Curve considerations
+        // Curve considerations s game phase awareness
         if (this.isOnCurve(card)) {
+            priority += this.gamePhase === 'early' ? 70 : 40;
+        }
+        
+        // Enhanced archetype-specific priorities
+        if (this.deckArchetype === 'aggro') {
+            priority += this.calculateAggroCardPriority(card, situation);
+        } else if (this.deckArchetype === 'control') {
+            priority += this.calculateControlCardPriority(card, situation);
+        } else if (this.deckArchetype === 'combo') {
+            priority += this.calculateComboCardPriority(card, situation);
+        }
+        
+        // Enhanced situational bonuses
+        priority += this.calculateSituationalBonus(card, situation);
+        
+        // Game phase adjustments
+        priority += this.calculateGamePhaseBonus(card);
+        
+        return priority;
+    }
+
+    /**
+     * Aggro deck card priorities
+     */
+    calculateAggroCardPriority(card, situation) {
+        let priority = 0;
+        
+        // Vysoká priorita pro agresivní jednotky
+        if (card.type === 'unit' && (card.attack || 0) > (card.health || 0)) {
+            priority += 80;
+        }
+        
+        // Damage spells mají vysokou prioritu pokud protivník je low health
+        if (card.type === 'spell' && this.isDamageSpell(card)) {
+            if (situation.isOpponentLowHealth) {
+                priority += 150;
+            } else {
+                priority += 60;
+            }
+        }
+        
+        // Rychlé jednotky v early game
+        if (this.gamePhase === 'early' && card.manaCost <= 3) {
             priority += 50;
         }
         
-        // Situational bonuses
-        if (this.hasEffectKeyword(card, 'Taunt')) {
-            if (situation.isPlayerLowHealth || situation.opponentBoardSize > situation.playerBoardSize) {
-                priority += 100; // Taunt je dobrý pro obranu
-            }
-        }
-        
-        if (this.hasEffectKeyword(card, 'Divine Shield')) {
-            priority += 30; // Divine Shield je obecně dobrý
-        }
-        
-        if (this.hasEffectKeyword(card, 'draw')) {
-            if (situation.handSize <= 3) {
-                priority += 80; // Card draw při malé ruce
-            }
-        }
-        
-        // Archetype bonuses
-        if (this.deckArchetype === 'aggro' && (card.attack || 0) > (card.health || 0)) {
-            priority += 30;
-        }
-        
-        if (this.deckArchetype === 'control' && this.hasEffectKeyword(card, 'Taunt')) {
-            priority += 40;
+        // Penalty za pomalé karty v aggro decku
+        if (card.manaCost >= 6) {
+            priority -= 40;
         }
         
         return priority;
+    }
+
+    /**
+     * Control deck card priorities
+     */
+    calculateControlCardPriority(card, situation) {
+        let priority = 0;
+        
+        // Vysoká priorita pro defensive tools
+        if (this.hasEffectKeyword(card, 'Taunt')) {
+            if (situation.isPlayerLowHealth || situation.opponentBoardSize > 2) {
+                priority += 120;
+            } else {
+                priority += 60;
+            }
+        }
+        
+        // Removal spells podle hrozeb
+        if (this.isRemovalSpell(card)) {
+            priority += situation.opponentThreats * 40;
+        }
+        
+        // AoE při plném boardu protivníka
+        if (this.isAOESpell(card) && situation.opponentBoardSize >= 2) {
+            priority += situation.opponentBoardSize * 50;
+        }
+        
+        // Healing když potřebujeme
+        if (this.isHealingSpell(card) && situation.isPlayerLowHealth) {
+            priority += 100;
+        }
+        
+        // Card draw pro value
+        if (this.hasEffectKeyword(card, 'draw') && situation.handSize <= 5) {
+            priority += 70;
+        }
+        
+        return priority;
+    }
+
+    /**
+     * Combo deck card priorities
+     */
+    calculateComboCardPriority(card, situation) {
+        let priority = 0;
+        
+        // Combo pieces mají vysokou prioritu
+        if (this.isComboCard(card)) {
+            priority += 90;
+        }
+        
+        // Card draw je kritický pro combo decky
+        if (this.hasEffectKeyword(card, 'draw')) {
+            priority += 100;
+        }
+        
+        // Stalling tools dokud nemáme combo
+        if ((this.hasEffectKeyword(card, 'Taunt') || this.isHealingSpell(card)) && 
+            !this.hasComboInHand()) {
+            priority += 80;
+        }
+        
+        // Combo execution
+        if (this.hasComboInHand() && this.enablesCombo(card)) {
+            priority += 200;
+        }
+        
+        return priority;
+    }
+
+    /**
+     * Situační bonusy pro karty
+     */
+    calculateSituationalBonus(card, situation) {
+        let bonus = 0;
+        
+        // Divine Shield synergy
+        if (this.hasEffectKeyword(card, 'Divine Shield')) {
+            bonus += 40;
+            
+            // Extra bonus v divine shield deck
+            if (this.deckAnalysis.divineShieldCards > 3) {
+                bonus += 30;
+            }
+        }
+        
+        // Spell synergy
+        if (card.type === 'spell' && situation.playerBoardSize > 0) {
+            const spellSynergyUnits = this.gameState.players[this.playerIndex].field.filter(unit => 
+                unit && (unit.name === 'Arcane Familiar' || 
+                       unit.name === 'Mana Wyrm' || 
+                       unit.name === 'Battle Mage')
+            );
+            bonus += spellSynergyUnits.length * 40;
+        }
+        
+        // Resource management
+        if (this.hasEffectKeyword(card, 'draw') && situation.handSize <= 3) {
+            bonus += 90; // Urgent card draw
+        }
+        
+        // Emergency response
+        if (situation.isPlayerLowHealth) {
+            if (this.hasEffectKeyword(card, 'Taunt') || this.isHealingSpell(card)) {
+                bonus += 120;
+            }
+        }
+        
+        return bonus;
+    }
+
+    /**
+     * Game phase bonusy
+     */
+    calculateGamePhaseBonus(card) {
+        let bonus = 0;
+        
+        if (this.gamePhase === 'early') {
+            // Early game preferuje levné karty
+            if (card.manaCost <= 3) {
+                bonus += 40;
+            } else if (card.manaCost >= 6) {
+                bonus -= 60;
+            }
+        } else if (this.gamePhase === 'mid') {
+            // Mid game preferuje value plays
+            if (card.manaCost >= 4 && card.manaCost <= 6) {
+                bonus += 30;
+            }
+        } else if (this.gamePhase === 'late') {
+            // Late game preferuje vysoké value karty
+            if (card.manaCost >= 6) {
+                bonus += 50;
+            }
+            if (this.hasEffectKeyword(card, 'draw') || this.hasEffectKeyword(card, 'damage')) {
+                bonus += 40;
+            }
+        }
+        
+        return bonus;
+    }
+
+    /**
+     * Helper metody pro combo detection
+     */
+    isComboCard(card) {
+        // Identifikuje combo pieces
+        const comboCards = [
+            'Mind Theft', 'Legion Commander', 'Ancient Colossus',
+            'Time Weaver', 'Arcane Storm', 'Polymorph Wave'
+        ];
+        return comboCards.includes(card.name) || 
+               (card.effect && (card.effect.includes('all') || card.effect.includes('copy')));
+    }
+
+    hasComboInHand() {
+        const player = this.gameState.players[this.playerIndex];
+        return player.hand.some(card => card && this.isComboCard(card));
+    }
+
+    enablesCombo(card) {
+        // Kontroluje zda karta umožňuje combo
+        return this.hasEffectKeyword(card, 'draw') || 
+               this.hasEffectKeyword(card, 'mana') ||
+               card.name === 'Mana Surge';
+    }
+
+    /**
+     * Vypočítá prioritu pro The Coin - hraje jen pokud má plán
+     */
+    calculateCoinPriority() {
+        const player = this.gameState.players[this.playerIndex];
+        const currentMana = player.mana;
+        const extraMana = currentMana + 1; // Mana po zahrání coinu
+        
+        // Hledáme karty které můžeme zahrát s extra manou
+        const playableWithCoin = [];
+        const playableWithoutCoin = [];
+        
+        for (let i = 0; i < player.hand.length; i++) {
+            const card = player.hand[i];
+            if (!card || card.name === 'The Coin') continue;
+            
+            if (card.manaCost <= extraMana && card.manaCost > currentMana) {
+                playableWithCoin.push({card, index: i});
+            } else if (card.manaCost <= currentMana) {
+                playableWithoutCoin.push({card, index: i});
+            }
+        }
+        
+        // Také kontrolujeme hero ability
+        const canUseHeroAbilityWithCoin = !player.hero.hasUsedAbility && 
+                                         player.hero.abilityCost <= extraMana && 
+                                         player.hero.abilityCost > currentMana;
+        
+        // Pokud nemáme žádné karty ani hero ability které by využily extra manu, coin je zbytečný
+        if (playableWithCoin.length === 0 && !canUseHeroAbilityWithCoin) {
+            this.log("COIN: No cards or abilities benefit from extra mana - very low priority");
+            return -500; // Velmi nízká priorita
+        }
+        
+        // Vyhodnotíme value karet které můžeme zahrát s coinem
+        let coinValue = 0;
+        for (const {card} of playableWithCoin) {
+            coinValue += this.calculateCardValue(card);
+        }
+        
+        // Bonus za hero ability
+        if (canUseHeroAbilityWithCoin) {
+            const abilityValue = this.calculateHeroAbilityPriority();
+            if (abilityValue > 100) { // Jen pokud je ability užitečná
+                coinValue += abilityValue / 50; // Převedeme priority na value
+            }
+        }
+        
+        // Pokud máme dobré karty k zahrání i bez coinu, není to tak urgentní
+        let alternativeValue = 0;
+        for (const {card} of playableWithoutCoin) {
+            alternativeValue += this.calculateCardValue(card);
+        }
+        
+        // Speciální bonus pro curve plays
+        const perfectCurveCard = playableWithCoin.find(({card}) => 
+            card.manaCost === extraMana && this.isOnCurve(card)
+        );
+        
+        if (perfectCurveCard) {
+            this.log(`COIN: Perfect curve play with ${perfectCurveCard.card.name}`);
+            return this.TEMPO_PLAY_PRIORITY + 150;
+        }
+        
+        // Archetype-specific coin evaluation
+        let archetypeBonus = 0;
+        if (this.deckArchetype === 'aggro') {
+            // Aggro chce coin pro early tempo nebo burn damage
+            const aggressiveCards = playableWithCoin.filter(({card}) => 
+                (card.type === 'unit' && (card.attack || 0) > (card.health || 0)) ||
+                (card.type === 'spell' && this.isDamageSpell(card))
+            );
+            if (aggressiveCards.length > 0) {
+                archetypeBonus += 80;
+                this.log(`COIN: Aggro bonus for ${aggressiveCards.length} aggressive cards`);
+            }
+        } else if (this.deckArchetype === 'control') {
+            // Control chce coin pro defensive tools nebo value plays
+            const defensiveCards = playableWithCoin.filter(({card}) => 
+                this.hasEffectKeyword(card, 'Taunt') || 
+                this.isHealingSpell(card) || 
+                this.hasEffectKeyword(card, 'draw')
+            );
+            if (defensiveCards.length > 0) {
+                archetypeBonus += 60;
+                this.log(`COIN: Control bonus for ${defensiveCards.length} defensive cards`);
+            }
+        }
+        
+        // Coin má smysl pouze pokud nám umožní zahrát hodnot ější karty
+        if (coinValue > alternativeValue * 1.2) {
+            this.log(`COIN: Good value - enables ${playableWithCoin.length} better cards (value: ${coinValue} vs ${alternativeValue})`);
+            return this.TEMPO_PLAY_PRIORITY + 100 + archetypeBonus;
+        } else if ((playableWithCoin.length > 0 || canUseHeroAbilityWithCoin) && this.gamePhase === 'early') {
+            // V early game je tempo důležité
+            this.log("COIN: Early game tempo play");
+            return this.TEMPO_PLAY_PRIORITY + 50 + archetypeBonus;
+        } else if (coinValue > 0 && archetypeBonus > 0) {
+            // Máme nějaké karty které pasují k archetypu
+            this.log("COIN: Archetype synergy makes it worthwhile");
+            return this.TEMPO_PLAY_PRIORITY + archetypeBonus - 20;
+        } else if (coinValue > 0) {
+            // Máme nějaké karty ale nejsou to nejlepší možnosti
+            this.log("COIN: Some value but not optimal");
+            return this.TEMPO_PLAY_PRIORITY - 50;
+        } else {
+            this.log("COIN: Better to save for later");
+            return -200; // Raději ušetříme na později
+        }
+    }
+
+    /**
+     * Vypočítá hodnotu karty pro planning
+     */
+    calculateCardValue(card) {
+        let value = (card.attack || 0) + (card.health || 0);
+        
+        // Bonusy za effects
+        if (this.hasEffectKeyword(card, 'draw')) value += 3;
+        if (this.hasEffectKeyword(card, 'damage')) value += 2;
+        if (this.hasEffectKeyword(card, 'Taunt')) value += 2;
+        if (this.hasEffectKeyword(card, 'Divine Shield')) value += 2;
+        
+        // Archetype bonuses
+        if (this.deckArchetype === 'aggro' && (card.attack || 0) > (card.health || 0)) {
+            value *= 1.3;
+        }
+        if (this.deckArchetype === 'control' && this.hasEffectKeyword(card, 'Taunt')) {
+            value *= 1.3;
+        }
+        
+        // Mana efficiency bonus
+        const efficiency = value / Math.max(1, card.manaCost);
+        if (efficiency > 2) value += 2;
+        
+        return value;
+    }
+
+    /**
+     * Vylepšená kontrola zda má smysl zahrát utility karty
+     */
+    shouldPlayUtilityCard(card) {
+        // Speciální logika pro utility karty
+        if (card.name === 'The Coin') {
+            return this.calculateCoinPriority() > 0;
+        }
+        
+        if (card.name === 'Mana Surge') {
+            return this.shouldPlayManaSurge();
+        }
+        
+        if (card.name === 'Mana Fusion') {
+            return this.shouldPlayManaFusion();
+        }
+        
+        return true; // Ostatní karty projdou normální kontrolou
+    }
+
+    /**
+     * Kontrola pro Mana Surge
+     */
+    shouldPlayManaSurge() {
+        const player = this.gameState.players[this.playerIndex];
+        const availableMana = player.maxMana;
+        
+        // Hledáme karty které můžeme zahrát s restored manou
+        const expensiveCards = player.hand.filter(card => 
+            card && card.manaCost > player.mana && card.manaCost <= availableMana
+        );
+        
+        if (expensiveCards.length > 0) {
+            this.log("MANA SURGE: Can enable expensive cards");
+            return true;
+        }
+        
+        // Nebo pokud potřebujeme hero ability
+        if (!player.hero.hasUsedAbility && player.mana < player.hero.abilityCost) {
+            this.log("MANA SURGE: Can enable hero ability");
+            return true;
+        }
+        
+        this.log("MANA SURGE: No immediate benefit");
+        return false;
+    }
+
+    /**
+     * Kontrola pro Mana Fusion
+     */
+    shouldPlayManaFusion() {
+        const player = this.gameState.players[this.playerIndex];
+        
+        // Mana Fusion má overload, takže je risky
+        // Hraj pouze pokud máme velmi dobré karty k zahrání
+        const expensiveCards = player.hand.filter(card => 
+            card && card.manaCost > player.mana + 2 && card.manaCost <= player.mana + 4
+        );
+        
+        const highValueCards = expensiveCards.filter(card => 
+            this.calculateCardValue(card) > 8
+        );
+        
+        if (highValueCards.length > 0) {
+            this.log("MANA FUSION: Can enable high-value cards");
+            return true;
+        }
+        
+        this.log("MANA FUSION: Too risky without high-value targets");
+        return false;
     }
 
     /**
@@ -621,18 +1085,47 @@ class AIPlayer {
     calculateEndTurnPriority() {
         const player = this.gameState.players[this.playerIndex];
         
+        // Kontrola zda máme karty k zahrání
+        const playableCards = player.hand.filter(card => 
+            card && card.manaCost <= player.mana && this.shouldPlaySpell(card)
+        );
+        
+        // Speciální kontrola pro The Coin
+        const hasCoin = player.hand.some(card => card && card.name === 'The Coin');
+        if (hasCoin && this.calculateCoinPriority() > 0) {
+            this.log("END TURN: Have coin with good targets - low priority to end");
+            return 5; // Velmi nízká priorita ukončit tah
+        }
+        
+        // Kontrola hero ability
+        const canUseHeroAbility = !player.hero.hasUsedAbility && 
+                                 player.mana >= player.hero.abilityCost &&
+                                 this.calculateHeroAbilityPriority() > 100;
+        
         // Nízká priorita pokud máme ještě manu a karty k zahrání
-        const playableCards = player.hand.filter(card => card.manaCost <= player.mana);
-        if (player.mana > 0 && playableCards.length > 0) {
+        if (player.mana > 0 && (playableCards.length > 0 || canUseHeroAbility)) {
+            this.log(`END TURN: Still have ${player.mana} mana and ${playableCards.length} playable cards`);
             return 10;
         }
         
-        // Střední priorita pokud máme manu ale žádné karty k zahrání
-        if (player.mana > 0 && playableCards.length === 0) {
-            return 150;
+        // Střední priorita pokud máme manu ale žádné smysluplné karty k zahrání
+        if (player.mana > 0 && playableCards.length === 0 && !canUseHeroAbility) {
+            // Ale ještě zkontrolujme zda nemáme nějaké utility karty které by mohly mít smysl později
+            const utilityCards = player.hand.filter(card => 
+                card && (card.name === 'The Coin' || card.name === 'Mana Surge' || card.name === 'Mana Fusion')
+            );
+            
+            if (utilityCards.length > 0) {
+                this.log("END TURN: Have utility cards but not beneficial now");
+                return 120;
+            } else {
+                this.log("END TURN: Have mana but no beneficial cards");
+                return 150;
+            }
         }
         
         // Vysoká priorita pokud nemáme co dělat
+        this.log("END TURN: Nothing useful to do");
         return 200;
     }
 
@@ -686,6 +1179,11 @@ class AIPlayer {
      * Vypočítá prioritu kouzla
      */
     calculateSpellPriority(spell, target) {
+        // Speciální handling pro The Coin
+        if (spell.name === 'The Coin') {
+            return this.calculateCoinPriority();
+        }
+        
         // Základní kontrola zda kouzlo má smysl zahrát
         if (!this.shouldPlaySpell(spell)) {
             return -1000; // Velmi nízká priorita
@@ -984,10 +1482,19 @@ class AIPlayer {
      * Rozhoduje zda má smysl zahrát kouzlo v aktuální situaci
      */
     shouldPlaySpell(spell) {
+        // Nejprve kontrola utility karet
+        if (!this.shouldPlayUtilityCard(spell)) {
+            return false;
+        }
+        
         const situation = this.analyzeCurrentSituation();
         const player = this.gameState.players[this.playerIndex];
         
         switch(spell.name) {
+            case 'The Coin':
+                // Coin má svou vlastní logiku
+                return this.calculateCoinPriority() > 0;
+                
             case 'Shield Breaker':
                 return situation.hasOpponentDivineShield;
                 
@@ -1094,6 +1601,700 @@ class AIPlayer {
         if (!effect) return 0;
         const match = effect.match(/Deal (\d+) damage/i);
         return match ? parseInt(match[1]) : 0;
+    }
+
+    /**
+     * Vylepšené vyhodnocení akce s archetype awareness
+     */
+    evaluateActionEnhanced(action) {
+        let score = action.priority || 0;
+        
+        // Simulujeme akci a hodnotíme výsledný stav
+        const simulatedState = this.simulateAction(action);
+        if (simulatedState) {
+            const stateScore = this.evaluateGameStateEnhanced(simulatedState);
+            score += stateScore;
+        }
+        
+        // Archetype-specific bonuses
+        score += this.getArchetypeActionBonus(action);
+        
+        // Combo bonuses
+        score += this.getComboBonus(action);
+        
+        // Threat response bonuses
+        score += this.getThreatResponseBonus(action);
+        
+        return score;
+    }
+
+    /**
+     * Vylepšené hodnocení stavu hry
+     */
+    evaluateGameStateEnhanced(gameState) {
+        const player = gameState.players[this.playerIndex];
+        const opponent = gameState.players[this.opponentIndex];
+        
+        let score = 0;
+        
+        // 1. Health difference s archetype modifiers
+        const healthDiff = player.hero.health - opponent.hero.health;
+        if (this.deckArchetype === 'aggro') {
+            score += (opponent.hero.health <= 15 ? healthDiff * 15 : healthDiff * 8);
+        } else if (this.deckArchetype === 'control') {
+            score += (player.hero.health >= 20 ? healthDiff * 12 : healthDiff * 20);
+        } else {
+            score += healthDiff * 10;
+        }
+        
+        // 2. Enhanced board control
+        const boardScore = this.calculateEnhancedBoardControl(gameState);
+        score += boardScore * 60;
+        
+        // 3. Hand advantage s card quality
+        const handScore = this.calculateHandAdvantage(gameState);
+        score += handScore * 25;
+        
+        // 4. Tempo evaluation
+        const tempoScore = this.calculateTempoScore(gameState);
+        score += tempoScore * 30;
+        
+        // 5. Threat assessment
+        const threatScore = this.assessThreatsEnhanced(gameState);
+        score += threatScore;
+        
+        // 6. Win condition progress
+        const winConScore = this.calculateWinConditionProgress(gameState);
+        score += winConScore;
+        
+        // 7. Resource efficiency
+        const resourceScore = this.calculateResourceEfficiency(gameState);
+        score += resourceScore * 20;
+        
+        return score;
+    }
+
+    /**
+     * Minimax search s alpha-beta pruning
+     */
+    minimaxSearch(action, depth, isMaximizing, alpha, beta) {
+        if (depth === 0) {
+            const simState = this.simulateAction(action);
+            return simState ? this.evaluateGameStateEnhanced(simState) : -1000;
+        }
+        
+        const simState = this.simulateAction(action);
+        if (!simState) return -1000;
+        
+        if (isMaximizing) {
+            let maxEval = -Infinity;
+            const possibleMoves = this.generatePossibleActions(simState);
+            
+            for (const move of possibleMoves.slice(0, 8)) { // Limit pro performance
+                const evaluation = this.minimaxSearch(move, depth - 1, false, alpha, beta);
+                maxEval = Math.max(maxEval, evaluation);
+                alpha = Math.max(alpha, evaluation);
+                
+                if (beta <= alpha) break; // Alpha-beta pruning
+            }
+            return maxEval;
+        } else {
+            // Simulujeme protihráčův tah (zjednodušeno)
+            let minEval = Infinity;
+            const opponentMoves = this.generateOpponentMoves(simState);
+            
+            for (const move of opponentMoves.slice(0, 6)) {
+                const evaluation = this.minimaxSearch(move, depth - 1, true, alpha, beta);
+                minEval = Math.min(minEval, evaluation);
+                beta = Math.min(beta, evaluation);
+                
+                if (beta <= alpha) break;
+            }
+            return minEval;
+        }
+    }
+
+    /**
+     * Kontroluje zda použít deep search
+     */
+    shouldUseDeepSearch() {
+        const situation = this.analyzeCurrentSituation();
+        
+        // Použijeme deep search v kritických situacích
+        return situation.isOpponentLowHealth || 
+               situation.isPlayerLowHealth || 
+               situation.opponentThreats > 2 ||
+               this.gamePhase === 'late' ||
+               (this.deckArchetype === 'combo' && situation.handSize >= 6);
+    }
+
+    /**
+     * Hledá naléhavé odpovědi na hrozby
+     */
+    findUrgentResponse() {
+        const opponent = this.gameState.players[this.opponentIndex];
+        const player = this.gameState.players[this.playerIndex];
+        
+        // Kontrola lethal damage od protivníka
+        let opponentDamage = 0;
+        for (const unit of opponent.field) {
+            if (unit && !unit.hasAttacked) {
+                opponentDamage += unit.attack;
+            }
+        }
+        
+        if (opponentDamage >= player.hero.health) {
+            // Musíme se bránit
+            return this.findDefensiveMove();
+        }
+        
+        // Kontrola vysokých hrozeb
+        const highThreats = opponent.field.filter(unit => 
+            unit && this.calculateThreatLevel(unit) > 15
+        );
+        
+        if (highThreats.length > 0) {
+            return this.findRemovalMove(highThreats[0]);
+        }
+        
+        return null;
+    }
+
+    /**
+     * Hledá combo příležitosti
+     */
+    findComboOpportunity() {
+        const player = this.gameState.players[this.playerIndex];
+        const situation = this.analyzeCurrentSituation();
+        
+        // Kontrola spell synergies
+        const spellSynergy = this.findSpellSynergy();
+        if (spellSynergy) return spellSynergy;
+        
+        // Kontrola board combos
+        const boardCombo = this.findBoardCombo();
+        if (boardCombo) return boardCombo;
+        
+        // Archetype-specific combos
+        if (this.deckArchetype === 'aggro') {
+            return this.findAggroCombo();
+        } else if (this.deckArchetype === 'control') {
+            return this.findControlCombo();
+        }
+        
+        return null;
+    }
+
+    /**
+     * Vylepšené hodnocení board control
+     */
+    calculateEnhancedBoardControl(gameState) {
+        const player = gameState.players[this.playerIndex];
+        const opponent = gameState.players[this.opponentIndex];
+        
+        let playerValue = 0;
+        let opponentValue = 0;
+        
+        // Pokročilé hodnocení jednotek
+        for (const unit of player.field) {
+            if (unit) {
+                playerValue += this.calculateUnitValueEnhanced(unit);
+            }
+        }
+        
+        for (const unit of opponent.field) {
+            if (unit) {
+                opponentValue += this.calculateUnitValueEnhanced(unit);
+            }
+        }
+        
+        // Bonus za board positioning
+        playerValue += this.calculatePositioningBonus(player.field);
+        
+        const totalValue = playerValue + opponentValue;
+        if (totalValue === 0) return 0;
+        
+        return ((playerValue - opponentValue) / totalValue) * 100;
+    }
+
+    /**
+     * Vylepšené hodnocení hodnoty jednotky
+     */
+    calculateUnitValueEnhanced(unit) {
+        let value = unit.attack * 1.2 + unit.health * 0.8; // Attack je důležitější
+        
+        // Pokročilé effect bonuses
+        if (unit.hasTaunt) value += 3;
+        if (unit.hasDivineShield) value += 4;
+        if (this.hasEffectKeyword(unit, 'Lifesteal')) value += 3;
+        if (this.hasEffectKeyword(unit, 'Windfury')) value += unit.attack * 0.7;
+        if (this.hasEffectKeyword(unit, 'draw')) value += 2.5;
+        if (this.hasEffectKeyword(unit, 'damage')) value += 2;
+        
+        // Situational bonuses
+        if (unit.frozen) value *= 0.3;
+        if (unit.hasAttacked) value *= 0.7;
+        
+        // Archetype-specific value adjustments
+        if (this.deckArchetype === 'aggro' && unit.attack > unit.health) value *= 1.2;
+        if (this.deckArchetype === 'control' && unit.hasTaunt) value *= 1.3;
+        
+        return value;
+    }
+
+    /**
+     * Archetype-specific action bonuses
+     */
+    getArchetypeActionBonus(action) {
+        let bonus = 0;
+        const situation = this.analyzeCurrentSituation();
+        
+        if (this.deckArchetype === 'aggro') {
+            if (action.type === 'attack' && action.isHeroTarget) {
+                bonus += 150;
+            }
+            if (action.type === 'playCard') {
+                const card = this.gameState.players[this.playerIndex].hand[action.cardIndex];
+                if (card && (card.attack || 0) > (card.health || 0)) {
+                    bonus += 80;
+                }
+            }
+        } else if (this.deckArchetype === 'control') {
+            if (action.type === 'playCard') {
+                const card = this.gameState.players[this.playerIndex].hand[action.cardIndex];
+                if (card && (this.hasEffectKeyword(card, 'Taunt') || this.isRemovalSpell(card))) {
+                    bonus += 100;
+                }
+            }
+        }
+        
+        return bonus;
+    }
+
+    /**
+     * Combo bonuses pro akce
+     */
+    getComboBonus(action) {
+        let bonus = 0;
+        const player = this.gameState.players[this.playerIndex];
+        
+        if (action.type === 'playCard') {
+            const card = player.hand[action.cardIndex];
+            if (!card) return 0;
+            
+            // Spell synergy bonuses
+            if (card.type === 'spell') {
+                const spellSynergyUnits = player.field.filter(unit => 
+                    unit && (this.hasEffectKeyword(unit, 'spell') || 
+                           unit.name === 'Arcane Familiar' || 
+                           unit.name === 'Mana Wyrm' || 
+                           unit.name === 'Battle Mage')
+                );
+                bonus += spellSynergyUnits.length * 50;
+            }
+            
+            // Divine Shield synergy
+            if (this.hasEffectKeyword(card, 'Divine Shield')) {
+                const divineShieldUnits = player.field.filter(unit => 
+                    unit && unit.hasDivineShield
+                );
+                bonus += divineShieldUnits.length * 30;
+            }
+            
+            // Taunt synergy
+            if (this.hasEffectKeyword(card, 'Taunt')) {
+                const situation = this.analyzeCurrentSituation();
+                if (situation.isPlayerLowHealth) {
+                    bonus += 100;
+                }
+            }
+        }
+        
+        return bonus;
+    }
+
+    /**
+     * Threat response bonuses
+     */
+    getThreatResponseBonus(action) {
+        let bonus = 0;
+        const opponent = this.gameState.players[this.opponentIndex];
+        
+        if (action.type === 'playCard') {
+            const card = this.gameState.players[this.playerIndex].hand[action.cardIndex];
+            if (!card) return 0;
+            
+            // Removal spells proti hrozbám
+            if (this.isRemovalSpell(card)) {
+                const highThreats = opponent.field.filter(unit => 
+                    unit && this.calculateThreatLevel(unit) > 10
+                );
+                bonus += highThreats.length * 80;
+            }
+            
+            // AoE spells proti plnému boardu
+            if (this.isAOESpell(card)) {
+                const enemyUnits = opponent.field.filter(unit => unit).length;
+                if (enemyUnits >= 3) {
+                    bonus += enemyUnits * 60;
+                }
+            }
+        }
+        
+        return bonus;
+    }
+
+    /**
+     * Generuje možné tahy protivníka (zjednodušeno)
+     */
+    generateOpponentMoves(gameState) {
+        // Zjednodušená simulace tahů protivníka
+        const moves = [];
+        const opponent = gameState.players[this.opponentIndex];
+        
+        // Simulujeme možné útoky
+        for (let i = 0; i < opponent.field.length; i++) {
+            const unit = opponent.field[i];
+            if (unit && !unit.hasAttacked) {
+                moves.push({
+                    type: 'attack',
+                    attackerIndex: i,
+                    targetIndex: 0,
+                    isHeroTarget: true
+                });
+            }
+        }
+        
+        // Simulujeme možné karty (odhadujeme)
+        for (let i = 0; i < Math.min(3, opponent.hand.length); i++) {
+            moves.push({
+                type: 'playCard',
+                cardIndex: i,
+                destinationIndex: opponent.field.length
+            });
+        }
+        
+        return moves;
+    }
+
+    /**
+     * Hledá defensive move
+     */
+    findDefensiveMove() {
+        const player = this.gameState.players[this.playerIndex];
+        
+        // Hledáme taunt jednotky
+        for (let i = 0; i < player.hand.length; i++) {
+            const card = player.hand[i];
+            if (card && card.manaCost <= player.mana && this.hasEffectKeyword(card, 'Taunt')) {
+                return {
+                    type: 'playCard',
+                    cardIndex: i,
+                    destinationIndex: player.field.length,
+                    priority: 1500
+                };
+            }
+        }
+        
+        // Hledáme healing
+        for (let i = 0; i < player.hand.length; i++) {
+            const card = player.hand[i];
+            if (card && card.manaCost <= player.mana && this.isHealingSpell(card)) {
+                return {
+                    type: 'playCard',
+                    cardIndex: i,
+                    priority: 1200
+                };
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Hledá removal move
+     */
+    findRemovalMove(threat) {
+        const player = this.gameState.players[this.playerIndex];
+        
+        for (let i = 0; i < player.hand.length; i++) {
+            const card = player.hand[i];
+            if (card && card.manaCost <= player.mana && this.isRemovalSpell(card)) {
+                return {
+                    type: 'playCard',
+                    cardIndex: i,
+                    target: { unitIndex: threat.index },
+                    priority: 1300
+                };
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Hledá spell synergy
+     */
+    findSpellSynergy() {
+        const player = this.gameState.players[this.playerIndex];
+        
+        // Hledáme spell synergy jednotky na boardu
+        const spellSynergyUnits = player.field.filter(unit => 
+            unit && (unit.name === 'Arcane Familiar' || 
+                   unit.name === 'Mana Wyrm' || 
+                   unit.name === 'Battle Mage')
+        );
+        
+        if (spellSynergyUnits.length > 0) {
+            // Hledáme spell k zahrání
+            for (let i = 0; i < player.hand.length; i++) {
+                const card = player.hand[i];
+                if (card && card.type === 'spell' && card.manaCost <= player.mana) {
+                    return {
+                        type: 'playCard',
+                        cardIndex: i,
+                        priority: 600 + spellSynergyUnits.length * 100
+                    };
+                }
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Hledá board combo
+     */
+    findBoardCombo() {
+        const player = this.gameState.players[this.playerIndex];
+        
+        // Hledáme buffing spells s jednotkami na boardu
+        if (player.field.length > 0) {
+            for (let i = 0; i < player.hand.length; i++) {
+                const card = player.hand[i];
+                if (card && card.manaCost <= player.mana && this.isBuffSpell(card)) {
+                    return {
+                        type: 'playCard',
+                        cardIndex: i,
+                        priority: 400 + player.field.length * 50
+                    };
+                }
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Hledá aggro combo
+     */
+    findAggroCombo() {
+        const player = this.gameState.players[this.playerIndex];
+        const opponent = this.gameState.players[this.opponentIndex];
+        
+        // Hledáme burst damage combo
+        if (opponent.hero.health <= 15) {
+            let totalDamage = 0;
+            const damageCards = [];
+            
+            for (let i = 0; i < player.hand.length; i++) {
+                const card = player.hand[i];
+                if (card && card.type === 'spell' && card.manaCost <= player.mana) {
+                    const damage = this.getSpellDamageToHero(card);
+                    if (damage > 0) {
+                        totalDamage += damage;
+                        damageCards.push(i);
+                    }
+                }
+            }
+            
+            if (totalDamage >= opponent.hero.health * 0.6) {
+                return {
+                    type: 'playCard',
+                    cardIndex: damageCards[0],
+                    priority: 800
+                };
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Hledá control combo
+     */
+    findControlCombo() {
+        const player = this.gameState.players[this.playerIndex];
+        const opponent = this.gameState.players[this.opponentIndex];
+        
+        // Hledáme board clear combo
+        const enemyUnits = opponent.field.filter(unit => unit).length;
+        if (enemyUnits >= 2) {
+            for (let i = 0; i < player.hand.length; i++) {
+                const card = player.hand[i];
+                if (card && card.manaCost <= player.mana && this.isAOESpell(card)) {
+                    return {
+                        type: 'playCard',
+                        cardIndex: i,
+                        priority: 600 + enemyUnits * 80
+                    };
+                }
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Vylepšené rozpoznání removal spells
+     */
+    isRemovalSpell(spell) {
+        const removalSpells = [
+            'Death Touch', 'Fireball', 'Lightning Bolt', 'Frostbolt',
+            'Magic Arrows', 'Holy Strike', 'Soothing Return'
+        ];
+        return removalSpells.includes(spell.name) || 
+               (spell.effect && spell.effect.includes('Destroy'));
+    }
+
+    /**
+     * Další vylepšené helper metody
+     */
+    calculateHandAdvantage(gameState) {
+        const player = gameState.players[this.playerIndex];
+        const opponent = gameState.players[this.opponentIndex];
+        
+        const handDiff = player.hand.length - opponent.hand.length;
+        const handQuality = this.calculateHandQuality(player.hand);
+        
+        return handDiff * 10 + handQuality;
+    }
+
+    calculateHandQuality(hand) {
+        let quality = 0;
+        for (const card of hand) {
+            if (card) {
+                if (card.type === 'spell' && this.isDamageSpell(card)) quality += 2;
+                if (this.hasEffectKeyword(card, 'draw')) quality += 3;
+                if (this.hasEffectKeyword(card, 'Taunt')) quality += 1.5;
+                if (card.rarity === 'legendary') quality += 2;
+                if (card.rarity === 'epic') quality += 1;
+            }
+        }
+        return quality;
+    }
+
+    calculateTempoScore(gameState) {
+        const player = gameState.players[this.playerIndex];
+        const turn = gameState.turn;
+        
+        // Hodnotíme tempo podle curve
+        const expectedMana = Math.min(turn, 10);
+        const manaEfficiency = (expectedMana - player.mana) / expectedMana;
+        
+        // Bonus za board presence
+        const boardPresence = player.field.filter(unit => unit).length;
+        
+        return manaEfficiency * 50 + boardPresence * 15;
+    }
+
+    assessThreatsEnhanced(gameState) {
+        const opponent = gameState.players[this.opponentIndex];
+        let threatScore = 0;
+        
+        for (const unit of opponent.field) {
+            if (unit) {
+                const threat = this.calculateThreatLevelEnhanced(unit);
+                threatScore -= threat;
+            }
+        }
+        
+        return threatScore;
+    }
+
+    calculateThreatLevelEnhanced(unit) {
+        let threat = unit.attack * 2.5 + unit.health * 0.5;
+        
+        // Zvýšené hodnocení hrozeb
+        if (this.hasEffectKeyword(unit, 'grow') || this.hasEffectKeyword(unit, 'gain')) {
+            threat += 15;
+        }
+        
+        if (this.hasEffectKeyword(unit, 'damage') || this.hasEffectKeyword(unit, 'draw')) {
+            threat += 10;
+        }
+        
+        if (unit.hasTaunt) threat += 5;
+        if (unit.hasDivineShield) threat += 8;
+        
+        return threat;
+    }
+
+    calculateWinConditionProgress(gameState) {
+        const player = gameState.players[this.playerIndex];
+        const opponent = gameState.players[this.opponentIndex];
+        
+        let progress = 0;
+        
+        if (this.deckArchetype === 'aggro') {
+            // Aggro win condition: reduce opponent health quickly
+            const healthReduction = (30 - opponent.hero.health) / 30;
+            progress = healthReduction * 200;
+        } else if (this.deckArchetype === 'control') {
+            // Control win condition: survive and gain value
+            const healthAdvantage = player.hero.health - opponent.hero.health;
+            const cardAdvantage = player.hand.length - opponent.hand.length;
+            progress = healthAdvantage * 5 + cardAdvantage * 15;
+        } else if (this.deckArchetype === 'combo') {
+            // Combo win condition: gather combo pieces
+            const comboProgress = this.calculateComboProgress();
+            progress = comboProgress * 100;
+        }
+        
+        return progress;
+    }
+
+    calculateComboProgress() {
+        const player = this.gameState.players[this.playerIndex];
+        
+        // Zjednodušené hodnocení combo progressu
+        let progress = 0;
+        const totalCards = player.hand.length + player.deck.length;
+        
+        if (totalCards > 0) {
+            progress = player.hand.length / totalCards;
+        }
+        
+        return progress;
+    }
+
+    calculateResourceEfficiency(gameState) {
+        const player = gameState.players[this.playerIndex];
+        
+        // Hodnotíme efektivitu využití zdrojů
+        const manaEfficiency = (player.maxMana - player.mana) / Math.max(1, player.maxMana);
+        const handSize = player.hand.length;
+        const optimalHandSize = Math.min(7, Math.max(3, 10 - gameState.turn));
+        const handEfficiency = 1 - Math.abs(handSize - optimalHandSize) / optimalHandSize;
+        
+        return manaEfficiency * 50 + handEfficiency * 30;
+    }
+
+    calculatePositioningBonus(field) {
+        // Jednoduchý bonus za positioning
+        let bonus = 0;
+        
+        for (let i = 0; i < field.length; i++) {
+            const unit = field[i];
+            if (unit && unit.hasTaunt) {
+                // Taunt jednotky jsou lepší v center positions
+                if (i >= 2 && i <= 4) {
+                    bonus += 2;
+                }
+            }
+        }
+        
+        return bonus;
     }
 
     /**
