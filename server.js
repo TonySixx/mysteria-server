@@ -255,65 +255,36 @@ process.on('SIGTERM', () => {
 
 const PORT = process.env.PORT || 3001;
 
-
-
-// Express middleware pro parsování JSON
-app.use(express.json());
-
 // Upravíme CORS nastavení pro podporu více origins
 const corsOrigins = (process.env.CORS_ORIGIN || "http://localhost:3000").split(',').map(origin => origin.trim());
 
-console.log('CORS Origins:', corsOrigins);
-
 app.use(cors({
     origin: (origin, callback) => {
-        console.log('CORS check for origin:', origin);
-        
         // Povolíme požadavky bez origin (např. z Postman nebo při lokálním vývoji)
-        if (!origin) {
-            console.log('No origin, allowing request');
-            return callback(null, true);
-        }
+        if (!origin) return callback(null, true);
         
         if (corsOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
-            console.log('Origin allowed:', origin);
             callback(null, true);
         } else {
-            console.log('Origin blocked:', origin);
             callback(new Error('Not allowed by CORS'));
         }
     },
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ["GET", "POST"],
     credentials: true
 }));
 
-// Ping endpoint pro udržení serveru aktivního s explicitními CORS headers
+server.listen(PORT, () => {
+    console.log(`Server běží na portu ${PORT}`);
+});
+
+// Ping endpoint pro udržení serveru aktivního
 app.get('/api/ping', (req, res) => {
     console.log(`${new Date().toISOString()} - Ping received from client`);
-    
-    // Explicitní CORS headers pro jistotu
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Methods', 'GET');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
-    
     res.json({ 
         status: 'ok', 
         timestamp: new Date().toISOString(),
         message: 'Server is alive'
     });
-});
-
-// OPTIONS handler pro preflight požadavky
-app.options('/api/ping', (req, res) => {
-    console.log(`${new Date().toISOString()} - OPTIONS preflight received for ping`);
-    
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
-    res.header('Access-Control-Max-Age', '86400'); // 24 hours
-    
-    res.status(204).end();
 });
 
 // Přidáme nové endpointy pro správu balíčků
@@ -392,8 +363,4 @@ app.patch('/api/profiles/hero', async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
-});
-
-server.listen(PORT, () => {
-    console.log(`Server běží na portu ${PORT}`);
 });
