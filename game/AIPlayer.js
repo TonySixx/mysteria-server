@@ -182,7 +182,10 @@ class AIPlayer {
                             if (card.name === 'The Coin') {
                                 priority = this.calculateCoinPriority();
                                 // Pokud coin má negativní prioritu, přeskočíme
-                                if (priority <= 0) continue;
+                                if (priority <= 0) {
+                                    this.log(`ACTIONS: Skipping ${card.name} - negative priority (${priority})`);
+                                    continue;
+                                }
                             }
                             
                             actions.push({
@@ -192,6 +195,8 @@ class AIPlayer {
                                 priority: priority
                             });
                         }
+                    } else {
+                        this.log(`ACTIONS: Skipping ${card.name} - failed shouldPlaySpell check`);
                     }
                 } else if (card.type === 'secret') {
                     actions.push({
@@ -239,7 +244,19 @@ class AIPlayer {
         });
         
         // Seřadíme podle priority
-        return actions.sort((a, b) => b.priority - a.priority);
+        const sortedActions = actions.sort((a, b) => b.priority - a.priority);
+        this.log(`ACTIONS: Generated ${sortedActions.length} possible actions`);
+        
+        // Debug top 3 actions
+        if (sortedActions.length > 0) {
+            this.log(`TOP ACTIONS:`);
+            for (let i = 0; i < Math.min(3, sortedActions.length); i++) {
+                const action = sortedActions[i];
+                this.log(`  ${i+1}. ${action.type} (priority: ${action.priority})`);
+            }
+        }
+        
+        return sortedActions;
     }
 
     /**
@@ -543,6 +560,9 @@ class AIPlayer {
             const tradeValue = this.evaluateTradeEnhanced(attacker, target.unit);
             priority = this.VALUE_TRADE_PRIORITY + tradeValue;
             
+            // Speciální Divine Shield logic
+            priority += this.calculateDivineShieldStrategy(attacker, target.unit);
+            
             // Bonus za odstranění vysokých hrozeb
             const threatLevel = this.calculateThreatLevel(target.unit);
             priority += threatLevel;
@@ -842,6 +862,11 @@ class AIPlayer {
             const card = player.hand[i];
             if (!card || card.name === 'The Coin') continue;
             
+            // Dodatečná kontrola že kartu vůbec má smysl hrát
+            if (card.type === 'spell' && !this.shouldPlaySpell(card)) {
+                continue;
+            }
+            
             if (card.manaCost <= extraMana && card.manaCost > currentMana) {
                 playableWithCoin.push({card, index: i});
             } else if (card.manaCost <= currentMana) {
@@ -852,7 +877,8 @@ class AIPlayer {
         // Také kontrolujeme hero ability
         const canUseHeroAbilityWithCoin = !player.hero.hasUsedAbility && 
                                          player.hero.abilityCost <= extraMana && 
-                                         player.hero.abilityCost > currentMana;
+                                         player.hero.abilityCost > currentMana &&
+                                         this.calculateHeroAbilityPriority() > 100; // Jen pokud je užitečná
         
         // Pokud nemáme žádné karty ani hero ability které by využily extra manu, coin je zbytečný
         if (playableWithCoin.length === 0 && !canUseHeroAbilityWithCoin) {
@@ -860,28 +886,39 @@ class AIPlayer {
             return -500; // Velmi nízká priorita
         }
         
+        // Double-check že karty v playableWithCoin skutečně stojí za to
+        const valuableCards = playableWithCoin.filter(({card}) => {
+            const cardValue = this.calculateCardValue(card);
+            return cardValue >= 3; // Minimální threshold pro value
+        });
+        
+        if (valuableCards.length === 0 && !canUseHeroAbilityWithCoin) {
+            this.log("COIN: No valuable cards to enable - saving for later");
+            return -300;
+        }
+        
         // Vyhodnotíme value karet které můžeme zahrát s coinem
         let coinValue = 0;
-        for (const {card} of playableWithCoin) {
+        for (const {card} of valuableCards) {
             coinValue += this.calculateCardValue(card);
         }
         
         // Bonus za hero ability
         if (canUseHeroAbilityWithCoin) {
             const abilityValue = this.calculateHeroAbilityPriority();
-            if (abilityValue > 100) { // Jen pokud je ability užitečná
-                coinValue += abilityValue / 50; // Převedeme priority na value
-            }
+            coinValue += abilityValue / 50; // Převedeme priority na value
         }
         
         // Pokud máme dobré karty k zahrání i bez coinu, není to tak urgentní
         let alternativeValue = 0;
         for (const {card} of playableWithoutCoin) {
-            alternativeValue += this.calculateCardValue(card);
+            if (card.type !== 'spell' || this.shouldPlaySpell(card)) {
+                alternativeValue += this.calculateCardValue(card);
+            }
         }
         
         // Speciální bonus pro curve plays
-        const perfectCurveCard = playableWithCoin.find(({card}) => 
+        const perfectCurveCard = valuableCards.find(({card}) => 
             card.manaCost === extraMana && this.isOnCurve(card)
         );
         
@@ -890,11 +927,18 @@ class AIPlayer {
             return this.TEMPO_PLAY_PRIORITY + 150;
         }
         
+        // Kontrola že skutečně budeme mít follow-up
+        const hasGoodFollowUp = coinValue > 5 || canUseHeroAbilityWithCoin;
+        if (!hasGoodFollowUp) {
+            this.log("COIN: No good follow-up plays available");
+            return -400;
+        }
+        
         // Archetype-specific coin evaluation
         let archetypeBonus = 0;
         if (this.deckArchetype === 'aggro') {
             // Aggro chce coin pro early tempo nebo burn damage
-            const aggressiveCards = playableWithCoin.filter(({card}) => 
+            const aggressiveCards = valuableCards.filter(({card}) => 
                 (card.type === 'unit' && (card.attack || 0) > (card.health || 0)) ||
                 (card.type === 'spell' && this.isDamageSpell(card))
             );
@@ -904,7 +948,7 @@ class AIPlayer {
             }
         } else if (this.deckArchetype === 'control') {
             // Control chce coin pro defensive tools nebo value plays
-            const defensiveCards = playableWithCoin.filter(({card}) => 
+            const defensiveCards = valuableCards.filter(({card}) => 
                 this.hasEffectKeyword(card, 'Taunt') || 
                 this.isHealingSpell(card) || 
                 this.hasEffectKeyword(card, 'draw')
@@ -916,23 +960,19 @@ class AIPlayer {
         }
         
         // Coin má smysl pouze pokud nám umožní zahrát hodnot ější karty
-        if (coinValue > alternativeValue * 1.2) {
-            this.log(`COIN: Good value - enables ${playableWithCoin.length} better cards (value: ${coinValue} vs ${alternativeValue})`);
+        if (coinValue > alternativeValue * 1.3) { // Zvýšil threshold
+            this.log(`COIN: Good value - enables ${valuableCards.length} better cards (value: ${coinValue} vs ${alternativeValue})`);
             return this.TEMPO_PLAY_PRIORITY + 100 + archetypeBonus;
-        } else if ((playableWithCoin.length > 0 || canUseHeroAbilityWithCoin) && this.gamePhase === 'early') {
+        } else if ((valuableCards.length > 0 || canUseHeroAbilityWithCoin) && this.gamePhase === 'early') {
             // V early game je tempo důležité
             this.log("COIN: Early game tempo play");
             return this.TEMPO_PLAY_PRIORITY + 50 + archetypeBonus;
-        } else if (coinValue > 0 && archetypeBonus > 0) {
+        } else if (coinValue > 6 && archetypeBonus > 0) { // Vyšší threshold
             // Máme nějaké karty které pasují k archetypu
-            this.log("COIN: Archetype synergy makes it worthwhile");
+            this.log("COIN: Strong archetype synergy makes it worthwhile");
             return this.TEMPO_PLAY_PRIORITY + archetypeBonus - 20;
-        } else if (coinValue > 0) {
-            // Máme nějaké karty ale nejsou to nejlepší možnosti
-            this.log("COIN: Some value but not optimal");
-            return this.TEMPO_PLAY_PRIORITY - 50;
         } else {
-            this.log("COIN: Better to save for later");
+            this.log("COIN: Better to save for later - insufficient value");
             return -200; // Raději ušetříme na později
         }
     }
@@ -1497,11 +1537,14 @@ class AIPlayer {
         
         const situation = this.analyzeCurrentSituation();
         const player = this.gameState.players[this.playerIndex];
+        const opponent = this.gameState.players[this.opponentIndex];
         
         switch(spell.name) {
             case 'The Coin':
                 // Coin má svou vlastní logiku
-                return this.calculateCoinPriority() > 0;
+                const coinPriority = this.calculateCoinPriority();
+                this.log(`COIN CHECK: Priority ${coinPriority}`);
+                return coinPriority > 0;
                 
             case 'Shield Breaker':
                 return situation.hasOpponentDivineShield;
@@ -1512,15 +1555,66 @@ class AIPlayer {
             case 'Glacial Burst':
                 return situation.opponentThreats > 0 || situation.opponentBoardSize >= 2;
                 
+            case 'Divine Formation':
+                // Jen pokud máme jednotky s Divine Shield
+                const divineShieldUnits = player.field.filter(unit => 
+                    unit && unit.hasDivineShield
+                );
+                if (divineShieldUnits.length === 0) {
+                    this.log(`DIVINE FORMATION: No Divine Shield units - useless spell`);
+                    return false;
+                }
+                return true;
+                
+            case 'Mass Fortification':
+                // Jen pokud máme alespoň 2 jednotky na boardu
+                if (situation.playerBoardSize < 2) {
+                    this.log(`MASS FORTIFICATION: Only ${situation.playerBoardSize} units - not worth it`);
+                    return false;
+                }
+                return true;
+                
+            case 'Mass Dispel':
+                // Jen pokud protivník má Taunt a my máme jednotky k útoku
+                const opponentTaunts = opponent.field.filter(unit => unit && unit.hasTaunt);
+                if (opponentTaunts.length === 0) {
+                    this.log(`MASS DISPEL: No enemy taunts - useless spell`);
+                    return false;
+                }
+                if (situation.playerBoardSize === 0) {
+                    this.log(`MASS DISPEL: No units to attack - useless spell`);
+                    return false;
+                }
+                return true;
+                
+            case 'Shield Breaker':
+                // Jen pokud protivník má Divine Shield jednotky
+                const opponentDivineShields = opponent.field.filter(unit => unit && unit.hasDivineShield);
+                if (opponentDivineShields.length === 0) {
+                    this.log(`SHIELD BREAKER: No enemy divine shields - useless spell`);
+                    return false;
+                }
+                return true;
+                
             case 'Healing Touch':
             case 'Holy Nova':
             case 'Source Healing':
             case 'Holy Strike':
                 // Healing kouzla pouze pokud skutečně potřebujeme heal
-                return player.hero.health < player.hero.maxHealth - 3;
+                const healthMissing = player.hero.maxHealth - player.hero.health;
+                if (healthMissing <= 2) {
+                    this.log(`HEALING: Only ${healthMissing} health missing - not worth it`);
+                    return false;
+                }
+                return true;
                 
             case 'Arcane Intellect':
-                return situation.handSize <= 6; // Jen pokud nemáme skoro plnou ruku
+                // Kontrola overdraw
+                if (situation.handSize >= 8) {
+                    this.log(`ARCANE INTELLECT: Hand too full (${situation.handSize}) - risk overdraw`);
+                    return false;
+                }
+                return situation.handSize <= 6;
                 
             case 'Mirror Image':
                 return situation.opponentBoardSize > situation.playerBoardSize || situation.isPlayerLowHealth;
@@ -1528,14 +1622,18 @@ class AIPlayer {
             case 'Inferno Wave':
             case 'Arcane Explosion':
             case 'Arcane Storm':
-                return situation.opponentBoardSize >= 2; // AoE jen pokud má více jednotek
+                if (situation.opponentBoardSize < 2) {
+                    this.log(`AOE SPELL: Only ${situation.opponentBoardSize} enemy units - not efficient`);
+                    return false;
+                }
+                return true;
                 
             case 'Polymorph Wave':
-                return situation.opponentBoardSize >= 3; // Transform all jen při hodně jednotkách
-                
-            case 'Mass Fortification':
-            case 'Divine Formation':
-                return situation.playerBoardSize > 0; // Jen pokud máme vlastní miniony
+                if (situation.opponentBoardSize < 3) {
+                    this.log(`POLYMORPH WAVE: Only ${situation.opponentBoardSize} enemy units - not worth it`);
+                    return false;
+                }
+                return true;
                 
             case 'Fireball':
             case 'Lightning Bolt':
@@ -1544,7 +1642,8 @@ class AIPlayer {
                 return true; // Damage spells jsou skoro vždy OK
                 
             default:
-                return true; // Neznámé kouzla necháme projít
+                // Pro neznámé spells kontrolujeme basic requirements
+                return this.checkBasicSpellRequirements(spell);
         }
     }
 
@@ -2424,6 +2523,94 @@ class AIPlayer {
         }
         
         return bonus;
+    }
+
+    /**
+     * Pokročilá Divine Shield strategie
+     */
+    calculateDivineShieldStrategy(attacker, defender) {
+        if (!defender.hasDivineShield) {
+            return 0; // Žádný Divine Shield bonus
+        }
+        
+        const player = this.gameState.players[this.playerIndex];
+        let bonus = 0;
+        
+        // Hledáme slabší jednotky které by mohly sundat Divine Shield
+        const weakerUnits = player.field.filter(unit => 
+            unit && 
+            unit !== attacker && 
+            !unit.hasAttacked && 
+            !unit.frozen &&
+            unit.attack > 0 &&
+            unit.attack < attacker.attack
+        );
+        
+        if (weakerUnits.length > 0) {
+            // Máme slabší jednotky které by mohly sundat shield efektivněji
+            const weakestUseful = weakerUnits.reduce((min, unit) => 
+                unit.attack < min.attack ? unit : min
+            );
+            
+            // Velká penalty pro útok silnou jednotkou když máme slabší možnost
+            bonus -= 200;
+            this.log(`DIVINE SHIELD: Should use ${weakestUseful.name} (${weakestUseful.attack}) instead of ${attacker.name} (${attacker.attack}) to break shield`);
+        } else {
+            // Nemáme lepší možnost, tak můžeme útočit
+            bonus += 50;
+            this.log(`DIVINE SHIELD: No better option available, proceeding with ${attacker.name}`);
+        }
+        
+        // Bonus pokud je to jediná možnost jak sundat shield
+        if (weakerUnits.length === 0 && attacker.attack === 1) {
+            bonus += 100;
+            this.log(`DIVINE SHIELD: Perfect 1-attack unit for shield removal`);
+        }
+        
+        return bonus;
+    }
+
+    /**
+     * Základní kontrola pro neznámé spells
+     */
+    checkBasicSpellRequirements(spell) {
+        const player = this.gameState.players[this.playerIndex];
+        const opponent = this.gameState.players[this.opponentIndex];
+        
+        // Kontrola pro buff spells
+        if (this.isBuffSpell(spell)) {
+            if (player.field.length === 0) {
+                this.log(`BUFF SPELL: ${spell.name} - No friendly units to buff`);
+                return false;
+            }
+        }
+        
+        // Kontrola pro targeted removal
+        if (this.isRemovalSpell(spell)) {
+            if (opponent.field.length === 0) {
+                this.log(`REMOVAL SPELL: ${spell.name} - No enemy units to remove`);
+                return false;
+            }
+        }
+        
+        // Kontrola pro healing při full health
+        if (this.isHealingSpell(spell)) {
+            if (player.hero.health >= player.hero.maxHealth - 1) {
+                this.log(`HEALING SPELL: ${spell.name} - Already at full health`);
+                return false;
+            }
+        }
+        
+        // Kontrola pro draw při plné ruce
+        if (this.hasEffectKeyword(spell, 'draw')) {
+            if (player.hand.length >= 9) {
+                this.log(`DRAW SPELL: ${spell.name} - Hand too full, risk overdraw`);
+                return false;
+            }
+        }
+        
+        // Ostatní spells projdou
+        return true;
     }
 
     /**
