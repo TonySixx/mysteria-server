@@ -13,6 +13,27 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
+// Inicializace Supabase klienta
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+
+// CORS konfigurace - musí být na začátku před všemi endpointy
+const corsOrigins = (process.env.CORS_ORIGIN || "http://localhost:3000,https://mysteria.vercel.app").split(',').map(origin => origin.trim());
+
+app.use(cors({
+    origin: (origin, callback) => {
+        // Povolíme požadavky bez origin (např. z Postman nebo při lokálním vývoji)
+        if (!origin) return callback(null, true);
+        
+        if (corsOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+            callback(null, true);
+        } else {
+            console.log('CORS rejected origin:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    credentials: true
+}));
 
 // Middleware pro logování
 app.use((req, res, next) => {
@@ -254,24 +275,6 @@ process.on('SIGTERM', () => {
 });
 
 const PORT = process.env.PORT || 3001;
-
-// Upravíme CORS nastavení pro podporu více origins
-const corsOrigins = (process.env.CORS_ORIGIN || "http://localhost:3000").split(',').map(origin => origin.trim());
-
-app.use(cors({
-    origin: (origin, callback) => {
-        // Povolíme požadavky bez origin (např. z Postman nebo při lokálním vývoji)
-        if (!origin) return callback(null, true);
-        
-        if (corsOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    methods: ["GET", "POST"],
-    credentials: true
-}));
 
 server.listen(PORT, () => {
     console.log(`Server běží na portu ${PORT}`);
