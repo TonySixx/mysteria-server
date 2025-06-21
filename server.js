@@ -277,6 +277,16 @@ server.listen(PORT, () => {
     console.log(`Server běží na portu ${PORT}`);
 });
 
+// Ping endpoint pro udržení serveru aktivního
+app.get('/api/ping', (req, res) => {
+    console.log(`${new Date().toISOString()} - Ping received from client`);
+    res.json({ 
+        status: 'ok', 
+        timestamp: new Date().toISOString(),
+        message: 'Server is alive'
+    });
+});
+
 // Přidáme nové endpointy pro správu balíčků
 app.get('/api/decks', async (req, res) => {
     try {
