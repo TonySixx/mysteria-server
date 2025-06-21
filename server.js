@@ -44,19 +44,9 @@ app.use((req, res, next) => {
 // Statické soubory
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.join(__dirname, '../client/build')));
-    
-    app.get('*', (req, res) => {
-        res.sendFile(path.join(__dirname, '../client/build/index.html'));
-    });
 } else {
     app.use(express.static('public'));
 }
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send('Something broke!');
-});
 
 const gameManager = new GameManager(io);  // Předáme io instanci
 
@@ -279,13 +269,28 @@ process.on('SIGTERM', () => {
 app.use(express.json());
 
 // Ping endpoint pro udržení serveru aktivního
-app.get('/api/ping', (req, res) => {
-    console.log(`${new Date().toISOString()} - Ping received from client`);
-    res.json({ 
-        status: 'ok', 
-        timestamp: new Date().toISOString(),
-        message: 'Server is alive'
-    });
+app.get('/api/ping', async (req, res) => {
+    try {
+        console.log(`${new Date().toISOString()} - Ping received from client`);
+        
+      
+        
+        res.json({ 
+            status: 'ok', 
+            timestamp: new Date().toISOString(),
+            message: 'Server is alive',
+            environment: process.env.NODE_ENV,
+            uptime: process.uptime(),
+            version: '1.0.0'
+        });
+    } catch (error) {
+        console.error('Ping endpoint error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Server health check failed',
+            timestamp: new Date().toISOString()
+        });
+    }
 });
 
 
@@ -294,21 +299,43 @@ app.get('/api/ping', (req, res) => {
 app.get('/api/decks', async (req, res) => {
     try {
         const { user_id } = req.query;
+        
+        if (!user_id) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'user_id is required'
+            });
+        }
+        
         const { data, error } = await supabase
             .from('decks')
             .select('*')
             .eq('user_id', user_id);
 
         if (error) throw error;
-        res.json(data);
+        
+        res.json({
+            status: 'success',
+            data: data
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({
+            status: 'error',
+            message: error.message
+        });
     }
 });
 
 app.post('/api/decks', async (req, res) => {
     try {
         const { user_id, name, cards } = req.body;
+        
+        if (!user_id || !name) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'user_id and name are required'
+            });
+        }
         
         // Začneme transakci
         const { data: deck, error: deckError } = await supabase
@@ -320,19 +347,27 @@ app.post('/api/decks', async (req, res) => {
         if (deckError) throw deckError;
 
         // Vložíme karty do balíčku
-        const { error: cardsError } = await supabase
-            .from('deck_cards')
-            .insert(cards.map(card => ({
-                deck_id: deck.id,
-                card_id: card.id,
-                quantity: card.quantity
-            })));
+        if (cards && cards.length > 0) {
+            const { error: cardsError } = await supabase
+                .from('deck_cards')
+                .insert(cards.map(card => ({
+                    deck_id: deck.id,
+                    card_id: card.id,
+                    quantity: card.quantity
+                })));
 
-        if (cardsError) throw cardsError;
+            if (cardsError) throw cardsError;
+        }
 
-        res.json(deck);
+        res.status(201).json({
+            status: 'success',
+            data: deck
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({
+            status: 'error',
+            message: error.message
+        });
     }
 });
 
@@ -344,15 +379,29 @@ app.get('/api/heroes', async (req, res) => {
             .select('*');
 
         if (error) throw error;
-        res.json(data);
+        
+        res.json({
+            status: 'success',
+            data: data
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({
+            status: 'error',
+            message: error.message
+        });
     }
 });
 
 app.patch('/api/profiles/hero', async (req, res) => {
     try {
         const { user_id, hero_id } = req.body;
+        
+        if (!user_id || !hero_id) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'user_id and hero_id are required'
+            });
+        }
         
         const { data, error } = await supabase
             .from('profiles')
@@ -362,10 +411,44 @@ app.patch('/api/profiles/hero', async (req, res) => {
             .single();
 
         if (error) throw error;
-        res.json(data);
+        
+        res.json({
+            status: 'success',
+            data: data
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({
+            status: 'error',
+            message: error.message
+        });
     }
+});
+
+// Handle 404 for non-existent routes
+app.all('*', (req, res) => {
+    res.status(404).json({
+        status: 'error',
+        message: `Can't find ${req.originalUrl} on this server!`
+    });
+});
+
+// Production route for serving React app
+if (process.env.NODE_ENV === 'production') {
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, '../client/build/index.html'));
+    });
+}
+
+// Global error handling middleware - MUST be last!
+app.use((err, req, res, next) => {
+    console.error('Error occurred:', err.stack);
+    
+    // Send structured JSON error response
+    res.status(err.statusCode || 500).json({
+        status: 'error',
+        message: err.message || 'Internal Server Error',
+        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    });
 });
 
 const PORT = process.env.PORT || 3001;
