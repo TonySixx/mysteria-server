@@ -274,11 +274,7 @@ process.on('SIGTERM', () => {
     });
 });
 
-const PORT = process.env.PORT || 3001;
-
-server.listen(PORT, () => {
-    console.log(`Server běží na portu ${PORT}`);
-});
+// API Endpointy - musí být definovány před server.listen()
 
 // Ping endpoint pro udržení serveru aktivního
 app.get('/api/ping', (req, res) => {
@@ -290,7 +286,10 @@ app.get('/api/ping', (req, res) => {
     });
 });
 
-// Přidáme nové endpointy pro správu balíčků
+// Přidáme middleware pro parsing JSON (potřeba pro POST requesty)
+app.use(express.json());
+
+// Endpointy pro správu balíčků
 app.get('/api/decks', async (req, res) => {
     try {
         const { user_id } = req.query;
@@ -336,7 +335,7 @@ app.post('/api/decks', async (req, res) => {
     }
 });
 
-// Přidáme nové endpointy pro hrdiny
+// Endpointy pro hrdiny
 app.get('/api/heroes', async (req, res) => {
     try {
         const { data, error } = await supabase
@@ -366,4 +365,16 @@ app.patch('/api/profiles/hero', async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
+});
+
+const PORT = process.env.PORT || 3001;
+
+server.listen(PORT, () => {
+    console.log(`Server běží na portu ${PORT}`);
+    console.log('Available endpoints:');
+    console.log('- GET /api/ping');
+    console.log('- GET /api/decks');
+    console.log('- POST /api/decks');
+    console.log('- GET /api/heroes');
+    console.log('- PATCH /api/profiles/hero');
 });
