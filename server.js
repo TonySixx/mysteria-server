@@ -275,6 +275,8 @@ process.on('SIGTERM', () => {
 });
 
 // API Endpointy - musí být definovány před server.listen()
+// Přidáme middleware pro parsing JSON (potřeba pro POST requesty)
+app.use(express.json());
 
 // Ping endpoint pro udržení serveru aktivního
 app.get('/api/ping', (req, res) => {
@@ -286,8 +288,7 @@ app.get('/api/ping', (req, res) => {
     });
 });
 
-// Přidáme middleware pro parsing JSON (potřeba pro POST requesty)
-app.use(express.json());
+
 
 // Endpointy pro správu balíčků
 app.get('/api/decks', async (req, res) => {
