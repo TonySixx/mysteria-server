@@ -273,10 +273,6 @@ app.use(cors({
     credentials: true
 }));
 
-server.listen(PORT, () => {
-    console.log(`Server běží na portu ${PORT}`);
-});
-
 // Ping endpoint pro udržení serveru aktivního
 app.get('/api/ping', (req, res) => {
     console.log(`${new Date().toISOString()} - Ping received from client`);
@@ -363,4 +359,8 @@ app.patch('/api/profiles/hero', async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
+});
+
+server.listen(PORT, () => {
+    console.log(`Server běží na portu ${PORT}`);
 });
