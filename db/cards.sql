@@ -318,3 +318,10 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Explosive Trap', 2, NULL, NULL, 'Secret: When your opponent attacks your hero, deal 2 damage to all enemy characters.', 'explosiveTrap', 'rare', 'secret'),
     ('Ambush', 2, NULL, NULL, 'Secret: When your opponent plays a minion, summon a 3/2 Ambusher with Taunt.', 'ambush', 'rare', 'secret');
 
+-- Přidání nových karet pro spell synergy
+INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type) VALUES
+    -- Nové karty se spell synergií
+    ('Mystic Reversal', 3, NULL, NULL, 'Swap the attack and health of all friendly minions', 'mysticReversal', 'uncommon', 'spell'),
+    ('Arcane Berserker', 4, 3, 4, 'Gain +2 attack when you cast a spell', 'arcaneBerserker', 'legendary', 'unit'),
+    ('Runic Warden', 6, 4, 5, 'Taunt. Gain +2 health when you cast a spell', 'runicWarden', 'epic', 'unit');
+

@@ -773,6 +773,23 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
         }
     });
 
+    // Přidáme efekt Arcane Berserker
+    player.field.forEach(unit => {
+        if (unit.name === 'Arcane Berserker') {
+            unit.attack += 2;
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}'s</span> <span class="spell-name">Arcane Berserker</span> gained <span class="attack">+2 attack</span>`);
+        }
+    });
+
+    // Přidáme efekt Runic Warden
+    player.field.forEach(unit => {
+        if (unit.name === 'Runic Warden') {
+            unit.health += 2;
+            unit.maxHealth += 2;
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}'s</span> <span class="spell-name">Runic Warden</span> gained <span class="health">+2 health</span>`);
+        }
+    });
+
     switch (card.name) {
         case 'Fireball':
             // Fireball nyní působí pouze 6 poškození nepřátelskému hrdinovi
@@ -1366,6 +1383,38 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             var healAmount = totalMinions;
             player.hero.health = Math.min(30, player.hero.health + healAmount);
             addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Source Healing</span> restoring <span class="heal">${healAmount} health</span> based on total minions`);
+            break;
+
+        case 'Mystic Reversal':
+            let swappedUnits = 0;
+            let destroyedUnits = [];
+            
+            // Projdeme všechny přátelské jednotky a prohodíme jim útok a zdraví
+            player.field.forEach((unit, index) => {
+                if (unit) {
+                    const tempAttack = unit.attack;
+                    const tempHealth = unit.health;
+                    
+                    // Prohodíme hodnoty
+                    unit.attack = tempHealth;
+                    unit.health = tempAttack;
+                    unit.maxHealth = tempAttack;
+                    
+                    swappedUnits++;
+                    
+                    // Pokud má jednotka po prohození 0 nebo méně zdraví, označíme ji ke zničení
+                    if (unit.health <= 0) {
+                        destroyedUnits.push({unit, index});
+                    }
+                }
+            });
+            
+            // Zničíme jednotky s 0 nebo méně zdraví
+            destroyedUnits.forEach(({unit}) => {
+                addCombatLogMessage(newState, `<span class="spell-name">${unit.name}</span> was destroyed after stat swap`);
+            });
+            
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Mystic Reversal</span> swapping attack and health of ${swappedUnits} friendly minions`);
             break;
     }
 
