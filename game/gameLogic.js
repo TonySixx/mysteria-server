@@ -805,6 +805,15 @@ function handleSpellEffects(card, player, opponent, state, playerIndex) {
             addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Fireball</span> dealing <span class="damage">6 damage</span> to ${opponentName}'s hero`);
             break;
 
+        case 'Hellfire':
+            opponent.hero.health = Math.max(0, opponent.hero.health - 10);
+            newState.notification = {
+                message: `Hellfire dealt 6 damage to the ${opponentName}'s hero!`,
+                forPlayer: playerIndex
+            };
+            addCombatLogMessage(newState, `<span class="${playerIndex === 0 ? 'player-name' : 'enemy-name'}">${playerName}</span> cast <span class="spell-name">Hellfire</span> dealing <span class="damage">10 damage</span> to ${opponentName}'s hero`);
+            break;
+
         case 'Lightning Bolt':
             opponent.hero.health = Math.max(0, opponent.hero.health - 3);
             newState.notification = {

@@ -20,3 +20,8 @@ INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type)
     ('Arcane Berserker', 4, 3, 4, 'Gain +2 attack when you cast a spell', 'arcaneBerserker', 'legendary', 'unit'),
     ('Runic Warden', 6, 4, 5, 'Taunt. Gain +2 health when you cast a spell', 'runicWarden', 'epic', 'unit');
 
+
+
+INSERT INTO cards (name, mana_cost, attack, health, effect, image, rarity, type) VALUES
+    -- Nové karty se spell synergií
+    ('Hellfire', 10, NULL, NULL, 'Deal 10 damage to enemy hero', 'hellfire', 'epic', 'spell');

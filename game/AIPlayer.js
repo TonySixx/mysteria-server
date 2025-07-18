@@ -1688,6 +1688,7 @@ class AIPlayer {
     getSpellDamageValue(spell) {
         // Pro jednotlivé známé kouzla
         const knownSpells = {
+            'Hellfire':10,
             'Fireball': 6,
             'Lightning Bolt': 3,
             'Magic Arrows': 3,
